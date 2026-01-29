@@ -151,7 +151,7 @@ app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
         const result = await db.query(
-            'SELECT u.*, b.name as business_name, b.logo_url FROM users u JOIN businesses b ON u.business_id = b.id WHERE u.username = $1 AND u.password = $2',
+            'SELECT u.*, b.name as business_name, b.logo_url FROM users u LEFT JOIN businesses b ON u.business_id = b.id WHERE u.username = $1 AND u.password = $2',
             [username, password]
         );
         if (result.rows.length > 0) {
