@@ -21,9 +21,8 @@ const PayrollHelpers = {
         if (!phone) return alert("El empleado no tiene teléfono registrado.");
         Storage.showLoader(true, 'Enviando WhatsApp...');
         try {
-            const res = await fetch('/api/whatsapp/send', {
+            const res = await apiFetch('/api/whatsapp/send', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phone, message: text })
             });
             const result = await res.json();
@@ -254,6 +253,23 @@ window.togglePassword = (id) => {
 };
 
 // --- Data Persistence Layer (API) ---
+const apiFetch = async (url, options = {}) => {
+    const session = JSON.parse(localStorage.getItem('ttw_session_v2026') || '{}');
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+    };
+    if (session.business_id) headers['X-Business-ID'] = session.business_id;
+    if (session.role) headers['X-User-Role'] = session.role;
+
+    const response = await fetch(url, { ...options, headers });
+    if (response.status === 401) {
+        alert("Sesión expirada o no autorizada");
+        Auth.logout();
+    }
+    return response;
+};
+
 const Storage = {
     SCHEMA: {
         employees: 'employees',
@@ -283,8 +299,7 @@ const Storage = {
 
     async get(key) {
         try {
-            // Añadimos un timestamp para evitar que el navegador devuelva datos viejos (caché)
-            const response = await fetch(`/api/${this.SCHEMA[key]}?_t=${Date.now()}`);
+            const response = await apiFetch(`/api/${this.SCHEMA[key]}?_t=${Date.now()}`);
             if (!response.ok) throw new Error('Error al obtener datos');
             return await response.json();
         } catch (err) {
@@ -295,9 +310,8 @@ const Storage = {
 
     async add(key, data) {
         try {
-            const response = await fetch(`/api/${this.SCHEMA[key]}`, {
+            const response = await apiFetch(`/api/${this.SCHEMA[key]}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
             const result = await response.json().catch(() => ({}));
@@ -314,9 +328,8 @@ const Storage = {
 
     async update(key, id, updates) {
         try {
-            const response = await fetch(`/api/${this.SCHEMA[key]}/${id}`, {
+            const response = await apiFetch(`/api/${this.SCHEMA[key]}/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updates)
             });
             if (!response.ok) throw new Error('Error al actualizar dato');
@@ -329,7 +342,7 @@ const Storage = {
 
     async delete(key, id) {
         try {
-            const response = await fetch(`/api/${this.SCHEMA[key]}/${id}`, {
+            const response = await apiFetch(`/api/${this.SCHEMA[key]}/${id}`, {
                 method: 'DELETE'
             });
             if (!response.ok) throw new Error('Error al eliminar dato');
@@ -342,7 +355,7 @@ const Storage = {
 
     async deleteLogsByEmployee(employeeId) {
         try {
-            const response = await fetch(`/api/logs/employee/${employeeId}`, {
+            const response = await apiFetch(`/api/logs/employee/${employeeId}`, {
                 method: 'DELETE'
             });
             return response.ok;
@@ -371,7 +384,10 @@ const Auth = {
                     id: user.id,
                     username: user.username,
                     name: user.name,
-                    role: 'admin',
+                    role: user.role,
+                    business_id: user.business_id,
+                    business_name: user.business_name || 'Avantix SaaS',
+                    logo_url: user.logo_url,
                     loginTime: Date.now()
                 }));
                 return true;
@@ -397,6 +413,7 @@ const Auth = {
                     id: emp.id,
                     name: emp.name,
                     role: 'employee',
+                    business_id: emp.business_id,
                     loginTime: Date.now()
                 }));
                 return true;
@@ -440,22 +457,35 @@ const App = {
         if (appElem) appElem.style.display = 'flex';
         if (loginView) loginView.style.display = 'none';
 
+        // --- Dynamic Branding ---
+        const bizNameDisplay = document.querySelector('.sidebar-header h2');
+        if (bizNameDisplay) bizNameDisplay.textContent = user.business_name || 'Avantix SaaS';
+
+        const logoDisplay = document.querySelector('.sidebar-header .logo');
+        if (logoDisplay && user.logo_url) {
+            logoDisplay.src = user.logo_url;
+        }
+
         const userNameDisplay = document.querySelector('.username');
-        if (userNameDisplay) userNameDisplay.textContent = user.name + (user.role === 'employee' ? ' (Empleado)' : '');
+        if (userNameDisplay) userNameDisplay.textContent = user.name + (user.role === 'employee' ? ' (Empleado)' : user.role === 'super_admin' ? ' (Super Admin)' : '');
 
         // --- Role-based UI Adjustments ---
         if (user.role === 'employee') {
-            // Ocultar elementos de admin en el sidebar
             document.querySelectorAll('.nav-item').forEach(btn => {
                 const view = btn.dataset.view;
-                if (['dashboard', 'employees', 'payroll', 'benefits', 'import', 'profile'].includes(view)) {
+                if (!['calculator', 'profile'].includes(view)) {
                     btn.style.display = 'none';
                 }
             });
-
             this.setupNavigation();
-            await this.renderView('calculator'); // Los empleados solo ven la calculadora/portal
+            await this.renderView('calculator');
+        } else if (user.role === 'super_admin') {
+            document.getElementById('nav-admin-businesses').style.display = 'flex';
+            document.getElementById('nav-admin-stats').style.display = 'flex';
+            this.setupNavigation();
+            await this.renderView('adminStats');
         } else {
+            // Owner/Editor
             this.setupNavigation();
             await this.renderView('dashboard');
         }
@@ -603,8 +633,18 @@ const App = {
         const adminFields = document.getElementById('admin-fields');
         const empFields = document.getElementById('employee-fields');
         const loginTitle = document.querySelector('#login-view p');
+        const registerLink = document.getElementById('go-to-register');
 
         let loginMode = 'admin'; // 'admin' o 'employee'
+
+        if (registerLink) {
+            registerLink.onclick = (e) => {
+                e.preventDefault();
+                if (loginView) loginView.style.display = 'none';
+                if (appElem) appElem.style.display = 'flex'; // Usamos el container de app para el onboarding
+                this.renderView('registration');
+            };
+        }
 
         if (btnAdmin && btnEmp) {
             btnAdmin.onclick = () => {
@@ -691,11 +731,14 @@ const App = {
             payroll: 'Cálculo de Planillas',
             benefits: 'Prestaciones de Ley',
             import: 'Importar Datos Excel',
-            profile: 'Configuración de Mi Perfil'
+            profile: 'Configuración de Mi Perfil',
+            adminBusinesses: 'Gestión de Empresas SaaS',
+            adminStats: 'Métricas Globales',
+            registration: 'Registro de Nueva Empresa'
         };
 
         const viewTitle = document.getElementById('view-title');
-        if (viewTitle) viewTitle.textContent = titles[view] || 'Planillas Tom Tom Wok';
+        if (viewTitle) viewTitle.textContent = titles[view] || 'Planillas Avantix';
 
         await this.renderView(view, arg);
     },
@@ -748,6 +791,107 @@ window.clearTable = async (target) => {
 
 // --- UI Components & Views ---
 const Views = {
+    registration: async () => {
+        return `
+            <div class="card" style="max-width: 600px; margin: 2rem auto;">
+                <h3 style="margin-bottom: 2rem; text-align: center; color: var(--primary);">Registrar Nueva Empresa</h3>
+                <form id="registration-form" class="form-grid">
+                    <div class="form-group">
+                        <label>Nombre de la Empresa</label>
+                        <input type="text" name="businessName" placeholder="Ej: Restaurante El Sabor" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Cédula Jurídica</label>
+                        <input type="text" name="cedulaJuridica" placeholder="Ej: 3-101-123456" required>
+                    </div>
+                    <hr style="grid-column: span 2; opacity: 0.1; margin: 1rem 0;">
+                    <div class="form-group">
+                        <label>Nombre del Propietario</label>
+                        <input type="text" name="ownerName" placeholder="Ej: Juan Pérez" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Usuario para el Sistema</label>
+                        <input type="text" name="username" placeholder="juan.perez" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" name="password" placeholder="••••••••" required>
+                    </div>
+                    <div style="grid-column: span 2; margin-top: 2rem;">
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Crear Cuenta y Comenzar</button>
+                        <button type="button" class="btn btn-secondary" style="width: 100%; margin-top: 10px;" onclick="location.reload()">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        `;
+    },
+
+    adminBusinesses: async () => {
+        const businesses = await apiFetch('/api/admin/businesses').then(r => r.json());
+        return `
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h3>Empresas Registradas</h3>
+                    <button class="btn btn-primary" onclick="window.showAddBusinessModal()">+ Nueva Empresa</button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Cédula</th>
+                                <th>Estado</th>
+                                <th>Ciclo</th>
+                                <th>Creado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${businesses.map(b => `
+                                <tr>
+                                    <td><strong>${b.name}</strong></td>
+                                    <td>${b.cedula_juridica}</td>
+                                    <td><span class="badge" style="background: ${b.status === 'Active' ? 'var(--success)' : 'var(--danger)'}">${b.status}</span></td>
+                                    <td>${b.cycle_type}</td>
+                                    <td>${new Date(b.created_at).toLocaleDateString()}</td>
+                                    <td>
+                                        <button class="btn btn-secondary" onclick="window.editBusiness(${b.id})">✏️</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    },
+
+    adminStats: async () => {
+        const stats = await apiFetch('/api/admin/stats').then(r => r.json());
+        return `
+            <div class="grid-3">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">🏢</div>
+                    <div class="stat-info">
+                        <div class="stat-value">${stats.businesses}</div>
+                        <div class="stat-label">Empresas Activas</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">👥</div>
+                    <div class="stat-info">
+                        <div class="stat-value">${stats.activeEmployees}</div>
+                        <div class="stat-label">Empleados Totales</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card" style="margin-top: 2rem;">
+                <h3>Actividad Reciente</h3>
+                <p style="color: var(--text-muted);">Muro de actividad global del SaaS.</p>
+            </div>
+        `;
+    },
+
     dashboard: async () => {
         const employees = await Storage.get('employees');
         const activeEmployees = employees.filter(e => e.status === 'Active');
@@ -871,6 +1015,49 @@ const Views = {
                 </div>
             </div>
         `;
+    },
+
+    init_registration: async () => {
+        const form = document.getElementById('registration-form');
+        if (!form) return;
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            Storage.showLoader(true, 'Creando su empresa...');
+            try {
+                const res = await fetch('/api/onboarding/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    alert('Empresa creada con éxito. Ahora puede iniciar sesión.');
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (err) {
+                alert('Error de conexión');
+            } finally {
+                Storage.showLoader(false);
+            }
+        };
+    },
+
+    init_adminBusinesses: async () => {
+        window.showAddBusinessModal = () => {
+            alert("Acción de Super Admin: Abrir modal de creación de empresa (Por implementar)");
+        };
+        window.editBusiness = (id) => {
+            alert("Acción de Super Admin: Editar empresa " + id);
+        };
+    },
+
+    init_adminStats: async () => {
+        // Podríamos cargar gráficas globales aquí
     },
 
     init_dashboard: async () => {
@@ -2170,7 +2357,44 @@ const Views = {
     },
 
     profile: async () => {
+        const user = Auth.getUser();
         const users = await Storage.get('users');
+
+        let businessSection = '';
+        if (user.role === 'owner' || user.role === 'super_admin') {
+            const biz = await apiFetch('/api/settings/business').then(r => r.json()).catch(() => ({}));
+            businessSection = `
+                <div class="card-container" style="margin-top: 2rem;">
+                    <h3>🏢 Configuración de Empresa</h3>
+                    <form id="business-settings-form" class="form-grid" style="margin-top: 1.5rem;">
+                        <div class="form-group">
+                            <label>Nombre de la Empresa</label>
+                            <input type="text" name="name" value="${biz.name || ''}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Cédula Jurídica</label>
+                            <input type="text" name="cedula_juridica" value="${biz.cedula_juridica || ''}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Factor Horas Extra (Ej: 1.5)</label>
+                            <input type="number" name="default_overtime_multiplier" step="0.1" value="${biz.default_overtime_multiplier || 1.5}">
+                        </div>
+                        <div class="form-group">
+                            <label>Ciclo de Pago</label>
+                            <select name="cycle_type">
+                                <option value="Weekly" ${biz.cycle_type === 'Weekly' ? 'selected' : ''}>Semanal</option>
+                                <option value="Biweekly" ${biz.cycle_type === 'Biweekly' ? 'selected' : ''}>Quincenal</option>
+                                <option value="Monthly" ${biz.cycle_type === 'Monthly' ? 'selected' : ''}>Mensual</option>
+                            </select>
+                        </div>
+                        <div style="grid-column: span 2; margin-top: 1rem;">
+                            <button type="submit" class="btn btn-primary">Guardar Cambios de Empresa</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+        }
+
         return `
             <div class="card-container">
                 <div class="table-header">
@@ -2200,6 +2424,9 @@ const Views = {
                         </tbody>
                     </table>
                 </div>
+
+            ${businessSection}
+
             <div class="card-container" style="margin-top: 2rem; border: 1px solid var(--danger); background: rgba(239, 68, 68, 0.02);">
                 <div style="margin-bottom: 1.5rem">
                     <h3 style="color: var(--danger)">🛠️ Zona de Mantenimiento</h3>
@@ -2228,6 +2455,13 @@ const Views = {
                             <input type="text" name="username" required>
                         </div>
                         <div class="form-group">
+                            <label>Rol</label>
+                            <select name="role">
+                                <option value="editor">Editor</option>
+                                <option value="owner">Owner</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label>Contraseña (Opcional si edita)</label>
                             <div class="password-wrapper">
                                 <input type="password" name="password" id="admin-password-input">
@@ -2247,6 +2481,34 @@ const Views = {
     init_profile: async () => {
         const modal = document.getElementById('user-modal');
         const form = document.getElementById('user-form');
+        const bizForm = document.getElementById('business-settings-form');
+
+        if (bizForm) {
+            bizForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const formData = new FormData(bizForm);
+                const data = Object.fromEntries(formData.entries());
+
+                Storage.showLoader(true, 'Actualizando configuración...');
+                try {
+                    const res = await apiFetch('/api/settings/business', {
+                        method: 'PUT',
+                        body: JSON.stringify(data)
+                    });
+                    const result = await res.json();
+                    if (result.id) {
+                        alert('Configuración actualizada con éxito.');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (result.error || 'Desconocido'));
+                    }
+                } catch (err) {
+                    alert('Error de conexión');
+                } finally {
+                    Storage.showLoader(false);
+                }
+            };
+        }
 
         window.openUserModal = async (id = null) => {
             form.reset();
@@ -2261,6 +2523,7 @@ const Views = {
                 if (u) {
                     form.name.value = u.name;
                     form.username.value = u.username;
+                    form.role.value = u.role || 'editor';
                 }
             }
             if (modal) modal.showModal();
@@ -2280,7 +2543,8 @@ const Views = {
                 const id = document.getElementById('user-id-input').value;
                 const data = {
                     name: form.name.value,
-                    username: form.username.value
+                    username: form.username.value,
+                    role: form.role.value
                 };
                 if (form.password.value) data.password = form.password.value;
 

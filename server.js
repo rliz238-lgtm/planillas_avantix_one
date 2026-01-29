@@ -63,21 +63,30 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 // --- Autenticación ---
 // --- Usuarios ---
-app.get('/api/users', async (req, res) => {
+app.get('/api/users', checkAuth, async (req, res) => {
     try {
-        const result = await db.query('SELECT id, username, name, created_at FROM users ORDER BY username ASC');
+        let query = 'SELECT id, username, name, role, created_at FROM users ';
+        let params = [];
+
+        if (req.userRole !== 'super_admin') {
+            query += 'WHERE business_id = $1 ';
+            params.push(req.businessId);
+        }
+
+        query += 'ORDER BY username ASC';
+        const result = await db.query(query, params);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.post('/api/users', async (req, res) => {
-    const { username, password, name } = req.body;
+app.post('/api/users', checkAuth, async (req, res) => {
+    const { username, password, name, role } = req.body;
     try {
         const result = await db.query(
-            'INSERT INTO users (username, password, name) VALUES ($1, $2, $3) RETURNING id, username, name',
-            [username, password, name]
+            'INSERT INTO users (username, password, name, role, business_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, name, role',
+            [username, password, name, role || 'editor', req.businessId]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -85,30 +94,37 @@ app.post('/api/users', async (req, res) => {
     }
 });
 
-app.put('/api/users/:id', async (req, res) => {
+app.put('/api/users/:id', checkAuth, async (req, res) => {
     const { id } = req.params;
-    const { username, password, name } = req.body;
+    const { username, password, name, role } = req.body;
     try {
         let query = 'UPDATE users SET username=$1, name=$2';
-        let params = [username, name, id];
+        let params = [username, name];
+        let paramIdx = 3;
 
         if (password) {
-            query += ', password=$3 WHERE id=$4';
-            params = [username, name, password, id];
-        } else {
-            query += ' WHERE id=$3';
+            query += `, password=$${paramIdx++}`;
+            params.push(password);
         }
 
-        const result = await db.query(query + ' RETURNING id, username, name', params);
+        if (role) {
+            query += `, role=$${paramIdx++}`;
+            params.push(role);
+        }
+
+        query += ` WHERE id=$${paramIdx++} AND (business_id=$${paramIdx} OR $${paramIdx + 1}='super_admin')`;
+        params.push(id, req.businessId, req.userRole);
+
+        const result = await db.query(query + ' RETURNING id, username, name, role', params);
         res.json(result.rows[0]);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.delete('/api/users/:id', async (req, res) => {
+app.delete('/api/users/:id', checkAuth, async (req, res) => {
     try {
-        await db.query('DELETE FROM users WHERE id = $1', [req.params.id]);
+        await db.query('DELETE FROM users WHERE id = $1 AND (business_id = $2 OR $3 = "super_admin")', [req.params.id, req.businessId, req.userRole]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -119,10 +135,21 @@ app.delete('/api/users/:id', async (req, res) => {
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
-        const result = await db.query('SELECT * FROM users WHERE username = $1 AND password = $2', [username, password]);
+        const result = await db.query(
+            'SELECT u.*, b.name as business_name, b.logo_url FROM users u JOIN businesses b ON u.business_id = b.id WHERE u.username = $1 AND u.password = $2',
+            [username, password]
+        );
         if (result.rows.length > 0) {
             const user = result.rows[0];
-            res.json({ id: user.id, username: user.username, name: user.name });
+            res.json({
+                id: user.id,
+                username: user.username,
+                name: user.name,
+                role: user.role,
+                business_id: user.business_id,
+                business_name: user.business_name,
+                logo_url: user.logo_url
+            });
         } else {
             res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
         }
@@ -130,6 +157,21 @@ app.post('/api/login', async (req, res) => {
         res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
+
+// --- Middleware de Multi-tenancy y Roles ---
+const checkAuth = (req, res, next) => {
+    const businessId = req.headers['x-business-id'];
+    const role = req.headers['x-user-role'];
+
+    // El Super Admin puede no tener business_id asociado directamente en algunos contextos
+    if (!businessId && role !== 'super_admin') {
+        return res.status(401).json({ error: 'Empresa no identificada' });
+    }
+
+    req.businessId = businessId;
+    req.userRole = role;
+    next();
+};
 
 app.post('/api/employee-auth', async (req, res) => {
     const { pin } = req.body;
@@ -146,27 +188,26 @@ app.post('/api/employee-auth', async (req, res) => {
 });
 
 // --- Empleados ---
-app.get('/api/employees', async (req, res) => {
+app.get('/api/employees', checkAuth, async (req, res) => {
     try {
-        const result = await db.query('SELECT * FROM employees ORDER BY name ASC');
+        const result = await db.query('SELECT * FROM employees WHERE business_id = $1 ORDER BY name ASC', [req.businessId]);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.post('/api/employees', async (req, res) => {
+app.post('/api/employees', checkAuth, async (req, res) => {
     const { name, cedula, phone, pin, position, hourlyRate, status, startDate, endDate, applyCCSS, overtimeThreshold, overtimeMultiplier, enableOvertime, salaryHistory } = req.body;
 
-    // Validación de campos obligatorios
     if (!name || !hourlyRate || !startDate) {
         return res.status(400).json({ error: 'Faltan campos obligatorios: name, hourlyRate o startDate' });
     }
 
     try {
         const result = await db.query(
-            'INSERT INTO employees (name, cedula, phone, pin, position, hourly_rate, status, start_date, end_date, apply_ccss, overtime_threshold, overtime_multiplier, enable_overtime, salary_history) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *',
-            [name, cedula, phone, pin, position, hourlyRate, status || 'Active', startDate, endDate || null, applyCCSS || false, overtimeThreshold || 48, overtimeMultiplier || 1.5, enableOvertime !== false, JSON.stringify(salaryHistory || [])]
+            'INSERT INTO employees (name, cedula, phone, pin, position, hourly_rate, status, start_date, end_date, apply_ccss, overtime_threshold, overtime_multiplier, enable_overtime, salary_history, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *',
+            [name, cedula, phone, pin, position, hourlyRate, status || 'Active', startDate, endDate || null, applyCCSS || false, overtimeThreshold || 48, overtimeMultiplier || 1.5, enableOvertime !== false, JSON.stringify(salaryHistory || []), req.businessId]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -175,13 +216,13 @@ app.post('/api/employees', async (req, res) => {
     }
 });
 
-app.put('/api/employees/:id', async (req, res) => {
+app.put('/api/employees/:id', checkAuth, async (req, res) => {
     const { id } = req.params;
     const { name, cedula, phone, pin, position, hourlyRate, status, startDate, endDate, applyCCSS, overtimeThreshold, overtimeMultiplier, enableOvertime, salaryHistory } = req.body;
     try {
         const result = await db.query(
-            'UPDATE employees SET name=$1, cedula=$2, phone=$3, pin=$4, position=$5, hourly_rate=$6, status=$7, start_date=$8, end_date=$9, apply_ccss=$10, overtime_threshold=$11, overtime_multiplier=$12, enable_overtime=$13, salary_history=$14 WHERE id=$15 RETURNING *',
-            [name, cedula, phone, pin, position, hourlyRate, status, startDate, endDate, applyCCSS, overtimeThreshold, overtimeMultiplier, enableOvertime, JSON.stringify(salaryHistory || []), id]
+            'UPDATE employees SET name=$1, cedula=$2, phone=$3, pin=$4, position=$5, hourly_rate=$6, status=$7, start_date=$8, end_date=$9, apply_ccss=$10, overtime_threshold=$11, overtime_multiplier=$12, enable_overtime=$13, salary_history=$14 WHERE id=$15 AND business_id=$16 RETURNING *',
+            [name, cedula, phone, pin, position, hourlyRate, status, startDate, endDate, applyCCSS, overtimeThreshold, overtimeMultiplier, enableOvertime, JSON.stringify(salaryHistory || []), id, req.businessId]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -189,9 +230,9 @@ app.put('/api/employees/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/employees/:id', async (req, res) => {
+app.delete('/api/employees/:id', checkAuth, async (req, res) => {
     try {
-        await db.query('DELETE FROM employees WHERE id = $1', [req.params.id]);
+        await db.query('DELETE FROM employees WHERE id = $1 AND business_id = $2', [req.params.id, req.businessId]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -199,16 +240,16 @@ app.delete('/api/employees/:id', async (req, res) => {
 });
 
 // --- Logs ---
-app.get('/api/logs', async (req, res) => {
+app.get('/api/logs', checkAuth, async (req, res) => {
     try {
-        const result = await db.query('SELECT * FROM logs ORDER BY date DESC');
+        const result = await db.query('SELECT * FROM logs WHERE business_id = $1 ORDER BY date DESC', [req.businessId]);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.post('/api/logs', async (req, res) => {
+app.post('/api/logs', checkAuth, async (req, res) => {
     const { employeeId, date, hours, timeIn, timeOut, isImported, isDoubleDay, deductionHours } = req.body;
 
     if (!employeeId || isNaN(employeeId)) {
@@ -220,8 +261,8 @@ app.post('/api/logs', async (req, res) => {
 
     try {
         const result = await db.query(
-            'INSERT INTO logs (employee_id, date, hours, time_in, time_out, is_imported, is_double_day, deduction_hours) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-            [employeeId, date, hours, timeIn || null, timeOut || null, isImported || false, isDoubleDay || false, deductionHours || 0]
+            'INSERT INTO logs (employee_id, date, hours, time_in, time_out, is_imported, is_double_day, deduction_hours, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+            [employeeId, date, hours, timeIn || null, timeOut || null, isImported || false, isDoubleDay || false, deductionHours || 0, req.businessId]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -230,22 +271,22 @@ app.post('/api/logs', async (req, res) => {
     }
 });
 
-app.delete('/api/logs/:id', async (req, res) => {
+app.delete('/api/logs/:id', checkAuth, async (req, res) => {
     try {
-        await db.query('DELETE FROM logs WHERE id = $1', [req.params.id]);
+        await db.query('DELETE FROM logs WHERE id = $1 AND business_id = $2', [req.params.id, req.businessId]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.put('/api/logs/:id', async (req, res) => {
+app.put('/api/logs/:id', checkAuth, async (req, res) => {
     const { id } = req.params;
     const { employeeId, date, hours, timeIn, timeOut, isImported, isPaid, isDoubleDay, deductionHours } = req.body;
     try {
         const result = await db.query(
-            'UPDATE logs SET employee_id=$1, date=$2, hours=$3, time_in=$4, time_out=$5, is_imported=$6, is_paid=$7, is_double_day=$8, deduction_hours=$9 WHERE id=$10 RETURNING *',
-            [employeeId, date, hours, timeIn, timeOut, isImported, isPaid, isDoubleDay, deductionHours, id]
+            'UPDATE logs SET employee_id=$1, date=$2, hours=$3, time_in=$4, time_out=$5, is_imported=$6, is_paid=$7, is_double_day=$8, deduction_hours=$9 WHERE id=$10 AND business_id=$11 RETURNING *',
+            [employeeId, date, hours, timeIn, timeOut, isImported, isPaid, isDoubleDay, deductionHours, id, req.businessId]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -253,9 +294,9 @@ app.put('/api/logs/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/logs/employee/:employeeId', async (req, res) => {
+app.delete('/api/logs/employee/:employeeId', checkAuth, async (req, res) => {
     try {
-        await db.query('DELETE FROM logs WHERE employee_id = $1', [req.params.employeeId]);
+        await db.query('DELETE FROM logs WHERE employee_id = $1 AND business_id = $2', [req.params.employeeId, req.businessId]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -322,7 +363,7 @@ async function sendWhatsAppMessage(number, text) {
     });
 }
 
-app.post('/api/logs/batch', async (req, res) => {
+app.post('/api/logs/batch', checkAuth, async (req, res) => {
     const { employeeId, logs } = req.body;
 
     if (!employeeId || !logs || !Array.isArray(logs)) {
@@ -330,28 +371,26 @@ app.post('/api/logs/batch', async (req, res) => {
     }
 
     try {
-        // 1. Obtener datos del empleado
-        const empRes = await db.query('SELECT * FROM employees WHERE id = $1', [employeeId]);
-        if (empRes.rows.length === 0) return res.status(404).json({ error: 'Empleado no encontrado' });
+        // 1. Obtener datos del empleado y verificar pertenencia a empresa
+        const empRes = await db.query('SELECT * FROM employees WHERE id = $1 AND business_id = $2', [employeeId, req.businessId]);
+        if (empRes.rows.length === 0) return res.status(404).json({ error: 'Empleado no encontrado o no pertenece a su empresa' });
         const emp = empRes.rows[0];
 
         let totalH = 0;
         let totalAmt = 0;
         let summaryDetails = "";
 
-        // Iniciar transacción (opcional pero recomendado para batch)
         await db.query('BEGIN');
 
         for (const log of logs) {
             const { date, hours, timeIn, timeOut, isDoubleDay, deductionHours } = log;
             await db.query(
-                'INSERT INTO logs (employee_id, date, hours, time_in, time_out, is_imported, is_double_day, deduction_hours) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-                [employeeId, date, hours, timeIn, timeOut, false, isDoubleDay || false, deductionHours || 0]
+                'INSERT INTO logs (employee_id, date, hours, time_in, time_out, is_imported, is_double_day, deduction_hours, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+                [employeeId, date, hours, timeIn, timeOut, false, isDoubleDay || false, deductionHours || 0, req.businessId]
             );
 
             const h = parseFloat(hours);
             totalH += h;
-            // Cálculo del monto bruto considerando día doble
             const hourlyRate = parseFloat(emp.hourly_rate);
             const gross = h * hourlyRate;
             const deduction = emp.apply_ccss ? (gross * 0.1067) : 0;
@@ -383,21 +422,21 @@ app.post('/api/logs/batch', async (req, res) => {
 });
 
 // --- Pagos ---
-app.get('/api/payments', async (req, res) => {
+app.get('/api/payments', checkAuth, async (req, res) => {
     try {
-        const result = await db.query('SELECT * FROM payments ORDER BY date DESC');
+        const result = await db.query('SELECT * FROM payments WHERE business_id = $1 ORDER BY date DESC', [req.businessId]);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.post('/api/payments', async (req, res) => {
+app.post('/api/payments', checkAuth, async (req, res) => {
     const { employeeId, amount, hours, deductionCCSS, netAmount, date, isImported, logsDetail, startDate, endDate } = req.body;
     try {
         const result = await db.query(
-            'INSERT INTO payments (employee_id, amount, hours, deduction_ccss, net_amount, date, is_imported, logs_detail, start_date, end_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
-            [employeeId, amount, hours || 0, deductionCCSS || 0, netAmount || amount, date, isImported || false, JSON.stringify(logsDetail || []), startDate || null, endDate || null]
+            'INSERT INTO payments (employee_id, amount, hours, deduction_ccss, net_amount, date, is_imported, logs_detail, start_date, end_date, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
+            [employeeId, amount, hours || 0, deductionCCSS || 0, netAmount || amount, date, isImported || false, JSON.stringify(logsDetail || []), startDate || null, endDate || null, req.businessId]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -476,24 +515,115 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
 });
 
 // --- Mantenimiento ---
-app.delete('/api/maintenance/clear-all', async (req, res) => {
-    const { target } = req.query; // 'logs', 'payments', 'employees', 'all'
+app.delete('/api/maintenance/clear-all', checkAuth, async (req, res) => {
+    const { target } = req.query;
     try {
         if (target === 'logs') {
-            await db.query('DELETE FROM logs');
+            await db.query('DELETE FROM logs WHERE business_id = $1', [req.businessId]);
         } else if (target === 'payments') {
-            await db.query('DELETE FROM payments');
+            await db.query('DELETE FROM payments WHERE business_id = $1', [req.businessId]);
         } else if (target === 'employees') {
-            await db.query('DELETE FROM employees');
+            await db.query('DELETE FROM employees WHERE business_id = $1', [req.businessId]);
         } else if (target === 'all') {
-            await db.query('DELETE FROM logs');
-            await db.query('DELETE FROM payments');
-            await db.query('DELETE FROM employees');
+            await db.query('DELETE FROM logs WHERE business_id = $1', [req.businessId]);
+            await db.query('DELETE FROM payments WHERE business_id = $1', [req.businessId]);
+            await db.query('DELETE FROM employees WHERE business_id = $1', [req.businessId]);
         } else {
             return res.status(400).json({ error: 'Objetivo de limpieza no válido' });
         }
         res.json({ success: true, message: `Limpieza de ${target} completada` });
     } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Super Admin Endpoints ---
+app.get('/api/admin/businesses', checkAuth, async (req, res) => {
+    if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
+    try {
+        const result = await db.query('SELECT * FROM businesses ORDER BY created_at DESC');
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Business Settings (Owner) ---
+app.get('/api/settings/business', checkAuth, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM businesses WHERE id = $1', [req.businessId]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Empresa no encontrada' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/settings/business', checkAuth, async (req, res) => {
+    if (req.userRole !== 'owner' && req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
+    const { name, cedula_juridica, logo_url, default_overtime_multiplier, cycle_type } = req.body;
+    try {
+        const result = await db.query(
+            'UPDATE businesses SET name=$1, cedula_juridica=$2, logo_url=$3, default_overtime_multiplier=$4, cycle_type=$5 WHERE id=$6 RETURNING *',
+            [name, cedula_juridica, logo_url, default_overtime_multiplier, cycle_type, req.businessId]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/admin/businesses', checkAuth, async (req, res) => {
+    if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
+    const { name, cedula_juridica, default_overtime_multiplier, status, cycle_type } = req.body;
+    try {
+        const result = await db.query(
+            'INSERT INTO businesses (name, cedula_juridica, default_overtime_multiplier, status, cycle_type) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [name, cedula_juridica, default_overtime_multiplier || 1.5, status || 'Active', cycle_type || 'Weekly']
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/admin/stats', checkAuth, async (req, res) => {
+    if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
+    try {
+        const businesses = await db.query('SELECT COUNT(*) FROM businesses');
+        const activeEmp = await db.query('SELECT COUNT(*) FROM employees WHERE status = "Active"');
+        res.json({
+            businesses: parseInt(businesses.rows[0].count),
+            activeEmployees: parseInt(activeEmp.rows[0].count)
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Onboarding Flow ---
+app.post('/api/onboarding/register', async (req, res) => {
+    const { businessName, ownerName, username, password, cedulaJuridica } = req.body;
+    try {
+        await db.query('BEGIN');
+
+        // 1. Crear Empresa
+        const busRes = await db.query(
+            'INSERT INTO businesses (name, cedula_juridica) VALUES ($1, $2) RETURNING id',
+            [businessName, cedulaJuridica]
+        );
+        const businessId = busRes.rows[0].id;
+
+        // 2. Crear Usuario Owner
+        await db.query(
+            'INSERT INTO users (username, password, name, role, business_id) VALUES ($1, $2, $3, $4, $5)',
+            [username, password, ownerName, 'owner', businessId]
+        );
+
+        await db.query('COMMIT');
+        res.json({ success: true, businessId });
+    } catch (err) {
+        await db.query('ROLLBACK');
         res.status(500).json({ error: err.message });
     }
 });

@@ -1,7 +1,22 @@
--- Tablas para Planillas Tom Tom Wok
--- Tabla de Usuarios (Administradores)
+-- Tablas para SaaS Planilla Avantix One (Multi-tenancy)
+
+-- Tabla de Empresas (Tenants)
+CREATE TABLE IF NOT EXISTS businesses (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    cedula_juridica VARCHAR(20),
+    logo_url TEXT,
+    default_overtime_multiplier DECIMAL(10, 2) DEFAULT 1.5,
+    status VARCHAR(20) DEFAULT 'Active', -- Active, Suspended
+    cycle_type VARCHAR(20) DEFAULT 'Weekly',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla de Usuarios (Administradores y Editores)
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
+    business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL,
+    role VARCHAR(20) DEFAULT 'owner', -- super_admin, owner, editor
     username VARCHAR(50) UNIQUE NOT NULL,
     password TEXT NOT NULL,
     name VARCHAR(100),
@@ -11,6 +26,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Tabla de Empleados
 CREATE TABLE IF NOT EXISTS employees (
     id SERIAL PRIMARY KEY,
+    business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
     cedula VARCHAR(20),
     phone VARCHAR(20),
@@ -31,13 +47,14 @@ CREATE TABLE IF NOT EXISTS employees (
 -- Tabla de Logs (Registro de horas)
 CREATE TABLE IF NOT EXISTS logs (
     id SERIAL PRIMARY KEY,
+    business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE,
     employee_id INTEGER REFERENCES employees(id) ON DELETE CASCADE,
     date DATE NOT NULL,
     hours DECIMAL(10, 2) NOT NULL,
     time_in TIME,
     time_out TIME,
     is_imported BOOLEAN DEFAULT FALSE,
-    is_paid BOOLEAN DEFAULT FALSE, -- Nueva columna para control de pagos
+    is_paid BOOLEAN DEFAULT FALSE,
     is_double_day BOOLEAN DEFAULT FALSE,
     deduction_hours DECIMAL(10, 2) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -46,6 +63,7 @@ CREATE TABLE IF NOT EXISTS logs (
 -- Tabla de Pagos
 CREATE TABLE IF NOT EXISTS payments (
     id SERIAL PRIMARY KEY,
+    business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE,
     employee_id INTEGER REFERENCES employees(id) ON DELETE CASCADE,
     amount DECIMAL(12, 2) NOT NULL,
     hours DECIMAL(10, 2) DEFAULT 0,
@@ -53,43 +71,63 @@ CREATE TABLE IF NOT EXISTS payments (
     net_amount DECIMAL(12, 2) DEFAULT 0,
     date DATE NOT NULL,
     is_imported BOOLEAN DEFAULT FALSE,
+    start_date DATE,
+    end_date DATE,
+    logs_detail JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de Configuración (Key-Value)
+-- Tabla de Configuración (Key-Value por empresa)
 CREATE TABLE IF NOT EXISTS settings (
-    key VARCHAR(50) PRIMARY KEY,
-    value TEXT
+    business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE,
+    key VARCHAR(50),
+    value TEXT,
+    PRIMARY KEY (business_id, key)
 );
 
--- Migraciones de Columnas (PostgreSQL 9.6+)
-ALTER TABLE employees ADD COLUMN IF NOT EXISTS salary_history JSONB DEFAULT '[]'::jsonb;
-ALTER TABLE employees ADD COLUMN IF NOT EXISTS apply_ccss BOOLEAN DEFAULT FALSE;
-ALTER TABLE employees ADD COLUMN IF NOT EXISTS overtime_threshold DECIMAL(10, 2) DEFAULT 48;
-ALTER TABLE employees ADD COLUMN IF NOT EXISTS overtime_multiplier DECIMAL(10, 2) DEFAULT 1.5;
-ALTER TABLE employees ADD COLUMN IF NOT EXISTS enable_overtime BOOLEAN DEFAULT TRUE;
-ALTER TABLE logs ADD COLUMN IF NOT EXISTS is_paid BOOLEAN DEFAULT FALSE;
-ALTER TABLE logs ADD COLUMN IF NOT EXISTS is_imported BOOLEAN DEFAULT FALSE;
-ALTER TABLE logs ADD COLUMN IF NOT EXISTS is_double_day BOOLEAN DEFAULT FALSE;
-ALTER TABLE logs ADD COLUMN IF NOT EXISTS deduction_hours DECIMAL(10, 2) DEFAULT 0;
-ALTER TABLE logs ALTER COLUMN hours TYPE DECIMAL(10, 2); -- Asegurar precisión
+-- MIGRACIONES DE COLUMNAS (Para bases de datos existentes)
+DO $$ 
+BEGIN
+    -- Columnas para multi-tenancy
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='business_id') THEN
+        ALTER TABLE users ADD COLUMN business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='role') THEN
+        ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'owner';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='employees' AND column_name='business_id') THEN
+        ALTER TABLE employees ADD COLUMN business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='logs' AND column_name='business_id') THEN
+        ALTER TABLE logs ADD COLUMN business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payments' AND column_name='business_id') THEN
+        ALTER TABLE payments ADD COLUMN business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE;
+    END IF;
+END $$;
 
--- Migraciones para Tabla payments
-ALTER TABLE payments ADD COLUMN IF NOT EXISTS hours DECIMAL(10, 2) DEFAULT 0;
-ALTER TABLE payments ADD COLUMN IF NOT EXISTS deduction_ccss DECIMAL(12, 2) DEFAULT 0;
-ALTER TABLE payments ADD COLUMN IF NOT EXISTS net_amount DECIMAL(12, 2) DEFAULT 0;
-ALTER TABLE payments ADD COLUMN IF NOT EXISTS is_imported BOOLEAN DEFAULT FALSE;
-ALTER TABLE payments ADD COLUMN IF NOT EXISTS start_date DATE;
-ALTER TABLE payments ADD COLUMN IF NOT EXISTS end_date DATE;
-ALTER TABLE payments ADD COLUMN IF NOT EXISTS logs_detail JSONB DEFAULT '[]'::jsonb;
+-- Asegurar que la tabla settings tenga business_id si ya existía sin ella
+-- (Esto es más delicado si ya hay datos, se asume que se puede reestructurar)
+-- ALTER TABLE settings DROP CONSTRAINT IF EXISTS settings_pkey;
+-- ALTER TABLE settings ADD COLUMN IF NOT EXISTS business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE;
 
--- Insertar usuario admin por defecto
-INSERT INTO users (username, password, name) 
-VALUES ('admin', 'password1102', 'Administrador Principal')
+-- Insertar primera empresa por defecto para datos existentes
+INSERT INTO businesses (name, status) 
+VALUES ('Avantix One - Sede Principal', 'Active')
+ON CONFLICT DO NOTHING;
+
+-- Asignar todos los registros existentes a la primera empresa (si business_id es NULL)
+UPDATE users SET business_id = 1 WHERE business_id IS NULL AND role != 'super_admin';
+UPDATE employees SET business_id = 1 WHERE business_id IS NULL;
+UPDATE logs SET business_id = 1 WHERE business_id IS NULL;
+UPDATE payments SET business_id = 1 WHERE business_id IS NULL;
+
+-- Insertar usuario Super Admin
+INSERT INTO users (username, password, name, role) 
+VALUES ('superadmin', 'avantix2026', 'Super Administrador', 'super_admin')
 ON CONFLICT (username) DO NOTHING;
 
--- Insertar usuario rli001
-INSERT INTO users (username, password, name) 
-VALUES ('rli001', 'rli001', 'Usuario RLI')
-ON CONFLICT (username) DO NOTHING;
+-- Actualizar usuarios existentes con roles
+UPDATE users SET role = 'super_admin' WHERE username = 'admin';
+UPDATE users SET role = 'owner' WHERE username = 'rli001';
 

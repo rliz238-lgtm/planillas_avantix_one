@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planillas Tom Tom Wok</title>
+    <title>Planillas Avantix SaaS</title>
     <meta name="description"
         content="Sistema profesional de gestión de planillas y control de horas para restaurantes.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,7 +19,7 @@
     <!-- Vista de Login -->
     <div id="login-view" class="login-screen" style="display: none;">
         <div class="login-card">
-            <img src="img/logo_tom_tom_wok_white.png" alt="Tom Tom Wok Logo" style="width: 200px; margin-bottom: 2rem;">
+            <h1 id="login-biz-name" style="color: white; margin-bottom: 1rem;">Avantix SaaS</h1>
             <p style="color: var(--text-muted); margin-bottom: 1rem;">Sistema de Control de Planillas</p>
 
             <div id="login-error" class="login-error">
@@ -70,7 +70,11 @@
             </form>
 
             <p style="margin-top: 2rem; font-size: 0.8rem; color: var(--text-muted)">
-                © 2026 Tom Tom Wok
+                ¿No tienes una cuenta? <a href="#" id="go-to-register"
+                    style="color: var(--primary); text-decoration: none; font-weight: 600;">Regístrate aquí</a>
+            </p>
+            <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-muted)">
+                © 2026 Avantix SaaS
             </p>
         </div>
     </div>
@@ -93,7 +97,7 @@
         <aside class="sidebar" id="sidebar">
             <button class="menu-close" id="menu-close">✕</button>
             <div class="logo">
-                <img src="img/logo_tom_tom_wok_white.png" alt="Tom Tom Wok Logo">
+                <h2 id="sidebar-biz-name">Avantix</h2>
             </div>
             <nav>
                 <button class="nav-item active" data-view="dashboard">
@@ -117,6 +121,12 @@
                 <button class="nav-item" data-view="profile">
                     <span class="nav-icon">⚙️</span> Mi Perfil
                 </button>
+                <button class="nav-item" data-view="adminBusinesses" id="nav-admin-businesses" style="display: none;">
+                    <span class="nav-icon">🏢</span> Empresas
+                </button>
+                <button class="nav-item" data-view="adminStats" id="nav-admin-stats" style="display: none;">
+                    <span class="nav-icon">📈</span> Global Stats
+                </button>
             </nav>
             <div style="margin-top: auto; padding: 1rem;">
                 <button class="btn" id="logout-btn"
@@ -125,7 +135,7 @@
                 </button>
             </div>
             <div class="sidebar-footer">
-                <p>© 2026 Tom Tom Wok</p>
+                <p>© 2026 Avantix SaaS</p>
             </div>
         </aside>
 

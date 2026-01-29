@@ -23,16 +23,20 @@ const EmployeePortal = {
 
             if (response.ok) {
                 const emp = await response.json();
+                this.currentEmployee = {
+                    ...emp,
+                    hourlyRate: parseFloat(emp.hourly_rate),
+                    business_name: emp.business_name || 'Avantix SaaS'
+                };
 
-                // Normalizar datos del empleado
-                emp.hourlyRate = parseFloat(emp.hourly_rate);
-
-                this.currentEmployee = emp;
-
-                // Cargar logs del empleado desde el servidor
-                const logsResponse = await fetch('/api/logs');
-                const allLogs = await logsResponse.json();
-                this.currentLogs = allLogs.filter(l => String(l.employee_id) === String(emp.id));
+                // Cargar logs del empleado desde el servidor con headers de negocio
+                const logsResponse = await fetch('/api/logs', {
+                    headers: {
+                        'X-Business-ID': emp.business_id,
+                        'X-User-Role': 'employee'
+                    }
+                });
+                this.currentLogs = await logsResponse.json();
 
                 this.render();
                 return true;
@@ -66,7 +70,7 @@ const EmployeePortal = {
         return `
             <div class="login-container">
                 <div class="login-card">
-                    <img src="img/logo_tom_tom_wok_white.png" alt="Tom Tom Wok Logo" style="width: 200px; margin-bottom: 2rem;">
+                    <h1 style="color: white; margin-bottom: 0.5rem;">Avantix SaaS</h1>
                     <p style="color: var(--text-muted); margin-bottom: 2rem;">Portal de Empleados</p>
                     
                     <input 
@@ -117,11 +121,15 @@ const EmployeePortal = {
         return `
             <div style="padding: 1rem; max-width: 1200px; margin: 0 auto;">
                 <div class="employee-header">
-                    <h2 style="margin: 0;">👋 Hola, ${this.currentEmployee.name}</h2>
-                    <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">${this.currentEmployee.position}</p>
-                    <button class="btn" onclick="EmployeePortal.logout()" style="margin-top: 1rem; background: rgba(255,255,255,0.2);">
-                        Cerrar Sesión
-                    </button>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <h2 style="margin: 0;">👋 Hola, ${this.currentEmployee.name}</h2>
+                            <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">${this.currentEmployee.position} @ ${this.currentEmployee.business_name}</p>
+                        </div>
+                        <button class="btn" onclick="EmployeePortal.logout()" style="background: rgba(255,255,255,0.2);">
+                            Cerrar Sesión
+                        </button>
+                    </div>
                 </div>
 
                 <div class="week-summary">
@@ -324,7 +332,11 @@ const EmployeePortal = {
 
                     const response = await fetch('/api/logs', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Business-ID': this.currentEmployee.business_id,
+                            'X-User-Role': 'employee'
+                        },
                         body: JSON.stringify({
                             employeeId: this.currentEmployee.id,
                             date: date,
@@ -341,9 +353,13 @@ const EmployeePortal = {
 
                 alert(`✅ Se guardaron ${savedCount} registros de horas correctamente.`);
                 // Recargar logs para actualizar el resumen
-                const logsResponse = await fetch('/api/logs');
-                const allLogs = await logsResponse.json();
-                this.currentLogs = allLogs.filter(l => String(l.employee_id) === String(this.currentEmployee.id));
+                const logsResponse = await fetch('/api/logs', {
+                    headers: {
+                        'X-Business-ID': this.currentEmployee.business_id,
+                        'X-User-Role': 'employee'
+                    }
+                });
+                this.currentLogs = await logsResponse.json();
 
                 this.render();
             } catch (err) {
