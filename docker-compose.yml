@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: planillas-db
+    restart: always
+    environment:
+      POSTGRES_DB: planillas_tom_tom_wok
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 4a11a20ef54b01f798f7
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: planillas-backend
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://postgres:4a11a20ef54b01f798f7@db:5432/planillas_tom_tom_wok
+      PORT: 3000
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build: .
+    container_name: planillas-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

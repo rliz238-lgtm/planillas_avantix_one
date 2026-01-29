@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Empleados - Tom Tom Wok</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--primary);
+            border-radius: 20px;
+            padding: 3rem;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .pin-input {
+            font-size: 2rem;
+            text-align: center;
+            letter-spacing: 1rem;
+            padding: 1rem;
+            margin: 2rem 0;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            color: white;
+            width: 100%;
+        }
+
+        .employee-header {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            padding: 2rem;
+            border-radius: 20px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .week-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .summary-item {
+            background: rgba(99, 102, 241, 0.1);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--primary);
+        }
+
+        .summary-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .summary-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app-container"></div>
+
+    <script src="employee-portal.js"></script>
+</body>
+
+</html>

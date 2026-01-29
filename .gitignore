@@ -1,0 +1,19 @@
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+
+# Node (in case it's added later)
+node_modules/
+npm-debug.log*
+
+# Excel (temporary or data files)
+~$*.xlsx
+
+# Misc
+.gemini/
+brain/
