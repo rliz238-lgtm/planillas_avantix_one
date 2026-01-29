@@ -632,6 +632,69 @@ app.post('/api/onboarding/register', async (req, res) => {
     }
 });
 
+// --- Hotmart Webhook Integration ---
+app.post('/api/webhooks/hotmart', async (req, res) => {
+    const hottok = req.headers['x-hotmart-hottok'];
+    const expectedTok = process.env.HOTMART_HOTTOK;
+
+    // 1. Validar Seguridad
+    if (!expectedTok || hottok !== expectedTok) {
+        console.warn('⚠️ Webhook de Hotmart: Token inválido o no configurado');
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const payload = req.body;
+    console.log('📦 Hotmart Webhook Payload:', JSON.stringify(payload));
+
+    // Procesar solo si la compra está aprobada (PURCHASE_APPROVED es un evento común)
+    // Hotmart puede enviar varios eventos, adaptamos según necesites
+    const event = payload.event;
+
+    if (event === 'PURCHASE_APPROVED' || event === 'PURCHASE_COMPLETED' || (payload.data && payload.data.status === 'APPROVED')) {
+        const buyer = payload.data ? payload.data.buyer : payload.buyer;
+        const product = payload.data ? payload.data.product : payload.product;
+
+        if (!buyer || !buyer.email) {
+            return res.status(400).json({ error: 'Noy buyer info in payload' });
+        }
+
+        try {
+            await db.query('BEGIN');
+
+            const businessName = `Empresa de ${buyer.name || buyer.email}`;
+            const username = buyer.email;
+            const password = Math.random().toString(36).slice(-8); // Contraseña aleatoria temporal
+
+            // 1. Crear Empresa
+            const busRes = await db.query(
+                'INSERT INTO businesses (name) VALUES ($1) RETURNING id',
+                [businessName]
+            );
+            const businessId = busRes.rows[0].id;
+
+            // 2. Crear Usuario Owner
+            await db.query(
+                'INSERT INTO users (username, password, name, role, business_id) VALUES ($1, $2, $3, $4, $5)',
+                [username, password, buyer.name || 'Propietario', 'owner', businessId]
+            );
+
+            await db.query('COMMIT');
+
+            console.log(`✅ Provisionamiento automático exitoso para: ${buyer.email}. Pass temporal: ${password}`);
+            // Aquí podrías enviar un correo o WhatsApp con las credenciales
+
+            return res.json({ success: true, message: 'Provisioning complete' });
+        } catch (err) {
+            await db.query('ROLLBACK');
+            console.error('❌ Error en el provisionamiento de Hotmart:', err.message);
+            return res.status(500).json({ error: 'Internal Server Error' });
+        }
+    }
+
+    // Responder 200 para otros eventos para que Hotmart no reintente
+    res.json({ received: true });
+});
+
 app.listen(PORT, () => {
     console.log(`Servidor backend de Tom Tom Wok corriendo en puerto ${PORT}`);
 });
