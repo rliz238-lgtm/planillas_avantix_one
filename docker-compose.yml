@@ -3,7 +3,7 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    container_name: planillas-db
+    container_name: avantix-one-db
     restart: always
     environment:
       POSTGRES_DB: planillas_tom_tom_wok
@@ -19,19 +19,19 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    container_name: planillas-backend
+    container_name: avantix-one-backend
     restart: always
     depends_on:
       - db
     environment:
-      DATABASE_URL: postgres://postgres:4a11a20ef54b01f798f7@db:5432/planillas_tom_tom_wok
+      DATABASE_URL: postgres://avaone:ea167ca0e95c175c1051@avantix_one_db_planillas_avantixone:5432/db_planillas_avantixone?sslmode=disable
       PORT: 3000
     ports:
       - "3000:3000"
 
   frontend:
     build: .
-    container_name: planillas-frontend
+    container_name: avantix-one-frontend
     restart: always
     ports:
       - "80:80"
