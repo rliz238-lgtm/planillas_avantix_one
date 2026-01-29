@@ -2407,6 +2407,7 @@ const Views = {
                             <tr>
                                 <th>Nombre</th>
                                 <th>Usuario</th>
+                                <th>Rol</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -2415,6 +2416,7 @@ const Views = {
                                 <tr>
                                     <td>${u.name}</td>
                                     <td>${u.username}</td>
+                                    <td><span class="badge ${u.role === 'super_admin' ? 'badge-primary' : u.role === 'owner' ? 'badge-secondary' : 'badge-info'}" style="font-size: 0.8rem; padding: 2px 6px;">${u.role}</span></td>
                                     <td>
                                         <button class="btn btn-secondary" style="padding: 4px 8px;" onclick="window.openUserModal('${u.id}')">✏️</button>
                                         <button class="btn btn-danger" style="padding: 4px 8px;" onclick="window.deleteUser('${u.id}')">🗑️</button>
@@ -2457,8 +2459,9 @@ const Views = {
                         <div class="form-group">
                             <label>Rol</label>
                             <select name="role">
-                                <option value="editor">Editor</option>
-                                <option value="owner">Owner</option>
+                                <option value="editor">Admin Editor (Solo Planillas)</option>
+                                <option value="owner">Admin Dueño (Control de Empresa)</option>
+                                ${user.role === 'super_admin' ? '<option value="super_admin">Super Administrador (Global)</option>' : ''}
                             </select>
                         </div>
                         <div class="form-group">

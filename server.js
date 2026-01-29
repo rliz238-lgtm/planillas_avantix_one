@@ -99,9 +99,12 @@ app.get('/api/users', checkAuth, async (req, res) => {
 app.post('/api/users', checkAuth, async (req, res) => {
     const { username, password, name, role } = req.body;
     try {
+        // Validación de seguridad: solo un super_admin puede crear otro super_admin
+        const finalRole = (role === 'super_admin' && req.userRole !== 'super_admin') ? 'editor' : (role || 'editor');
+
         const result = await db.query(
             'INSERT INTO users (username, password, name, role, business_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, name, role',
-            [username, password, name, role || 'editor', req.businessId]
+            [username, password, name, finalRole, req.businessId]
         );
         res.json(result.rows[0]);
     } catch (err) {
