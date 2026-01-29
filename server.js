@@ -50,6 +50,21 @@ app.use((req, res, next) => {
 app.use(cors());
 app.use(express.json());
 
+// --- Middleware de Multi-tenancy y Roles ---
+const checkAuth = (req, res, next) => {
+    const businessId = req.headers['x-business-id'];
+    const role = req.headers['x-user-role'];
+
+    // El Super Admin puede no tener business_id asociado directamente en algunos contextos
+    if (!businessId && role !== 'super_admin') {
+        return res.status(401).json({ error: 'Empresa no identificada' });
+    }
+
+    req.businessId = businessId;
+    req.userRole = role;
+    next();
+};
+
 // --- SERVIR ARCHIVOS ESTÁTICOS ---
 app.use(express.static(path.join(__dirname, '')));
 
@@ -158,20 +173,6 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// --- Middleware de Multi-tenancy y Roles ---
-const checkAuth = (req, res, next) => {
-    const businessId = req.headers['x-business-id'];
-    const role = req.headers['x-user-role'];
-
-    // El Super Admin puede no tener business_id asociado directamente en algunos contextos
-    if (!businessId && role !== 'super_admin') {
-        return res.status(401).json({ error: 'Empresa no identificada' });
-    }
-
-    req.businessId = businessId;
-    req.userRole = role;
-    next();
-};
 
 app.post('/api/employee-auth', async (req, res) => {
     const { pin } = req.body;
