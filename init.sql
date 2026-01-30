@@ -5,6 +5,10 @@ CREATE TABLE IF NOT EXISTS businesses (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     cedula_juridica VARCHAR(20),
+    legal_name VARCHAR(100),
+    phone VARCHAR(20),
+    email VARCHAR(100),
+    is_sa BOOLEAN DEFAULT FALSE,
     logo_url TEXT,
     default_overtime_multiplier DECIMAL(10, 2) DEFAULT 1.5,
     status VARCHAR(20) DEFAULT 'Active', -- Active, Suspended, Expired
@@ -104,6 +108,13 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payments' AND column_name='business_id') THEN
         ALTER TABLE payments ADD COLUMN business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='businesses' AND column_name='phone') THEN
+        ALTER TABLE businesses ADD COLUMN phone VARCHAR(20);
+        ALTER TABLE businesses ADD COLUMN email VARCHAR(100);
+        ALTER TABLE businesses ADD COLUMN legal_name VARCHAR(100);
+        ALTER TABLE businesses ADD COLUMN is_sa BOOLEAN DEFAULT FALSE;
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='businesses' AND column_name='expires_at') THEN

@@ -606,11 +606,11 @@ app.get('/api/admin/businesses/:id', checkAuth, async (req, res) => {
 
 app.put('/api/admin/businesses/:id', checkAuth, async (req, res) => {
     if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
-    const { name, cedula_juridica, status, expires_at, cycle_type } = req.body;
+    const { name, cedula_juridica, status, expires_at, cycle_type, legal_name, phone, email, is_sa } = req.body;
     try {
         const result = await db.query(
-            'UPDATE businesses SET name=$1, cedula_juridica=$2, status=$3, expires_at=$4, cycle_type=$5 WHERE id=$6 RETURNING *',
-            [name, cedula_juridica, status, expires_at, cycle_type, req.params.id]
+            'UPDATE businesses SET name=$1, cedula_juridica=$2, status=$3, expires_at=$4, cycle_type=$5, legal_name=$6, phone=$7, email=$8, is_sa=$9 WHERE id=$10 RETURNING *',
+            [name, cedula_juridica, status, expires_at, cycle_type, legal_name, phone, email, is_sa || false, req.params.id]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -620,11 +620,11 @@ app.put('/api/admin/businesses/:id', checkAuth, async (req, res) => {
 
 app.post('/api/admin/businesses', checkAuth, async (req, res) => {
     if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
-    const { name, cedula_juridica, default_overtime_multiplier, status, cycle_type, expires_at } = req.body;
+    const { name, cedula_juridica, default_overtime_multiplier, status, cycle_type, expires_at, legal_name, phone, email, is_sa } = req.body;
     try {
         const result = await db.query(
-            'INSERT INTO businesses (name, cedula_juridica, default_overtime_multiplier, status, cycle_type, expires_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-            [name, cedula_juridica, default_overtime_multiplier || 1.5, status || 'Active', cycle_type || 'Weekly', expires_at || null]
+            'INSERT INTO businesses (name, cedula_juridica, default_overtime_multiplier, status, cycle_type, expires_at, legal_name, phone, email, is_sa) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+            [name, cedula_juridica, default_overtime_multiplier || 1.5, status || 'Active', cycle_type || 'Weekly', expires_at || null, legal_name, phone, email, is_sa || false]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -648,14 +648,14 @@ app.get('/api/admin/stats', checkAuth, async (req, res) => {
 
 // --- Onboarding Flow ---
 app.post('/api/onboarding/register', async (req, res) => {
-    const { businessName, ownerName, username, password, cedulaJuridica } = req.body;
+    const { businessName, ownerName, username, password, cedulaJuridica, email, phone, is_sa } = req.body;
     try {
         await db.query('BEGIN');
 
         // 1. Crear Empresa
         const busRes = await db.query(
-            'INSERT INTO businesses (name, cedula_juridica) VALUES ($1, $2) RETURNING id',
-            [businessName, cedulaJuridica]
+            'INSERT INTO businesses (name, cedula_juridica, email, phone, is_sa) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+            [businessName, cedulaJuridica, email, phone, is_sa === 'on' || is_sa === true]
         );
         const businessId = busRes.rows[0].id;
 

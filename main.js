@@ -796,24 +796,40 @@ const Views = {
             <div class="card" style="max-width: 600px; margin: 2rem auto;">
                 <h3 style="margin-bottom: 2rem; text-align: center; color: var(--primary);">Registrar Nueva Empresa</h3>
                 <form id="registration-form" class="form-grid">
-                    <div class="form-group">
-                        <label>Nombre de la Empresa</label>
+                    <div class="form-group" style="grid-column: span 2">
+                        <label>Nombre Comercial de la Empresa</label>
                         <input type="text" name="businessName" placeholder="Ej: Restaurante El Sabor" required>
                     </div>
                     <div class="form-group">
-                        <label>Cédula Jurídica</label>
+                        <label>Cédula Jurídica / Física</label>
                         <input type="text" name="cedulaJuridica" placeholder="Ej: 3-101-123456" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Razon Social (Opcional)</label>
+                        <input type="text" name="legal_name" placeholder="Ej: Inversiones del Norte S.A.">
+                    </div>
+                    <div class="form-group">
+                        <label>Correo Electrónico</label>
+                        <input type="email" name="email" placeholder="contacto@empresa.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="tel" name="phone" placeholder="Ej: 8888-8888" required>
+                    </div>
+                    <div class="form-group" style="grid-column: span 2; display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" name="is_sa" id="reg-is-sa" style="width: auto;">
+                        <label for="reg-is-sa" style="margin: 0;">¿Es una Sociedad Anónima (S.A.)?</label>
                     </div>
                     <hr style="grid-column: span 2; opacity: 0.1; margin: 1rem 0;">
                     <div class="form-group">
-                        <label>Nombre del Propietario</label>
+                        <label>Nombre del Dueño/Usuario</label>
                         <input type="text" name="ownerName" placeholder="Ej: Juan Pérez" required>
                     </div>
                     <div class="form-group">
                         <label>Usuario para el Sistema</label>
                         <input type="text" name="username" placeholder="juan.perez" required>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" style="grid-column: span 2">
                         <label>Contraseña</label>
                         <input type="password" name="password" placeholder="••••••••" required>
                     </div>
@@ -864,20 +880,44 @@ const Views = {
                 </div>
             </div>
 
-            <!-- Modal de Gestión de Empresa -->
+            <!-- Modal de Gestión de Empresa (Popup Premium) -->
             <div id="business-modal" class="modal">
-                <div class="modal-content">
-                    <h3 id="business-modal-title">Nueva Empresa</h3>
+                <div class="modal-content" style="max-width: 800px;">
+                    <span class="close" onclick="document.getElementById('business-modal').style.display='none'">&times;</span>
+                    <h2 id="business-modal-title" style="margin-bottom: 2rem; color: var(--primary);">Gestión de Empresa</h2>
                     <form id="business-form" class="form-grid">
                         <input type="hidden" name="id" id="business-id">
-                        <div class="form-group">
-                            <label>Nombre de la Empresa</label>
-                            <input type="text" name="name" id="business-name" required>
+                        
+                        <div style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 20px; margin-bottom: 10px;">
+                            <div class="form-group">
+                                <label>Nombre Comercial</label>
+                                <input type="text" name="name" id="business-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Razón Social (Legal)</label>
+                                <input type="text" name="legal_name" id="business-legal-name">
+                            </div>
+                            <div class="form-group">
+                                <label>Cédula Jurídica / Usuario</label>
+                                <input type="text" name="cedula_juridica" id="business-cedula">
+                            </div>
+                            <div class="form-group" style="display: flex; align-items: center; gap: 10px; padding-top: 30px;">
+                                <input type="checkbox" name="is_sa" id="business-is-sa" style="width: auto;">
+                                <label for="business-is-sa" style="margin: 0;">¿Es S.A.?</label>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Cédula Jurídica</label>
-                            <input type="text" name="cedula_juridica" id="business-cedula">
+
+                        <div style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 20px; margin-bottom: 10px;">
+                            <div class="form-group">
+                                <label>Correo Electrónico</label>
+                                <input type="email" name="email" id="business-email">
+                            </div>
+                            <div class="form-group">
+                                <label>Teléfono de Contacto</label>
+                                <input type="tel" name="phone" id="business-phone">
+                            </div>
                         </div>
+
                         <div class="form-group">
                             <label>Estado de Cuenta</label>
                             <select name="status" id="business-status">
@@ -895,15 +935,16 @@ const Views = {
                             </select>
                         </div>
                         <div class="form-group" style="grid-column: span 2">
-                            <label>Fecha de Vencimiento de Acceso</label>
+                            <label>Fecha de Vencimiento de Acceso (Prorrogar)</label>
                             <input type="date" name="expires_at" id="business-expiry">
-                            <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 5px;">
-                                * Tras esta fecha, la empresa no podrá entrar al sistema.
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;">
+                                * Tras esta fecha, el acceso será bloqueado automáticamente.
                             </p>
                         </div>
+                        
                         <div style="grid-column: span 2; display: flex; gap: 10px; margin-top: 20px;">
-                            <button type="submit" class="btn btn-primary" style="flex: 1">Guardar Cambios</button>
-                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('business-modal').style.display='none'">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" style="flex: 2; padding: 12px;">Guardar Cambios</button>
+                            <button type="button" class="btn btn-secondary" style="flex: 1" onclick="document.getElementById('business-modal').style.display='none'">Cancelar</button>
                         </div>
                     </form>
                 </div>
@@ -1107,20 +1148,31 @@ const Views = {
             const biz = await apiFetch(`/api/admin/businesses/${id}`).then(r => r.json());
             document.getElementById('business-id').value = biz.id;
             document.getElementById('business-name').value = biz.name;
+            document.getElementById('business-legal-name').value = biz.legal_name || '';
+            document.getElementById('business-email').value = biz.email || '';
+            document.getElementById('business-phone').value = biz.phone || '';
             document.getElementById('business-cedula').value = biz.cedula_juridica || '';
             document.getElementById('business-status').value = biz.status;
             document.getElementById('business-cycle').value = biz.cycle_type;
+            document.getElementById('business-is-sa').checked = biz.is_sa;
+
             if (biz.expires_at) {
                 document.getElementById('business-expiry').value = new Date(biz.expires_at).toISOString().split('T')[0];
+            } else {
+                document.getElementById('business-expiry').value = '';
             }
-            document.getElementById('business-modal-title').innerText = 'Editar Empresa';
+            document.getElementById('business-modal-title').innerText = 'Editar Empresa / Prorrogar';
             modal.style.display = 'flex';
         };
 
         form.onsubmit = async (e) => {
             e.preventDefault();
             const id = document.getElementById('business-id').value;
-            const data = Object.fromEntries(new FormData(form).entries());
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // Handle checkbox for SA
+            data.is_sa = document.getElementById('business-is-sa').checked;
 
             const method = id ? 'PUT' : 'POST';
             const url = id ? `/api/admin/businesses/${id}` : '/api/admin/businesses';
