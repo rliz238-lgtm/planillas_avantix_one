@@ -143,7 +143,7 @@ app.put('/api/users/:id', checkAuth, async (req, res) => {
 
 app.delete('/api/users/:id', checkAuth, async (req, res) => {
     try {
-        await db.query('DELETE FROM users WHERE id = $1 AND (business_id = $2 OR $3 = "super_admin")', [req.params.id, req.businessId, req.userRole]);
+        await db.query('DELETE FROM users WHERE id = $1 AND (business_id = $2 OR $3 = \'super_admin\')', [req.params.id, req.businessId, req.userRole]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -596,7 +596,7 @@ app.get('/api/admin/stats', checkAuth, async (req, res) => {
     if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
     try {
         const businesses = await db.query('SELECT COUNT(*) FROM businesses');
-        const activeEmp = await db.query('SELECT COUNT(*) FROM employees WHERE status = "Active"');
+        const activeEmp = await db.query("SELECT COUNT(*) FROM employees WHERE status = 'Active'");
         res.json({
             businesses: parseInt(businesses.rows[0].count),
             activeEmployees: parseInt(activeEmp.rows[0].count)
