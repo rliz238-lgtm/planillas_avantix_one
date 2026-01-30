@@ -52,13 +52,28 @@ app.use(cors());
 app.use(express.json());
 
 // --- Middleware de Multi-tenancy y Roles ---
-const checkAuth = (req, res, next) => {
+const checkAuth = async (req, res, next) => {
     const businessId = req.headers['x-business-id'];
     const role = req.headers['x-user-role'];
 
     // El Super Admin puede no tener business_id asociado directamente en algunos contextos
     if (!businessId && role !== 'super_admin') {
         return res.status(401).json({ error: 'Empresa no identificada' });
+    }
+
+    if (businessId && role !== 'super_admin') {
+        try {
+            const biz = await db.query('SELECT status, expires_at FROM businesses WHERE id = $1', [businessId]);
+            if (biz.rows.length > 0) {
+                const b = biz.rows[0];
+                if (b.status === 'Suspended') return res.status(403).json({ error: 'Cuenta suspendida por administración.' });
+                if (b.expires_at && new Date(b.expires_at) < new Date()) {
+                    return res.status(403).json({ error: 'Suscripción vencida. Favor renovar.' });
+                }
+            }
+        } catch (e) {
+            console.error('CheckAuth Error:', e);
+        }
     }
 
     req.businessId = businessId;
@@ -578,13 +593,38 @@ app.put('/api/settings/business', checkAuth, async (req, res) => {
     }
 });
 
-app.post('/api/admin/businesses', checkAuth, async (req, res) => {
+// --- Admin Global Business Management ---
+app.get('/api/admin/businesses/:id', checkAuth, async (req, res) => {
     if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
-    const { name, cedula_juridica, default_overtime_multiplier, status, cycle_type } = req.body;
+    try {
+        const result = await db.query('SELECT * FROM businesses WHERE id = $1', [req.params.id]);
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/admin/businesses/:id', checkAuth, async (req, res) => {
+    if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
+    const { name, cedula_juridica, status, expires_at, cycle_type } = req.body;
     try {
         const result = await db.query(
-            'INSERT INTO businesses (name, cedula_juridica, default_overtime_multiplier, status, cycle_type) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [name, cedula_juridica, default_overtime_multiplier || 1.5, status || 'Active', cycle_type || 'Weekly']
+            'UPDATE businesses SET name=$1, cedula_juridica=$2, status=$3, expires_at=$4, cycle_type=$5 WHERE id=$6 RETURNING *',
+            [name, cedula_juridica, status, expires_at, cycle_type, req.params.id]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/admin/businesses', checkAuth, async (req, res) => {
+    if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
+    const { name, cedula_juridica, default_overtime_multiplier, status, cycle_type, expires_at } = req.body;
+    try {
+        const result = await db.query(
+            'INSERT INTO businesses (name, cedula_juridica, default_overtime_multiplier, status, cycle_type, expires_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            [name, cedula_juridica, default_overtime_multiplier || 1.5, status || 'Active', cycle_type || 'Weekly', expires_at || null]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -666,10 +706,14 @@ app.post('/api/webhooks/hotmart', async (req, res) => {
             const username = buyer.email;
             const password = Math.random().toString(36).slice(-8); // Contraseña aleatoria temporal
 
+            // Hotmart: Acceso a un año y 7 dias de prueba gratuita
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + 365 + 7);
+
             // 1. Crear Empresa
             const busRes = await db.query(
-                'INSERT INTO businesses (name) VALUES ($1) RETURNING id',
-                [businessName]
+                'INSERT INTO businesses (name, status, expires_at) VALUES ($1, $2, $3) RETURNING id',
+                [businessName, 'Active', expiresAt]
             );
             const businessId = busRes.rows[0].id;
 

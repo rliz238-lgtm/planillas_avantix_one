@@ -7,8 +7,9 @@ CREATE TABLE IF NOT EXISTS businesses (
     cedula_juridica VARCHAR(20),
     logo_url TEXT,
     default_overtime_multiplier DECIMAL(10, 2) DEFAULT 1.5,
-    status VARCHAR(20) DEFAULT 'Active', -- Active, Suspended
+    status VARCHAR(20) DEFAULT 'Active', -- Active, Suspended, Expired
     cycle_type VARCHAR(20) DEFAULT 'Weekly',
+    expires_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -103,6 +104,10 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payments' AND column_name='business_id') THEN
         ALTER TABLE payments ADD COLUMN business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='businesses' AND column_name='expires_at') THEN
+        ALTER TABLE businesses ADD COLUMN expires_at TIMESTAMP NULL;
     END IF;
 
     -- Asegurar que el nombre de la empresa sea único para evitar duplicados en el inicio

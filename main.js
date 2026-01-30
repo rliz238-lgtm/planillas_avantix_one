@@ -841,8 +841,8 @@ const Views = {
                                 <th>Nombre</th>
                                 <th>Cédula</th>
                                 <th>Estado</th>
+                                <th>Vencimiento</th>
                                 <th>Ciclo</th>
-                                <th>Creado</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -850,17 +850,62 @@ const Views = {
                             ${businesses.map(b => `
                                 <tr>
                                     <td><strong>${b.name}</strong></td>
-                                    <td>${b.cedula_juridica}</td>
-                                    <td><span class="badge" style="background: ${b.status === 'Active' ? 'var(--success)' : 'var(--danger)'}">${b.status}</span></td>
+                                    <td>${b.cedula_juridica || '-'}</td>
+                                    <td><span class="badge" style="background: ${b.status === 'Active' ? 'var(--success)' : (b.status === 'Suspended' ? 'var(--danger)' : 'var(--warning)')}">${b.status}</span></td>
+                                    <td>${b.expires_at ? new Date(b.expires_at).toLocaleDateString() : 'Ilimitado'}</td>
                                     <td>${b.cycle_type}</td>
-                                    <td>${new Date(b.created_at).toLocaleDateString()}</td>
                                     <td>
-                                        <button class="btn btn-secondary" onclick="window.editBusiness(${b.id})">✏️</button>
+                                        <button class="btn btn-secondary" onclick="window.editBusiness(${b.id})">✏️ Editar / Prorrogar</button>
                                     </td>
                                 </tr>
                             `).join('')}
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Modal de Gestión de Empresa -->
+            <div id="business-modal" class="modal">
+                <div class="modal-content">
+                    <h3 id="business-modal-title">Nueva Empresa</h3>
+                    <form id="business-form" class="form-grid">
+                        <input type="hidden" name="id" id="business-id">
+                        <div class="form-group">
+                            <label>Nombre de la Empresa</label>
+                            <input type="text" name="name" id="business-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Cédula Jurídica</label>
+                            <input type="text" name="cedula_juridica" id="business-cedula">
+                        </div>
+                        <div class="form-group">
+                            <label>Estado de Cuenta</label>
+                            <select name="status" id="business-status">
+                                <option value="Active">Activa</option>
+                                <option value="Suspended">Suspendida (Bloqueada)</option>
+                                <option value="Expired">Vencida</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo de Ciclo</label>
+                            <select name="cycle_type" id="business-cycle">
+                                <option value="Weekly">Semanal</option>
+                                <option value="Biweekly">Quincenal</option>
+                                <option value="Monthly">Mensual</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="grid-column: span 2">
+                            <label>Fecha de Vencimiento de Acceso</label>
+                            <input type="date" name="expires_at" id="business-expiry">
+                            <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 5px;">
+                                * Tras esta fecha, la empresa no podrá entrar al sistema.
+                            </p>
+                        </div>
+                        <div style="grid-column: span 2; display: flex; gap: 10px; margin-top: 20px;">
+                            <button type="submit" class="btn btn-primary" style="flex: 1">Guardar Cambios</button>
+                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('business-modal').style.display='none'">Cancelar</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         `;
@@ -1048,11 +1093,57 @@ const Views = {
     },
 
     init_adminBusinesses: async () => {
+        const modal = document.getElementById('business-modal');
+        const form = document.getElementById('business-form');
+
         window.showAddBusinessModal = () => {
-            alert("Acción de Super Admin: Abrir modal de creación de empresa (Por implementar)");
+            form.reset();
+            document.getElementById('business-id').value = '';
+            document.getElementById('business-modal-title').innerText = 'Nueva Empresa';
+            modal.style.display = 'flex';
         };
-        window.editBusiness = (id) => {
-            alert("Acción de Super Admin: Editar empresa " + id);
+
+        window.editBusiness = async (id) => {
+            const biz = await apiFetch(`/api/admin/businesses/${id}`).then(r => r.json());
+            document.getElementById('business-id').value = biz.id;
+            document.getElementById('business-name').value = biz.name;
+            document.getElementById('business-cedula').value = biz.cedula_juridica || '';
+            document.getElementById('business-status').value = biz.status;
+            document.getElementById('business-cycle').value = biz.cycle_type;
+            if (biz.expires_at) {
+                document.getElementById('business-expiry').value = new Date(biz.expires_at).toISOString().split('T')[0];
+            }
+            document.getElementById('business-modal-title').innerText = 'Editar Empresa';
+            modal.style.display = 'flex';
+        };
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('business-id').value;
+            const data = Object.fromEntries(new FormData(form).entries());
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/admin/businesses/${id}` : '/api/admin/businesses';
+
+            Storage.showLoader(true, 'Guardando...');
+            try {
+                const res = await apiFetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    modal.style.display = 'none';
+                    location.reload();
+                } else {
+                    const err = await res.json();
+                    alert('Error: ' + err.error);
+                }
+            } catch (err) {
+                alert('Error de conexión');
+            } finally {
+                Storage.showLoader(false);
+            }
         };
     },
 
