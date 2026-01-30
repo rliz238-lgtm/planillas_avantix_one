@@ -8,6 +8,7 @@ const db = require('./db');
 
 const app = express();
 // Puerto 80 para producción en Easypanel
+// Última actualización SaaS: 2026-01-30 00:22 (CheckAuth Fix)
 const PORT = process.env.PORT || 80;
 
 // --- DIAGNÓSTICO Y AUTO-INICIALIZACIÓN ---
