@@ -879,76 +879,6 @@ const Views = {
                     </table>
                 </div>
             </div>
-
-            <!-- Modal de Gestión de Empresa (Popup Premium) -->
-            <div id="business-modal" class="modal">
-                <div class="modal-content" style="max-width: 800px;">
-                    <span class="close" onclick="document.getElementById('business-modal').style.display='none'">&times;</span>
-                    <h2 id="business-modal-title" style="margin-bottom: 2rem; color: var(--primary);">Gestión de Empresa</h2>
-                    <form id="business-form" class="form-grid">
-                        <input type="hidden" name="id" id="business-id">
-                        
-                        <div style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 20px; margin-bottom: 10px;">
-                            <div class="form-group">
-                                <label>Nombre Comercial</label>
-                                <input type="text" name="name" id="business-name" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Razón Social (Legal)</label>
-                                <input type="text" name="legal_name" id="business-legal-name">
-                            </div>
-                            <div class="form-group">
-                                <label>Cédula Jurídica / Usuario</label>
-                                <input type="text" name="cedula_juridica" id="business-cedula">
-                            </div>
-                            <div class="form-group" style="display: flex; align-items: center; gap: 10px; padding-top: 30px;">
-                                <input type="checkbox" name="is_sa" id="business-is-sa" style="width: auto;">
-                                <label for="business-is-sa" style="margin: 0;">¿Es S.A.?</label>
-                            </div>
-                        </div>
-
-                        <div style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 20px; margin-bottom: 10px;">
-                            <div class="form-group">
-                                <label>Correo Electrónico</label>
-                                <input type="email" name="email" id="business-email">
-                            </div>
-                            <div class="form-group">
-                                <label>Teléfono de Contacto</label>
-                                <input type="tel" name="phone" id="business-phone">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Estado de Cuenta</label>
-                            <select name="status" id="business-status">
-                                <option value="Active">Activa</option>
-                                <option value="Suspended">Suspendida (Bloqueada)</option>
-                                <option value="Expired">Vencida</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Tipo de Ciclo</label>
-                            <select name="cycle_type" id="business-cycle">
-                                <option value="Weekly">Semanal</option>
-                                <option value="Biweekly">Quincenal</option>
-                                <option value="Monthly">Mensual</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="grid-column: span 2">
-                            <label>Fecha de Vencimiento de Acceso (Prorrogar)</label>
-                            <input type="date" name="expires_at" id="business-expiry">
-                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;">
-                                * Tras esta fecha, el acceso será bloqueado automáticamente.
-                            </p>
-                        </div>
-                        
-                        <div style="grid-column: span 2; display: flex; gap: 10px; margin-top: 20px;">
-                            <button type="submit" class="btn btn-primary" style="flex: 2; padding: 12px;">Guardar Cambios</button>
-                            <button type="button" class="btn btn-secondary" style="flex: 1" onclick="document.getElementById('business-modal').style.display='none'">Cancelar</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
         `;
     },
 
@@ -1141,7 +1071,7 @@ const Views = {
             form.reset();
             document.getElementById('business-id').value = '';
             document.getElementById('business-modal-title').innerText = 'Nueva Empresa';
-            modal.style.display = 'flex';
+            modal.showModal();
         };
 
         window.editBusiness = async (id) => {
@@ -1162,7 +1092,7 @@ const Views = {
                 document.getElementById('business-expiry').value = '';
             }
             document.getElementById('business-modal-title').innerText = 'Editar Empresa / Prorrogar';
-            modal.style.display = 'flex';
+            modal.showModal();
         };
 
         form.onsubmit = async (e) => {
@@ -1185,7 +1115,7 @@ const Views = {
                     body: JSON.stringify(data)
                 });
                 if (res.ok) {
-                    modal.style.display = 'none';
+                    modal.close();
                     location.reload();
                 } else {
                     const err = await res.json();
