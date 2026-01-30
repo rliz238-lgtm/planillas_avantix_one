@@ -3,7 +3,7 @@
 -- Tabla de Empresas (Tenants)
 CREATE TABLE IF NOT EXISTS businesses (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    name VARCHAR(100) NOT NULL UNIQUE,
     cedula_juridica VARCHAR(20),
     logo_url TEXT,
     default_overtime_multiplier DECIMAL(10, 2) DEFAULT 1.5,
@@ -104,6 +104,13 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payments' AND column_name='business_id') THEN
         ALTER TABLE payments ADD COLUMN business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE;
     END IF;
+
+    -- Asegurar que el nombre de la empresa sea único para evitar duplicados en el inicio
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'businesses_name_unique') THEN
+        -- Limpiar duplicados accidentales antes de aplicar restricción
+        DELETE FROM businesses WHERE id NOT IN (SELECT MIN(id) FROM businesses GROUP BY name);
+        ALTER TABLE businesses ADD CONSTRAINT businesses_name_unique UNIQUE (name);
+    END IF;
 END $$;
 
 -- Asegurar que la tabla settings tenga business_id si ya existía sin ella
@@ -114,7 +121,7 @@ END $$;
 -- Insertar primera empresa por defecto para datos existentes
 INSERT INTO businesses (name, status) 
 VALUES ('Avantix One - Sede Principal', 'Active')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (name) DO NOTHING;
 
 -- Asignar todos los registros existentes a la primera empresa (si business_id es NULL)
 UPDATE users SET business_id = 1 WHERE business_id IS NULL AND role != 'super_admin';
