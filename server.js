@@ -802,7 +802,22 @@ app.post('/api/webhooks/hotmart', async (req, res) => {
             await db.query('COMMIT');
 
             console.log(`✅ Provisionamiento automático exitoso para: ${buyer.email}. Pass temporal: ${password}`);
-            // Aquí podrías enviar un correo o WhatsApp con las credenciales
+
+            // --- Envío de Notificación Automática vía WhatsApp ---
+            const buyerPhone = buyer.phone || (payload.data && payload.data.buyer ? payload.data.buyer.checkout_phone : null);
+
+            if (buyerPhone) {
+                const welcomeMsg = `*¡Bienvenido a Avantix One!* 🚀\n\nHola ${buyer.name || 'Propietario'},\n\nTu acceso a la plataforma de planillas ya está listo. Aquí tienes tus credenciales:\n\n*🌐 URL:* https://tu-dominio.com\n*👤 Usuario:* ${username}\n*🔑 Contraseña:* ${password}\n\nTe recomendamos cambiar tu contraseña una vez que ingreses.`;
+
+                try {
+                    await sendWhatsAppMessage(buyerPhone, welcomeMsg);
+                    console.log(`📲 Credenciales enviadas por WhatsApp a ${buyerPhone}`);
+                } catch (wsErr) {
+                    console.error(`⚠️ No se pudo enviar el WhatsApp de bienvenida: ${wsErr.message}`);
+                }
+            } else {
+                console.warn(`📢 No se encontró teléfono para enviar credenciales a ${buyer.email}`);
+            }
 
             return res.json({ success: true, message: 'Provisioning complete' });
         } catch (err) {
