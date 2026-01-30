@@ -598,7 +598,7 @@ app.get('/api/admin/businesses/:id', checkAuth, async (req, res) => {
     if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
     try {
         const result = await db.query(`
-            SELECT b.*, u.name as owner_name, u.last_name as owner_last_name, u.email as owner_email, u.phone as owner_phone
+            SELECT b.*, u.name as owner_name, u.last_name as owner_last_name, u.email as owner_email, u.phone as owner_phone, u.username as owner_username
             FROM businesses b
             LEFT JOIN users u ON u.business_id = b.id AND u.role = 'owner'
             WHERE b.id = $1

@@ -798,6 +798,40 @@ const Views = {
                 <form id="registration-form" class="form-grid">
                     
                     <div style="grid-column: span 2;">
+                        <h4 style="color: var(--primary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 15px;">👤 Información del Usuario (Dueño)</h4>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" name="ownerName" placeholder="Ej: Juan" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Apellidos</label>
+                        <input type="text" name="ownerLastName" placeholder="Ej: Pérez" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Correo Electrónico (Será su Usuario)</label>
+                        <input type="email" name="ownerEmail" id="reg-owner-email" placeholder="juan@ejemplo.com" required oninput="document.getElementById('reg-owner-username').value = this.value">
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="tel" name="ownerPhone" placeholder="Ej: 8888-8888" required>
+                    </div>
+
+                    <div style="grid-column: span 2; margin-top: 10px;">
+                        <h4 style="color: var(--primary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 15px;">🔐 Credenciales de Acceso</h4>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Usuario</label>
+                        <input type="text" name="username" id="reg-owner-username" placeholder="juan@ejemplo.com" readonly required style="background: rgba(255,255,255,0.02); opacity: 0.8;">
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" name="password" placeholder="••••••••" required>
+                    </div>
+
+                    <div style="grid-column: span 2; margin-top: 20px;">
                         <h4 style="color: var(--primary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 15px;">🏢 Información de la Empresa</h4>
                     </div>
 
@@ -846,40 +880,6 @@ const Views = {
                     <div class="form-group" style="grid-column: span 2">
                         <label>Dirección Exacta</label>
                         <textarea name="address" rows="2" style="width: 100%; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px;"></textarea>
-                    </div>
-
-                    <div style="grid-column: span 2; margin-top: 20px;">
-                        <h4 style="color: var(--primary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 15px;">👤 Información del Usuario (Dueño)</h4>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Nombre</label>
-                        <input type="text" name="ownerName" placeholder="Ej: Juan" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Apellidos</label>
-                        <input type="text" name="ownerLastName" placeholder="Ej: Pérez" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Correo Electrónico</label>
-                        <input type="email" name="ownerEmail" placeholder="juan@ejemplo.com" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Teléfono</label>
-                        <input type="tel" name="ownerPhone" placeholder="Ej: 8888-8888" required>
-                    </div>
-
-                    <div style="grid-column: span 2; margin-top: 20px;">
-                        <h4 style="color: var(--primary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 15px;">🔐 Credenciales de Acceso</h4>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Usuario</label>
-                        <input type="text" name="username" placeholder="juan.perez" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Contraseña</label>
-                        <input type="password" name="password" placeholder="••••••••" required>
                     </div>
 
                     <div style="grid-column: span 2; margin-top: 2.5rem;">
@@ -1165,6 +1165,7 @@ const Views = {
             document.getElementById('owner-lastname').value = biz.owner_last_name || '';
             document.getElementById('owner-email').value = biz.owner_email || '';
             document.getElementById('owner-phone').value = biz.owner_phone || '';
+            document.getElementById('owner-username').value = biz.owner_username || '';
 
             document.getElementById('business-status').value = biz.status;
             document.getElementById('business-cycle').value = biz.cycle_type;
