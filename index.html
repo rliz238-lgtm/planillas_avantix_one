@@ -304,44 +304,103 @@
     </dialog>
 
     <dialog id="business-modal">
-        <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-content" style="max-width: 900px;">
             <button class="modal-close-btn" onclick="document.getElementById('business-modal').close()">✕</button>
             <h2 id="business-modal-title" style="margin-bottom: 2rem; color: var(--primary);">Gestión de Empresa</h2>
             <form id="business-form" class="form-grid">
                 <input type="hidden" name="id" id="business-id">
 
-                <div
-                    style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 20px; margin-bottom: 10px;">
-                    <div class="form-group">
-                        <label>Nombre Comercial</label>
-                        <input type="text" name="name" id="business-name" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Razón Social (Legal)</label>
-                        <input type="text" name="legal_name" id="business-legal-name">
-                    </div>
-                    <div class="form-group">
-                        <label>Cédula Jurídica / Usuario</label>
-                        <input type="text" name="cedula_juridica" id="business-cedula">
-                    </div>
-                    <div class="form-group" style="display: flex; align-items: center; gap: 10px; padding-top: 30px;">
-                        <input type="checkbox" name="is_sa" id="business-is-sa" style="width: auto;">
-                        <label for="business-is-sa" style="margin: 0;">¿Es S.A.?</label>
-                    </div>
+                <!-- SECCIÓN: INFORMACIÓN DE LA EMPRESA (PARA INFORMES) -->
+                <div style="grid-column: span 2;">
+                    <h3
+                        style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1.5rem; border-bottom: 2px solid rgba(99,102,241,0.2); padding-bottom: 8px;">
+                        🏢 Información de la Empresa</h3>
                 </div>
 
-                <div
-                    style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 20px; margin-bottom: 10px;">
-                    <div class="form-group">
-                        <label>Correo Electrónico</label>
-                        <input type="email" name="email" id="business-email">
-                    </div>
-                    <div class="form-group">
-                        <label>Teléfono de Contacto</label>
-                        <input type="tel" name="phone" id="business-phone">
-                    </div>
+                <div class="form-group">
+                    <label>Nombre Comercial</label>
+                    <input type="text" name="name" id="business-name" placeholder="Ej: Restaurante El Wok" required>
+                </div>
+                <div class="form-group">
+                    <label>Tipo de Identidad</label>
+                    <select name="legal_type" id="business-legal-type">
+                        <option value="Persona Jurídica">Persona Jurídica</option>
+                        <option value="Persona Física">Persona Física</option>
+                        <option value="Sociedad Anónima (S.A.)">Sociedad Anónima (S.A.)</option>
+                        <option value="Soc. Resp. Limitada (S.R.L.)">Soc. Resp. Limitada (S.R.L.)</option>
+                        <option value="Fundación / Asociación">Fundación / Asociación</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Razón Social (Legal)</label>
+                    <input type="text" name="legal_name" id="business-legal-name" placeholder="Nombre legal completo">
+                </div>
+                <div class="form-group">
+                    <label id="label-cedula">Cédula o Identificación</label>
+                    <input type="text" name="cedula_juridica" id="business-cedula" placeholder="Ej: 3-101-XXXXXX">
                 </div>
 
+                <div class="form-group">
+                    <label>País</label>
+                    <input type="text" name="country" id="business-country" value="Costa Rica">
+                </div>
+                <div class="form-group">
+                    <label id="label-state">Provincia / Estado</label>
+                    <input type="text" name="state" id="business-state">
+                </div>
+                <div class="form-group">
+                    <label id="label-city">Cantón / Ciudad</label>
+                    <input type="text" name="city" id="business-city">
+                </div>
+                <div class="form-group">
+                    <label id="label-district">Distrito / Barrio</label>
+                    <input type="text" name="district" id="business-district">
+                </div>
+                <div class="form-group" style="grid-column: span 2">
+                    <label>Dirección Exacta</label>
+                    <textarea name="address" id="business-address" rows="2"
+                        style="width: 100%; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px;"></textarea>
+                </div>
+
+                <!-- SECCIÓN: INFORMACIÓN DEL USUARIO (DUEÑO) -->
+                <div style="grid-column: span 2; margin-top: 20px;">
+                    <h3
+                        style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1.5rem; border-bottom: 2px solid rgba(99,102,241,0.2); padding-bottom: 8px;">
+                        👤 Información del Usuario (Dueño)</h3>
+                </div>
+                <div class="form-group">
+                    <label>Nombre(s)</label>
+                    <input type="text" name="ownerName" id="owner-name" placeholder="Ej: Juan">
+                </div>
+                <div class="form-group">
+                    <label>Apellidos</label>
+                    <input type="text" name="ownerLastName" id="owner-lastname" placeholder="Ej: Pérez">
+                </div>
+                <div class="form-group">
+                    <label>Correo Electrónico</label>
+                    <input type="email" name="ownerEmail" id="owner-email" placeholder="juan@ejemplo.com">
+                </div>
+                <div class="form-group">
+                    <label>Teléfono</label>
+                    <input type="tel" name="ownerPhone" id="owner-phone" placeholder="Ej: 8888-8888">
+                </div>
+                <!-- CREDENCIALES (SOLO PARA NUEVAS EMPRESAS O SI SE QUIERE RESETEAR) -->
+                <div class="form-group">
+                    <label>Usuario (Login)</label>
+                    <input type="text" name="ownerUsername" id="owner-username" placeholder="juan.perez">
+                </div>
+                <div class="form-group">
+                    <label>Contraseña (Nueva)</label>
+                    <input type="password" name="ownerPassword" id="owner-password" placeholder="••••••••">
+                </div>
+
+                <!-- SECCIÓN: CONFIGURACIÓN SaaS -->
+                <div style="grid-column: span 2; margin-top: 20px;">
+                    <h3
+                        style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1.5rem; border-bottom: 2px solid rgba(99,102,241,0.2); padding-bottom: 8px;">
+                        ⚙️ Configuración del Sistema</h3>
+                </div>
                 <div class="form-group">
                     <label>Estado de Cuenta</label>
                     <select name="status" id="business-status">
@@ -359,18 +418,15 @@
                     </select>
                 </div>
                 <div class="form-group" style="grid-column: span 2">
-                    <label>Fecha de Vencimiento de Acceso (Prorrogar)</label>
+                    <label>Vencimiento de Acceso (Prorrogar)</label>
                     <input type="date" name="expires_at" id="business-expiry">
-                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;">
-                        * Tras esta fecha, el acceso será bloqueado automáticamente.
-                    </p>
                 </div>
 
-                <div style="grid-column: span 2; display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" class="btn btn-primary" style="flex: 2; padding: 12px;">Guardar
-                        Cambios</button>
+                <div style="grid-column: span 2; display: flex; gap: 10px; margin-top: 30px;">
+                    <button type="submit" class="btn btn-primary"
+                        style="flex: 2; padding: 15px; font-weight: 600;">Guardar Todo</button>
                     <button type="button" class="btn btn-secondary" style="flex: 1"
-                        onclick="document.getElementById('business-modal').close()">Cancelar</button>
+                        onclick="document.getElementById('business-modal').close()">Cerrar</button>
                 </div>
             </form>
         </div>

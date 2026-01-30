@@ -3,12 +3,17 @@
 -- Tabla de Empresas (Tenants)
 CREATE TABLE IF NOT EXISTS businesses (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    cedula_juridica VARCHAR(20),
-    legal_name VARCHAR(100),
+    name VARCHAR(100) NOT NULL UNIQUE, -- Nombre Comercial
+    legal_type VARCHAR(50) DEFAULT 'Persona Jurídica', -- Persona Física, Persona Jurídica, S.A., S.R.L., etc.
+    legal_name VARCHAR(100), -- Razon Social
+    cedula_juridica VARCHAR(50),
+    country VARCHAR(50) DEFAULT 'Costa Rica',
+    state VARCHAR(50), -- Provincia / Estado
+    city VARCHAR(50), -- Cantón / Ciudad
+    district VARCHAR(50), -- Distrito / Barrio
+    address TEXT,
     phone VARCHAR(20),
     email VARCHAR(100),
-    is_sa BOOLEAN DEFAULT FALSE,
     logo_url TEXT,
     default_overtime_multiplier DECIMAL(10, 2) DEFAULT 1.5,
     status VARCHAR(20) DEFAULT 'Active', -- Active, Suspended, Expired
@@ -20,11 +25,14 @@ CREATE TABLE IF NOT EXISTS businesses (
 -- Tabla de Usuarios (Administradores y Editores)
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL,
+    business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE,
     role VARCHAR(20) DEFAULT 'owner', -- super_admin, owner, editor
+    name VARCHAR(100) NOT NULL, -- Nombre
+    last_name VARCHAR(100), -- Apellidos
+    email VARCHAR(100),
+    phone VARCHAR(20),
     username VARCHAR(50) UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    name VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -108,6 +116,23 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payments' AND column_name='business_id') THEN
         ALTER TABLE payments ADD COLUMN business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE;
+    END IF;
+
+    -- Campos de Internacionalización y Legalidad
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='businesses' AND column_name='legal_type') THEN
+        ALTER TABLE businesses ADD COLUMN legal_type VARCHAR(50) DEFAULT 'Persona Jurídica';
+        ALTER TABLE businesses ADD COLUMN country VARCHAR(50) DEFAULT 'Costa Rica';
+        ALTER TABLE businesses ADD COLUMN state VARCHAR(50);
+        ALTER TABLE businesses ADD COLUMN city VARCHAR(50);
+        ALTER TABLE businesses ADD COLUMN district VARCHAR(50);
+        ALTER TABLE businesses ADD COLUMN address TEXT;
+    END IF;
+
+    -- Campos detallados de Usuarios
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='last_name') THEN
+        ALTER TABLE users ADD COLUMN last_name VARCHAR(100);
+        ALTER TABLE users ADD COLUMN email VARCHAR(100);
+        ALTER TABLE users ADD COLUMN phone VARCHAR(20);
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='businesses' AND column_name='phone') THEN

@@ -793,49 +793,98 @@ window.clearTable = async (target) => {
 const Views = {
     registration: async () => {
         return `
-            <div class="card" style="max-width: 600px; margin: 2rem auto;">
-                <h3 style="margin-bottom: 2rem; text-align: center; color: var(--primary);">Registrar Nueva Empresa</h3>
+            <div class="card" style="max-width: 750px; margin: 2rem auto;">
+                <h2 style="margin-bottom: 2rem; text-align: center; color: var(--primary);">Registrar Nueva Empresa SaaS</h2>
                 <form id="registration-form" class="form-grid">
+                    
+                    <div style="grid-column: span 2;">
+                        <h4 style="color: var(--primary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 15px;">🏢 Información de la Empresa</h4>
+                    </div>
+
                     <div class="form-group" style="grid-column: span 2">
-                        <label>Nombre Comercial de la Empresa</label>
+                        <label>Nombre Comercial</label>
                         <input type="text" name="businessName" placeholder="Ej: Restaurante El Sabor" required>
                     </div>
+
+                    <div class="form-group">
+                        <label>Tipo de Identidad</label>
+                        <select name="legal_type">
+                            <option value="Persona Jurídica">Persona Jurídica</option>
+                            <option value="Persona Física">Persona Física</option>
+                            <option value="Sociedad Anónima (S.A.)">Sociedad Anónima (S.A.)</option>
+                            <option value="Soc. Resp. Limitada (S.R.L.)">Soc. Resp. Limitada (S.R.L.)</option>
+                        </select>
+                    </div>
+
                     <div class="form-group">
                         <label>Cédula Jurídica / Física</label>
                         <input type="text" name="cedulaJuridica" placeholder="Ej: 3-101-123456" required>
                     </div>
+
+                    <div class="form-group" style="grid-column: span 2">
+                        <label>Razón Social (Legal)</label>
+                        <input type="text" name="legal_name" placeholder="Nombre legal completo">
+                    </div>
+
                     <div class="form-group">
-                        <label>Razon Social (Opcional)</label>
-                        <input type="text" name="legal_name" placeholder="Ej: Inversiones del Norte S.A.">
+                        <label>País</label>
+                        <input type="text" name="country" value="Costa Rica">
+                    </div>
+                    <div class="form-group">
+                        <label>Provincia / Estado</label>
+                        <input type="text" name="state">
+                    </div>
+                    <div class="form-group">
+                        <label>Cantón / Ciudad</label>
+                        <input type="text" name="city">
+                    </div>
+                    <div class="form-group">
+                        <label>Distrito / Barrio</label>
+                        <input type="text" name="district">
+                    </div>
+
+                    <div class="form-group" style="grid-column: span 2">
+                        <label>Dirección Exacta</label>
+                        <textarea name="address" rows="2" style="width: 100%; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px;"></textarea>
+                    </div>
+
+                    <div style="grid-column: span 2; margin-top: 20px;">
+                        <h4 style="color: var(--primary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 15px;">👤 Información del Usuario (Dueño)</h4>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" name="ownerName" placeholder="Ej: Juan" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Apellidos</label>
+                        <input type="text" name="ownerLastName" placeholder="Ej: Pérez" required>
                     </div>
                     <div class="form-group">
                         <label>Correo Electrónico</label>
-                        <input type="email" name="email" placeholder="contacto@empresa.com" required>
+                        <input type="email" name="ownerEmail" placeholder="juan@ejemplo.com" required>
                     </div>
                     <div class="form-group">
                         <label>Teléfono</label>
-                        <input type="tel" name="phone" placeholder="Ej: 8888-8888" required>
+                        <input type="tel" name="ownerPhone" placeholder="Ej: 8888-8888" required>
                     </div>
-                    <div class="form-group" style="grid-column: span 2; display: flex; align-items: center; gap: 10px;">
-                        <input type="checkbox" name="is_sa" id="reg-is-sa" style="width: auto;">
-                        <label for="reg-is-sa" style="margin: 0;">¿Es una Sociedad Anónima (S.A.)?</label>
+
+                    <div style="grid-column: span 2; margin-top: 20px;">
+                        <h4 style="color: var(--primary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 15px;">🔐 Credenciales de Acceso</h4>
                     </div>
-                    <hr style="grid-column: span 2; opacity: 0.1; margin: 1rem 0;">
+
                     <div class="form-group">
-                        <label>Nombre del Dueño/Usuario</label>
-                        <input type="text" name="ownerName" placeholder="Ej: Juan Pérez" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Usuario para el Sistema</label>
+                        <label>Usuario</label>
                         <input type="text" name="username" placeholder="juan.perez" required>
                     </div>
-                    <div class="form-group" style="grid-column: span 2">
+                    <div class="form-group">
                         <label>Contraseña</label>
                         <input type="password" name="password" placeholder="••••••••" required>
                     </div>
-                    <div style="grid-column: span 2; margin-top: 2rem;">
-                        <button type="submit" class="btn btn-primary" style="width: 100%;">Crear Cuenta y Comenzar</button>
-                        <button type="button" class="btn btn-secondary" style="width: 100%; margin-top: 10px;" onclick="location.reload()">Cancelar</button>
+
+                    <div style="grid-column: span 2; margin-top: 2.5rem;">
+                        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 15px; font-weight: 600;">Finalizar y Crear Empresa</button>
+                        <button type="button" class="btn btn-secondary" style="width: 100%; margin-top: 10px;" onclick="location.reload()">Regresar al Login</button>
                     </div>
                 </form>
             </div>
@@ -1041,6 +1090,10 @@ const Views = {
             const formData = new FormData(form);
             const data = Object.fromEntries(formData.entries());
 
+            // Sync business email/phone with owner if missing
+            if (!data.email) data.email = data.ownerEmail;
+            if (!data.phone) data.phone = data.ownerPhone;
+
             Storage.showLoader(true, 'Creando su empresa...');
             try {
                 const res = await fetch('/api/onboarding/register', {
@@ -1067,30 +1120,62 @@ const Views = {
         const modal = document.getElementById('business-modal');
         const form = document.getElementById('business-form');
 
+        // Dynamic labels based on country
+        const countryInput = document.getElementById('business-country');
+        const updateLabels = (country) => {
+            const labels = {
+                'Costa Rica': { state: 'Provincia', city: 'Cantón', district: 'Distrito', id: 'Cédula o Identificación' },
+                'México': { state: 'Estado', city: 'Municipio', district: 'Colonia', id: 'RFC / CURP' },
+                'Colombia': { state: 'Departamento', city: 'Municipio', district: 'Barrio', id: 'NIT / CC' },
+                'España': { state: 'Provincia', city: 'Municipio', district: 'Barrio/Distrito', id: 'NIF / NIE' },
+                'default': { state: 'Estado / Provincia', city: 'Ciudad / Municipio', district: 'Distrito / Barrio', id: 'ID Legal' }
+            };
+            const config = labels[country] || labels.default;
+            document.getElementById('label-state').innerText = config.state;
+            document.getElementById('label-city').innerText = config.city;
+            document.getElementById('label-district').innerText = config.district;
+            document.getElementById('label-cedula').innerText = config.id;
+        };
+
+        countryInput.addEventListener('input', (e) => updateLabels(e.target.value));
+
         window.showAddBusinessModal = () => {
             form.reset();
             document.getElementById('business-id').value = '';
             document.getElementById('business-modal-title').innerText = 'Nueva Empresa';
+            updateLabels('Costa Rica');
             modal.showModal();
         };
 
         window.editBusiness = async (id) => {
             const biz = await apiFetch(`/api/admin/businesses/${id}`).then(r => r.json());
             document.getElementById('business-id').value = biz.id;
-            document.getElementById('business-name').value = biz.name;
+            document.getElementById('business-name').value = biz.name || '';
+            document.getElementById('business-legal-type').value = biz.legal_type || 'Persona Jurídica';
             document.getElementById('business-legal-name').value = biz.legal_name || '';
-            document.getElementById('business-email').value = biz.email || '';
-            document.getElementById('business-phone').value = biz.phone || '';
             document.getElementById('business-cedula').value = biz.cedula_juridica || '';
+            document.getElementById('business-country').value = biz.country || 'Costa Rica';
+            document.getElementById('business-state').value = biz.state || '';
+            document.getElementById('business-city').value = biz.city || '';
+            document.getElementById('business-district').value = biz.district || '';
+            document.getElementById('business-address').value = biz.address || '';
+
+            // Dueño
+            document.getElementById('owner-name').value = biz.owner_name || '';
+            document.getElementById('owner-lastname').value = biz.owner_last_name || '';
+            document.getElementById('owner-email').value = biz.owner_email || '';
+            document.getElementById('owner-phone').value = biz.owner_phone || '';
+
             document.getElementById('business-status').value = biz.status;
             document.getElementById('business-cycle').value = biz.cycle_type;
-            document.getElementById('business-is-sa').checked = biz.is_sa;
 
             if (biz.expires_at) {
                 document.getElementById('business-expiry').value = new Date(biz.expires_at).toISOString().split('T')[0];
             } else {
                 document.getElementById('business-expiry').value = '';
             }
+
+            updateLabels(biz.country || 'Costa Rica');
             document.getElementById('business-modal-title').innerText = 'Editar Empresa / Prorrogar';
             modal.showModal();
         };
@@ -1100,9 +1185,6 @@ const Views = {
             const id = document.getElementById('business-id').value;
             const formData = new FormData(form);
             const data = Object.fromEntries(formData.entries());
-
-            // Handle checkbox for SA
-            data.is_sa = document.getElementById('business-is-sa').checked;
 
             const method = id ? 'PUT' : 'POST';
             const url = id ? `/api/admin/businesses/${id}` : '/api/admin/businesses';

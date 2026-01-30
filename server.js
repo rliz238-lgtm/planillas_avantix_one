@@ -597,7 +597,12 @@ app.put('/api/settings/business', checkAuth, async (req, res) => {
 app.get('/api/admin/businesses/:id', checkAuth, async (req, res) => {
     if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
     try {
-        const result = await db.query('SELECT * FROM businesses WHERE id = $1', [req.params.id]);
+        const result = await db.query(`
+            SELECT b.*, u.name as owner_name, u.last_name as owner_last_name, u.email as owner_email, u.phone as owner_phone
+            FROM businesses b
+            LEFT JOIN users u ON u.business_id = b.id AND u.role = 'owner'
+            WHERE b.id = $1
+        `, [req.params.id]);
         res.json(result.rows[0]);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -606,28 +611,89 @@ app.get('/api/admin/businesses/:id', checkAuth, async (req, res) => {
 
 app.put('/api/admin/businesses/:id', checkAuth, async (req, res) => {
     if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
-    const { name, cedula_juridica, status, expires_at, cycle_type, legal_name, phone, email, is_sa } = req.body;
+    const {
+        name, cedula_juridica, status, expires_at, cycle_type,
+        legal_name, legal_type, country, state, city, district, address, phone, email,
+        ownerName, ownerLastName, ownerEmail, ownerPhone
+    } = req.body;
     try {
+        await db.query('BEGIN');
+
+        // Update Business
         const result = await db.query(
-            'UPDATE businesses SET name=$1, cedula_juridica=$2, status=$3, expires_at=$4, cycle_type=$5, legal_name=$6, phone=$7, email=$8, is_sa=$9 WHERE id=$10 RETURNING *',
-            [name, cedula_juridica, status, expires_at, cycle_type, legal_name, phone, email, is_sa || false, req.params.id]
+            `UPDATE businesses SET
+                name=$1, cedula_juridica=$2, status=$3, expires_at=$4, cycle_type=$5,
+                legal_name=$6, legal_type=$7, country=$8, state=$9, city=$10,
+                district=$11, address=$12, phone=$13, email=$14
+            WHERE id=$15 RETURNING *`,
+            [
+                name, cedula_juridica, status, expires_at, cycle_type,
+                legal_name, legal_type, country, state, city,
+                district, address, phone, email, req.params.id
+            ]
         );
+
+        // Update Owner User
+        let userQuery = `UPDATE users SET name=$1, last_name=$2, email=$3, phone=$4`;
+        let userParams = [ownerName, ownerLastName, ownerEmail, ownerPhone];
+
+        if (ownerUsername) {
+            userQuery += `, username=$${userParams.length + 1}`;
+            userParams.push(ownerUsername);
+        }
+        if (ownerPassword) {
+            userQuery += `, password=$${userParams.length + 1}`;
+            userParams.push(ownerPassword);
+        }
+
+        userQuery += ` WHERE business_id=$${userParams.length + 1} AND role='owner'`;
+        userParams.push(req.params.id);
+
+        await db.query(userQuery, userParams);
+
+        await db.query('COMMIT');
         res.json(result.rows[0]);
     } catch (err) {
+        await db.query('ROLLBACK');
         res.status(500).json({ error: err.message });
     }
 });
 
 app.post('/api/admin/businesses', checkAuth, async (req, res) => {
     if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
-    const { name, cedula_juridica, default_overtime_multiplier, status, cycle_type, expires_at, legal_name, phone, email, is_sa } = req.body;
+    const {
+        name, cedula_juridica, default_overtime_multiplier, status, cycle_type, expires_at,
+        legal_name, legal_type, country, state, city, district, address, phone, email,
+        ownerName, ownerLastName, ownerEmail, ownerPhone, ownerUsername, ownerPassword
+    } = req.body;
     try {
-        const result = await db.query(
-            'INSERT INTO businesses (name, cedula_juridica, default_overtime_multiplier, status, cycle_type, expires_at, legal_name, phone, email, is_sa) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
-            [name, cedula_juridica, default_overtime_multiplier || 1.5, status || 'Active', cycle_type || 'Weekly', expires_at || null, legal_name, phone, email, is_sa || false]
+        await db.query('BEGIN');
+
+        // Create Business
+        const busRes = await db.query(
+            `INSERT INTO businesses (
+                name, cedula_juridica, default_overtime_multiplier, status, cycle_type,
+                expires_at, legal_name, legal_type, country, state, city,
+                district, address, phone, email
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id`,
+            [
+                name, cedula_juridica, default_overtime_multiplier || 1.5, status || 'Active', cycle_type || 'Weekly',
+                expires_at || null, legal_name, legal_type, country, state, city,
+                district, address, phone, email
+            ]
         );
-        res.json(result.rows[0]);
+        const businessId = busRes.rows[0].id;
+
+        // Create Owner User
+        await db.query(
+            'INSERT INTO users (username, password, name, last_name, email, phone, role, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+            [ownerUsername, ownerPassword, ownerName, ownerLastName, ownerEmail, ownerPhone, 'owner', businessId]
+        );
+
+        await db.query('COMMIT');
+        res.json({ id: businessId });
     } catch (err) {
+        await db.query('ROLLBACK');
         res.status(500).json({ error: err.message });
     }
 });
@@ -648,21 +714,26 @@ app.get('/api/admin/stats', checkAuth, async (req, res) => {
 
 // --- Onboarding Flow ---
 app.post('/api/onboarding/register', async (req, res) => {
-    const { businessName, ownerName, username, password, cedulaJuridica, email, phone, is_sa } = req.body;
+    const {
+        businessName, legal_type, legal_name, cedulaJuridica, country, state, city, district, address, email: bizEmail, phone: bizPhone,
+        ownerName, ownerLastName, ownerEmail, ownerPhone, username, password
+    } = req.body;
     try {
         await db.query('BEGIN');
 
         // 1. Crear Empresa
         const busRes = await db.query(
-            'INSERT INTO businesses (name, cedula_juridica, email, phone, is_sa) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-            [businessName, cedulaJuridica, email, phone, is_sa === 'on' || is_sa === true]
+            `INSERT INTO businesses (
+                name, legal_type, legal_name, cedula_juridica, country, state, city, district, address, email, phone
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+            [businessName, legal_type, legal_name, cedulaJuridica, country, state, city, district, address, bizEmail, bizPhone]
         );
         const businessId = busRes.rows[0].id;
 
         // 2. Crear Usuario Owner
         await db.query(
-            'INSERT INTO users (username, password, name, role, business_id) VALUES ($1, $2, $3, $4, $5)',
-            [username, password, ownerName, 'owner', businessId]
+            'INSERT INTO users (username, password, name, last_name, email, phone, role, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+            [username, password, ownerName, ownerLastName, ownerEmail, ownerPhone, 'owner', businessId]
         );
 
         await db.query('COMMIT');
