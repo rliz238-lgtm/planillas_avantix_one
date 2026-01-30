@@ -903,8 +903,10 @@ const Views = {
                     <table>
                         <thead>
                             <tr>
-                                <th>Nombre</th>
+                                <th>Nombre Comercial</th>
+                                <th>Empresa (Legal)</th>
                                 <th>Cédula</th>
+                                <th>Usuario (Dueño)</th>
                                 <th>Estado</th>
                                 <th>Vencimiento</th>
                                 <th>Ciclo</th>
@@ -915,7 +917,9 @@ const Views = {
                             ${businesses.map(b => `
                                 <tr>
                                     <td><strong>${b.name}</strong></td>
+                                    <td style="font-size: 0.85rem; opacity: 0.8;">${b.legal_name || '-'}</td>
                                     <td>${b.cedula_juridica || '-'}</td>
+                                    <td style="color: var(--primary); font-weight: 500;">${b.owner_username || '-'}</td>
                                     <td><span class="badge" style="background: ${b.status === 'Active' ? 'var(--success)' : (b.status === 'Suspended' ? 'var(--danger)' : 'var(--warning)')}">${b.status}</span></td>
                                     <td>${b.expires_at ? new Date(b.expires_at).toLocaleDateString() : 'Ilimitado'}</td>
                                     <td>${b.cycle_type}</td>

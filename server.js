@@ -561,7 +561,12 @@ app.delete('/api/maintenance/clear-all', checkAuth, async (req, res) => {
 app.get('/api/admin/businesses', checkAuth, async (req, res) => {
     if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
     try {
-        const result = await db.query('SELECT * FROM businesses ORDER BY created_at DESC');
+        const result = await db.query(`
+            SELECT b.*, u.username as owner_username 
+            FROM businesses b
+            LEFT JOIN users u ON u.business_id = b.id AND u.role = 'owner'
+            ORDER BY b.created_at DESC
+        `);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
