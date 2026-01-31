@@ -500,7 +500,7 @@ const App = {
                 }
             });
             this.setupNavigation();
-            await this.renderView('calculator');
+            await this.switchView('calculator');
         } else if (user.role === 'super_admin') {
             document.getElementById('nav-admin-businesses').style.display = 'flex';
             document.getElementById('nav-admin-stats').style.display = 'flex';
@@ -510,11 +510,11 @@ const App = {
             if (label) label.style.display = 'block';
 
             this.setupNavigation();
-            await this.renderView('adminStats');
+            await this.switchView('adminStats');
         } else {
             // Owner/Editor
             this.setupNavigation();
-            await this.renderView('dashboard');
+            await this.switchView('dashboard');
         }
 
         const logoutBtn = document.getElementById('logout-btn');
