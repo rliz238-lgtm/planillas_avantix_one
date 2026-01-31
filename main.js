@@ -783,7 +783,11 @@ const App = {
     },
 
     async switchView(view, arg = null) {
-        const navItem = document.querySelector(`[data-view="${view}"]`);
+        // Highlight logic
+        let navView = view;
+        if (view === 'adminStats') navView = 'dashboard';
+
+        const navItem = document.querySelector(`[data-view="${navView}"]`);
         if (navItem) {
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             navItem.classList.add('active');
