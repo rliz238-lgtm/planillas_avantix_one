@@ -171,7 +171,7 @@ app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
         const result = await db.query(
-            'SELECT u.*, b.name as business_name, b.logo_url, b.cycle_type, b.default_overtime_multiplier FROM users u LEFT JOIN businesses b ON u.business_id = b.id WHERE u.username = $1 AND u.password = $2',
+            'SELECT u.*, b.name as business_name, b.logo_url, b.cycle_type, b.default_overtime_multiplier, b.theme_preference FROM users u LEFT JOIN businesses b ON u.business_id = b.id WHERE u.username = $1 AND u.password = $2',
             [username, password]
         );
         if (result.rows.length > 0) {
@@ -185,7 +185,8 @@ app.post('/api/login', async (req, res) => {
                 business_name: user.business_name,
                 logo_url: user.logo_url,
                 cycle_type: user.cycle_type,
-                default_overtime_multiplier: user.default_overtime_multiplier
+                default_overtime_multiplier: user.default_overtime_multiplier,
+                theme_preference: user.theme_preference || 'dark'
             });
         } else {
             res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
@@ -638,11 +639,11 @@ app.get('/api/settings/business', checkAuth, async (req, res) => {
 
 app.put('/api/settings/business', checkAuth, async (req, res) => {
     if (req.userRole !== 'owner' && req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
-    const { name, cedula_juridica, logo_url, default_overtime_multiplier, cycle_type } = req.body;
+    const { name, cedula_juridica, logo_url, default_overtime_multiplier, cycle_type, theme_preference } = req.body;
     try {
         const result = await db.query(
-            'UPDATE businesses SET name=$1, cedula_juridica=$2, logo_url=$3, default_overtime_multiplier=$4, cycle_type=$5 WHERE id=$6 RETURNING *',
-            [name, cedula_juridica, logo_url, default_overtime_multiplier, cycle_type, req.businessId]
+            'UPDATE businesses SET name=$1, cedula_juridica=$2, logo_url=$3, default_overtime_multiplier=$4, cycle_type=$5, theme_preference=$6 WHERE id=$7 RETURNING *',
+            [name, cedula_juridica, logo_url, default_overtime_multiplier, cycle_type, theme_preference || 'dark', req.businessId]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -669,9 +670,9 @@ app.get('/api/admin/businesses/:id', checkAuth, async (req, res) => {
 app.put('/api/admin/businesses/:id', checkAuth, async (req, res) => {
     if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
     const {
-        name, cedula_juridica, status, expires_at, cycle_type,
+        name, cedula_juridica, status, expires_at, cycle_type, logo_url, theme_preference,
         legal_name, legal_type, country, state, city, district, address, phone, email,
-        ownerName, ownerLastName, ownerEmail, ownerPhone
+        ownerName, ownerLastName, ownerEmail, ownerPhone, ownerUsername, ownerPassword
     } = req.body;
     try {
         await db.query('BEGIN');
@@ -681,12 +682,12 @@ app.put('/api/admin/businesses/:id', checkAuth, async (req, res) => {
             `UPDATE businesses SET
                 name=$1, cedula_juridica=$2, status=$3, expires_at=$4, cycle_type=$5,
                 legal_name=$6, legal_type=$7, country=$8, state=$9, city=$10,
-                district=$11, address=$12, phone=$13, email=$14
-            WHERE id=$15 RETURNING *`,
+                district=$11, address=$12, phone=$13, email=$14, logo_url=$15, theme_preference=$16
+            WHERE id=$17 RETURNING *`,
             [
                 name, cedula_juridica, status, expires_at, cycle_type,
                 legal_name, legal_type, country, state, city,
-                district, address, phone, email, req.params.id
+                district, address, phone, email, logo_url, theme_preference || 'dark', req.params.id
             ]
         );
 
@@ -731,12 +732,12 @@ app.post('/api/admin/businesses', checkAuth, async (req, res) => {
             `INSERT INTO businesses (
                 name, cedula_juridica, default_overtime_multiplier, status, cycle_type,
                 expires_at, legal_name, legal_type, country, state, city,
-                district, address, phone, email
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id`,
+                district, address, phone, email, logo_url, theme_preference
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id`,
             [
                 name, cedula_juridica, default_overtime_multiplier || 1.5, status || 'Active', cycle_type || 'Weekly',
                 expires_at || null, legal_name, legal_type, country, state, city,
-                district, address, phone, email
+                district, address, phone, email, logo_url || null, theme_preference || 'dark'
             ]
         );
         const businessId = busRes.rows[0].id;
@@ -806,8 +807,9 @@ app.post('/api/onboarding/register', async (req, res) => {
                 role: 'owner',
                 business_id: businessId,
                 business_name: businessName,
-                logo_url: req.body.logo_url || null,
-                cycle_type: req.body.cycle_type || 'Weekly'
+                logo_url: logo_url,
+                cycle_type: cycle_type,
+                theme_preference: theme_preference || 'dark'
             }
         });
     } catch (err) {

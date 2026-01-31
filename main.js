@@ -453,6 +453,14 @@ const App = {
         }
 
         const user = Auth.getUser();
+
+        // --- Apply Theme Preference ---
+        if (user.theme_preference) {
+            document.documentElement.setAttribute('data-theme', user.theme_preference);
+        } else {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+
         console.log("Sesión activa:", user.username, "Rol:", user.role);
         const appElem = document.getElementById('app');
         const loginView = document.getElementById('login-view');
@@ -460,12 +468,18 @@ const App = {
         if (loginView) loginView.style.display = 'none';
 
         // --- Dynamic Branding ---
-        const bizNameDisplay = document.querySelector('.sidebar-header h2');
-        if (bizNameDisplay) bizNameDisplay.textContent = user.business_name || 'Avantix SaaS';
+        const bizNameDisplay = document.getElementById('sidebar-biz-name');
+        const loginBizName = document.getElementById('login-biz-name');
+        const logoContainer = document.querySelector('.sidebar .logo');
 
-        const logoDisplay = document.querySelector('.sidebar-header .logo');
-        if (logoDisplay && user.logo_url) {
-            logoDisplay.src = user.logo_url;
+        if (bizNameDisplay) bizNameDisplay.textContent = user.business_name || 'Avantix SaaS';
+        if (loginBizName) loginBizName.textContent = user.business_name || 'Avantix One';
+
+        if (logoContainer && user.logo_url) {
+            logoContainer.innerHTML = `<img src="${user.logo_url}" alt="${user.business_name}" style="max-height: 80px; width: auto; margin-bottom: 2rem;">`;
+            if (bizNameDisplay) bizNameDisplay.style.display = 'none'; // Ocultar texto si hay logo
+        } else if (bizNameDisplay) {
+            bizNameDisplay.style.display = 'block';
         }
 
         const userNameDisplay = document.querySelector('.username');
@@ -1220,6 +1234,8 @@ const Views = {
 
             document.getElementById('business-status').value = biz.status;
             document.getElementById('business-cycle').value = biz.cycle_type;
+            document.getElementById('business-logo').value = biz.logo_url || '';
+            document.getElementById('business-theme').value = biz.theme_preference || 'dark';
 
             if (biz.expires_at) {
                 document.getElementById('business-expiry').value = new Date(biz.expires_at).toISOString().split('T')[0];
@@ -2595,9 +2611,20 @@ const Views = {
                             <label>Cédula Jurídica</label>
                             <input type="text" name="cedula_juridica" value="${biz.cedula_juridica || ''}" required>
                         </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>Logo de la Empresa (URL)</label>
+                            <input type="url" name="logo_url" value="${biz.logo_url || ''}" placeholder="https://ejemplo.com/logo.png">
+                        </div>
                         <div class="form-group">
                             <label>Factor Horas Extra (Ej: 1.5)</label>
                             <input type="number" name="default_overtime_multiplier" step="0.1" value="${biz.default_overtime_multiplier || 1.5}">
+                        </div>
+                        <div class="form-group">
+                            <label>Tema de la Plataforma</label>
+                            <select name="theme_preference">
+                                <option value="dark" ${biz.theme_preference === 'dark' ? 'selected' : ''}>Oscuro (Noche)</option>
+                                <option value="light" ${biz.theme_preference === 'light' ? 'selected' : ''}>Claro (Día)</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Ciclo de Pago</label>
@@ -2720,6 +2747,20 @@ const Views = {
                     });
                     const result = await res.json();
                     if (result.id) {
+                        // Actualizar sesión local para cambios inmediatos (logo y tema)
+                        const session = Auth.getUser();
+                        localStorage.setItem(Auth.SCHEMA, JSON.stringify({
+                            ...session,
+                            business_name: result.name,
+                            logo_url: result.logo_url,
+                            theme_preference: result.theme_preference,
+                            cycle_type: result.cycle_type,
+                            default_overtime_multiplier: result.default_overtime_multiplier
+                        }));
+
+                        // Aplicar tema inmediatamente si cambió
+                        document.documentElement.setAttribute('data-theme', result.theme_preference);
+
                         alert('Configuración actualizada con éxito.');
                         location.reload();
                     } else {
