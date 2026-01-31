@@ -1020,26 +1020,105 @@ const Views = {
 
     adminStats: async () => {
         const stats = await apiFetch('/api/admin/stats').then(r => r.json());
+        window._latestAdminStats = stats;
+        const { summary, distribution } = stats;
+
         return `
-            <div class="grid-3">
+            <style>
+                .admin-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; }
+                .dist-card { background: rgba(255,255,255,0.02); border-radius: 16px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.05); }
+                .dist-header { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; color: var(--primary); font-weight: 600; }
+                .progress-bar { height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+                .progress-fill { height: 100%; border-radius: 3px; }
+            </style>
+
+            <div class="admin-stats-grid">
                 <div class="stat-card">
                     <div class="stat-icon" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">🏢</div>
                     <div class="stat-info">
-                        <div class="stat-value">${stats.businesses}</div>
-                        <div class="stat-label">Empresas Activas</div>
+                        <div class="stat-value">${summary.totalBusinesses}</div>
+                        <div class="stat-label">Empresas Totales</div>
+                        <div style="font-size: 0.75rem; color: var(--success); margin-top: 5px;">
+                            ${summary.newLast30 > 0 ? `▲ +${summary.newLast30} este mes` : 'Sin registros nuevos'}
+                        </div>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">👥</div>
                     <div class="stat-info">
-                        <div class="stat-value">${stats.activeEmployees}</div>
-                        <div class="stat-label">Empleados Totales</div>
+                        <div class="stat-value">${summary.activeEmployees}</div>
+                        <div class="stat-label">Empleados en el Sistema</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">💰</div>
+                    <div class="stat-info">
+                        <div class="stat-value">₡${Math.round(summary.totalVolume).toLocaleString()}</div>
+                        <div class="stat-label">Volumen Total Procesado</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">📊</div>
+                    <div class="stat-info">
+                        <div class="stat-value">${summary.newLast7}</div>
+                        <div class="stat-label">Nuevas (7 días)</div>
                     </div>
                 </div>
             </div>
-            <div class="card" style="margin-top: 2rem;">
-                <h3>Actividad Reciente</h3>
-                <p style="color: var(--text-muted);">Muro de actividad global del SaaS.</p>
+
+            <div class="grid-2" style="margin-top: 2rem; gap: 2rem;">
+                <div class="card-container">
+                    <h3>Crecimiento del SaaS</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Nuevas empresas por mes</p>
+                    <div style="height: 300px;">
+                        <canvas id="adminGrowthChart"></canvas>
+                    </div>
+                </div>
+                <div class="card-container">
+                    <h3>Volumen Financiero Mensual</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Monto total de pagos en el ecosistema</p>
+                    <div style="height: 300px;">
+                        <canvas id="adminVolumeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2" style="margin-top: 2rem; gap: 2rem;">
+                <div class="dist-card">
+                    <div class="dist-header">🌍 Distribución Geográfica</div>
+                    ${distribution.country.length > 0 ? distribution.country.sort((a, b) => b.count - a.count).map(c => {
+            const percent = (c.count / summary.totalBusinesses) * 100;
+            return `
+                            <div style="margin-bottom: 1.2rem;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px;">
+                                    <span>${c.country || 'Sin especificar'}</span>
+                                    <span style="font-weight: 600;">${c.count}</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${percent}%; background: var(--primary); box-shadow: 0 0 10px var(--primary);"></div>
+                                </div>
+                            </div>
+                        `;
+        }).join('') : '<p style="color: var(--text-muted); text-align: center;">No hay datos disponibles.</p>'}
+                </div>
+                <div class="dist-card">
+                    <div class="dist-header">📊 Estados de Cuenta</div>
+                    ${distribution.status.length > 0 ? distribution.status.map(s => {
+            const percent = (s.count / summary.totalBusinesses) * 100;
+            const color = s.status === 'Active' ? 'var(--success)' : (s.status === 'Suspended' ? 'var(--danger)' : 'var(--warning)');
+            return `
+                            <div style="margin-bottom: 1.2rem;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px;">
+                                    <span>${s.status}</span>
+                                    <span style="font-weight: 600;">${Math.round(percent)}%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${percent}%; background: ${color};"></div>
+                                </div>
+                            </div>
+                        `;
+        }).join('') : '<p style="color: var(--text-muted); text-align: center;">No hay datos disponibles.</p>'}
+                </div>
             </div>
         `;
     },
@@ -1327,7 +1406,82 @@ const Views = {
     },
 
     init_adminStats: async () => {
-        // Podríamos cargar gráficas globales aquí
+        const stats = window._latestAdminStats || await apiFetch('/api/admin/stats').then(r => r.json());
+        if (typeof Chart === 'undefined') return;
+
+        // Growth Chart
+        const growthCtx = document.getElementById('adminGrowthChart');
+        if (growthCtx) {
+            new Chart(growthCtx, {
+                type: 'line',
+                data: {
+                    labels: stats.growth.map(g => g.month),
+                    datasets: [{
+                        label: 'Nuevas Empresas',
+                        data: stats.growth.map(g => parseInt(g.count)),
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#6366f1',
+                        pointBorderColor: '#fff',
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', stepSize: 1 } },
+                        x: { grid: { display: false }, ticks: { color: '#64748b' } }
+                    }
+                }
+            });
+        }
+
+        // Volume Chart
+        const volumeCtx = document.getElementById('adminVolumeChart');
+        if (volumeCtx) {
+            new Chart(volumeCtx, {
+                type: 'bar',
+                data: {
+                    labels: stats.volumeTrend.map(v => v.month),
+                    datasets: [{
+                        label: 'Volumen Total',
+                        data: stats.volumeTrend.map(v => parseFloat(v.total)),
+                        backgroundColor: 'rgba(16, 185, 129, 0.4)',
+                        borderColor: '#10b981',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => ' ₡' + Math.round(ctx.raw).toLocaleString()
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: {
+                                color: '#64748b',
+                                callback: (val) => '₡' + (val >= 1000000 ? (val / 1000000).toFixed(1) + 'M' : val.toLocaleString())
+                            }
+                        },
+                        x: { grid: { display: false }, ticks: { color: '#64748b' } }
+                    }
+                }
+            });
+        }
     },
 
     init_dashboard: async () => {

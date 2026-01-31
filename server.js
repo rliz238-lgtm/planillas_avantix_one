@@ -803,11 +803,42 @@ app.post('/api/admin/businesses', checkAuth, async (req, res) => {
 app.get('/api/admin/stats', checkAuth, async (req, res) => {
     if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
     try {
-        const businesses = await db.query('SELECT COUNT(*) FROM businesses');
-        const activeEmp = await db.query("SELECT COUNT(*) FROM employees WHERE status = 'Active'");
+        const [
+            businesses,
+            activeEmp,
+            totalVolume,
+            recent7,
+            recent30,
+            growth,
+            volumeTrend,
+            statuses,
+            countries
+        ] = await Promise.all([
+            db.query('SELECT COUNT(*) FROM businesses'),
+            db.query("SELECT COUNT(*) FROM employees WHERE status = 'Active'"),
+            db.query("SELECT SUM(amount) FROM payments"),
+            db.query("SELECT COUNT(*) FROM businesses WHERE created_at > NOW() - INTERVAL '7 days'"),
+            db.query("SELECT COUNT(*) FROM businesses WHERE created_at > NOW() - INTERVAL '30 days'"),
+            db.query("SELECT TO_CHAR(created_at, 'YYYY-MM') as month, COUNT(*) as count FROM businesses GROUP BY month ORDER BY month DESC LIMIT 12"),
+            db.query("SELECT TO_CHAR(date, 'YYYY-MM') as month, SUM(amount) as total FROM payments GROUP BY month ORDER BY month DESC LIMIT 12"),
+            db.query("SELECT status, COUNT(*) FROM businesses GROUP BY status"),
+            db.query("SELECT country, COUNT(*) FROM businesses GROUP BY country")
+        ]);
+
         res.json({
-            businesses: parseInt(businesses.rows[0].count),
-            activeEmployees: parseInt(activeEmp.rows[0].count)
+            summary: {
+                totalBusinesses: parseInt(businesses.rows[0].count),
+                activeEmployees: parseInt(activeEmp.rows[0].count),
+                totalVolume: parseFloat(totalVolume.rows[0].sum || 0),
+                newLast7: parseInt(recent7.rows[0].count),
+                newLast30: parseInt(recent30.rows[0].count)
+            },
+            growth: growth.rows.reverse(),
+            volumeTrend: volumeTrend.rows.reverse(),
+            distribution: {
+                status: statuses.rows,
+                country: countries.rows
+            }
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
