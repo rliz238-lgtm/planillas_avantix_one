@@ -504,6 +504,11 @@ const App = {
         } else if (user.role === 'super_admin') {
             document.getElementById('nav-admin-businesses').style.display = 'flex';
             document.getElementById('nav-admin-stats').style.display = 'flex';
+            const divider = document.getElementById('super-admin-divider');
+            const label = document.getElementById('super-admin-label');
+            if (divider) divider.style.display = 'block';
+            if (label) label.style.display = 'block';
+
             this.setupNavigation();
             await this.renderView('adminStats');
         } else {
@@ -791,7 +796,6 @@ const App = {
     async switchView(view, arg = null) {
         // Highlight logic
         let navView = view;
-        if (view === 'adminStats') navView = 'dashboard';
 
         const navItem = document.querySelector(`[data-view="${navView}"]`);
         if (navItem) {
