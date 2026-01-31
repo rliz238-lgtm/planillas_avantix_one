@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS employees (
     name VARCHAR(100) NOT NULL,
     cedula VARCHAR(20),
     phone VARCHAR(20),
+    email VARCHAR(100),
     pin VARCHAR(4),
     position VARCHAR(100),
     hourly_rate DECIMAL(10, 2) NOT NULL,
@@ -140,6 +141,10 @@ BEGIN
         ALTER TABLE businesses ADD COLUMN email VARCHAR(100);
         ALTER TABLE businesses ADD COLUMN legal_name VARCHAR(100);
         ALTER TABLE businesses ADD COLUMN is_sa BOOLEAN DEFAULT FALSE;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='employees' AND column_name='email') THEN
+        ALTER TABLE employees ADD COLUMN email VARCHAR(100);
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='businesses' AND column_name='expires_at') THEN

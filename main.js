@@ -518,6 +518,7 @@ const App = {
             form.name.value = emp.name;
             form.cedula.value = emp.cedula || '';
             form.phone.value = emp.phone || '';
+            form.email.value = emp.email || '';
             form.pin.value = emp.pin || '';
             form.position.value = emp.position;
             form.hourlyRate.value = emp.hourly_rate;
@@ -576,6 +577,7 @@ const App = {
                 name: formData.get('name'),
                 cedula: formData.get('cedula'),
                 phone: formData.get('phone'),
+                email: formData.get('email'),
                 pin: formData.get('pin'),
                 position: formData.get('position'),
                 hourlyRate: parseFloat(formData.get('hourlyRate')),

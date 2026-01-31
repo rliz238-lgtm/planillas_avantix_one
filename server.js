@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
+const nodemailer = require('nodemailer');
 const db = require('./db');
 
 const app = express();
@@ -226,8 +227,8 @@ app.post('/api/employees', checkAuth, async (req, res) => {
 
     try {
         const result = await db.query(
-            'INSERT INTO employees (name, cedula, phone, pin, position, hourly_rate, status, start_date, end_date, apply_ccss, overtime_threshold, overtime_multiplier, enable_overtime, salary_history, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *',
-            [name, cedula, phone, pin, position, hourlyRate, status || 'Active', startDate, endDate || null, applyCCSS || false, overtimeThreshold || 48, overtimeMultiplier || 1.5, enableOvertime !== false, JSON.stringify(salaryHistory || []), req.businessId]
+            'INSERT INTO employees (name, cedula, phone, email, pin, position, hourly_rate, status, start_date, end_date, apply_ccss, overtime_threshold, overtime_multiplier, enable_overtime, salary_history, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING *',
+            [name, cedula, phone, email, pin, position, hourlyRate, status || 'Active', startDate, endDate || null, applyCCSS || false, overtimeThreshold || 48, overtimeMultiplier || 1.5, enableOvertime !== false, JSON.stringify(salaryHistory || []), req.businessId]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -238,11 +239,11 @@ app.post('/api/employees', checkAuth, async (req, res) => {
 
 app.put('/api/employees/:id', checkAuth, async (req, res) => {
     const { id } = req.params;
-    const { name, cedula, phone, pin, position, hourlyRate, status, startDate, endDate, applyCCSS, overtimeThreshold, overtimeMultiplier, enableOvertime, salaryHistory } = req.body;
+    const { name, cedula, phone, email, pin, position, hourlyRate, status, startDate, endDate, applyCCSS, overtimeThreshold, overtimeMultiplier, enable_overtime, salaryHistory } = req.body;
     try {
         const result = await db.query(
-            'UPDATE employees SET name=$1, cedula=$2, phone=$3, pin=$4, position=$5, hourly_rate=$6, status=$7, start_date=$8, end_date=$9, apply_ccss=$10, overtime_threshold=$11, overtime_multiplier=$12, enable_overtime=$13, salary_history=$14 WHERE id=$15 AND business_id=$16 RETURNING *',
-            [name, cedula, phone, pin, position, hourlyRate, status, startDate, endDate, applyCCSS, overtimeThreshold, overtimeMultiplier, enableOvertime, JSON.stringify(salaryHistory || []), id, req.businessId]
+            'UPDATE employees SET name=$1, cedula=$2, phone=$3, email=$4, pin=$5, position=$6, hourly_rate=$7, status=$8, start_date=$9, end_date=$10, apply_ccss=$11, overtime_threshold=$12, overtime_multiplier=$13, enable_overtime=$14, salary_history=$15 WHERE id=$16 AND business_id=$17 RETURNING *',
+            [name, cedula, phone, email, pin, position, hourlyRate, status, startDate, endDate, applyCCSS, overtimeThreshold, overtimeMultiplier, enable_overtime, JSON.stringify(salaryHistory || []), id, req.businessId]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -383,6 +384,30 @@ async function sendWhatsAppMessage(number, text) {
     });
 }
 
+// --- Email Send (Nodemailer) ---
+async function sendEmailMessage(to, subject, text, html) {
+    const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: process.env.SMTP_PORT === '465', // true for 465, false for others
+        auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS
+        }
+    });
+
+    const info = await transporter.sendMail({
+        from: process.env.SMTP_FROM,
+        to: to,
+        subject: subject,
+        text: text,
+        html: html
+    });
+
+    console.log(`✅ Correo enviado a ${to}: ${info.messageId}`);
+    return info;
+}
+
 app.post('/api/logs/batch', checkAuth, async (req, res) => {
     const { employeeId, logs } = req.body;
 
@@ -427,10 +452,35 @@ app.post('/api/logs/batch', checkAuth, async (req, res) => {
 
         await db.query('COMMIT');
 
-        if (emp.phone) {
-            const messageText = `*REGISTRO DE HORAS TTW*\n\n*Empleado:* ${emp.name}\n*Total Horas:* ${totalH.toFixed(1)}h\n*Monto Est.:* ₡${Math.round(totalAmt).toLocaleString()}\n\n*DETALLE:*\n${summaryDetails}`;
-            await sendWhatsAppMessage(emp.phone, messageText);
-            return res.json({ success: true, count: logs.length, messageSent: messageText });
+        if (emp.email) {
+            const subject = `Resumen de Planilla - ${emp.name}`;
+            const messagePlain = `REGISTRO DE HORAS TTW\n\nEmpleado: ${emp.name}\nTotal Horas: ${totalH.toFixed(1)}h\nMonto Est.: ₡${Math.round(totalAmt).toLocaleString()}\n\nDETALLE:\n${summaryDetails}`;
+
+            const messageHtml = `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                    <h2 style="color: #6366f1; margin-top: 0;">Resumen de Horas TTW</h2>
+                    <p><strong>Empleado:</strong> ${emp.name}</p>
+                    <p><strong>Total Horas:</strong> ${totalH.toFixed(1)}h</p>
+                    <p><strong>Monto Estimado:</strong> <span style="font-size: 1.2rem; color: #10b981; font-weight: bold;">₡${Math.round(totalAmt).toLocaleString()}</span></p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                    <h3 style="margin-bottom: 10px;">Detalle:</h3>
+                    <pre style="background: #f9fafb; padding: 15px; border-radius: 4px; white-space: pre-wrap;">${summaryDetails}</pre>
+                    <p style="font-size: 0.8rem; color: #6b7280; margin-top: 30px;">Este es un mensaje automático generado por Avantix SaaS.</p>
+                </div>
+            `;
+
+            try {
+                await sendEmailMessage(emp.email, subject, messagePlain, messageHtml);
+                return res.json({ success: true, count: logs.length, emailSent: true });
+            } catch (emailErr) {
+                console.error("❌ Error enviando email:", emailErr.message);
+                // No fallamos el registro si el email falla, pero avisamos
+                return res.json({ success: true, count: logs.length, emailSent: false, emailError: emailErr.message });
+            }
+        } else if (emp.phone) {
+            // Fallback to WhatsApp if no email but phone exists (optional, keeping it as fallback for now or removing as per user request)
+            // The user said "no por WhatsApp", so I'll comment this out or just skip it if email is missing.
+            console.log(`⚠️ Empleado ${emp.name} no tiene correo. No se envió notificación.`);
         }
 
         res.json({ success: true, count: logs.length });
