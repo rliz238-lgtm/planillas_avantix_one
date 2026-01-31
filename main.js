@@ -259,6 +259,12 @@ const apiFetch = async (url, options = {}) => {
         'Content-Type': 'application/json',
         ...options.headers
     };
+
+    // Si enviamos archivos (FormData), dejamos que el navegador ponga el Content-Type con el boundary
+    if (options.body instanceof FormData) {
+        delete headers['Content-Type'];
+    }
+
     if (session.business_id) headers['X-Business-ID'] = session.business_id;
     if (session.role) headers['X-User-Role'] = session.role;
 
