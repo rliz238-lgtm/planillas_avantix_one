@@ -5,12 +5,39 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const nodemailer = require('nodemailer');
+const multer = require('multer');
 const db = require('./db');
 
 const app = express();
 // Puerto 80 para producción en Easypanel
 // Última actualización SaaS: 2026-01-30 00:22 (CheckAuth Fix)
 const PORT = process.env.PORT || 80;
+
+// --- CONFIGURACIÓN DE MULTER (Subida de Logos) ---
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, 'img', 'logos');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        const businessId = req.headers['x-business-id'] || 'unknown';
+        cb(null, `logo_${businessId}_${Date.now()}${ext}`);
+    }
+});
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB Limit
+    fileFilter: (req, file, cb) => {
+        const allowed = /jpeg|jpg|png|svg|webp/;
+        const isExt = allowed.test(path.extname(file.originalname).toLowerCase());
+        const isMime = allowed.test(file.mimetype);
+        if (isExt && isMime) return cb(null, true);
+        cb(new Error('Solo se permiten imágenes (JPG, PNG, SVG, WEBP)'));
+    }
+});
 
 // --- DIAGNÓSTICO Y AUTO-INICIALIZACIÓN ---
 async function startApp() {
@@ -646,6 +673,19 @@ app.put('/api/settings/business', checkAuth, async (req, res) => {
             [name, cedula_juridica, logo_url, default_overtime_multiplier, cycle_type, theme_preference || 'dark', req.businessId]
         );
         res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/settings/upload-logo', checkAuth, upload.single('logo'), async (req, res) => {
+    if (req.userRole !== 'owner' && req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
+    if (!req.file) return res.status(400).json({ error: 'No se subió ningún archivo' });
+
+    const logoUrl = `/img/logos/${req.file.filename}`;
+    try {
+        await db.query('UPDATE businesses SET logo_url=$1 WHERE id=$2', [logoUrl, req.businessId]);
+        res.json({ success: true, logo_url: logoUrl });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

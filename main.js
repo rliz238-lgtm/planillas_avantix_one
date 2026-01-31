@@ -513,6 +513,54 @@ const App = {
 
         this.setupMobileMenu();
         this.setupEmployeeModal();
+        this.setupThemeToggle();
+    },
+
+    setupThemeToggle() {
+        const btn = document.getElementById('header-theme-toggle');
+        const sun = document.getElementById('theme-icon-sun');
+        const moon = document.getElementById('theme-icon-moon');
+        if (!btn) return;
+
+        const updateIcons = (theme) => {
+            if (theme === 'light') {
+                sun.style.display = 'none';
+                moon.style.display = 'inline';
+            } else {
+                sun.style.display = 'inline';
+                moon.style.display = 'none';
+            }
+        };
+
+        const user = Auth.getUser();
+        updateIcons(user.theme_preference || 'dark');
+
+        btn.onclick = async () => {
+            const current = document.documentElement.getAttribute('data-theme') || 'dark';
+            const next = current === 'dark' ? 'light' : 'dark';
+
+            document.documentElement.setAttribute('data-theme', next);
+            updateIcons(next);
+
+            // Persistir en servidor si es admin
+            if (user.role === 'owner' || user.role === 'super_admin') {
+                try {
+                    const session = Auth.getUser();
+                    const res = await apiFetch('/api/settings/business', {
+                        method: 'PUT',
+                        body: JSON.stringify({ ...session, theme_preference: next })
+                    });
+                    const result = await res.json();
+                    if (result.id) {
+                        localStorage.setItem(Auth.SCHEMA, JSON.stringify({ ...session, theme_preference: next }));
+                    }
+                } catch (e) { console.error("Error saving theme", e); }
+            } else {
+                // Para empleados solo local
+                const session = Auth.getUser();
+                localStorage.setItem(Auth.SCHEMA, JSON.stringify({ ...session, theme_preference: next }));
+            }
+        };
     },
 
     setupEmployeeModal() {
@@ -2612,19 +2660,17 @@ const Views = {
                             <input type="text" name="cedula_juridica" value="${biz.cedula_juridica || ''}" required>
                         </div>
                         <div class="form-group" style="grid-column: span 2;">
-                            <label>Logo de la Empresa (URL)</label>
-                            <input type="url" name="logo_url" value="${biz.logo_url || ''}" placeholder="https://ejemplo.com/logo.png">
+                            <label>Logo de la Empresa</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <img src="${biz.logo_url || ''}" id="profile-logo-preview" style="max-height: 50px; border-radius: 8px; background: rgba(255,255,255,0.05);">
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('logo-upload-input').click()">📁 Subir Logo</button>
+                                <input type="file" id="logo-upload-input" accept="image/*" style="display: none;">
+                                <p style="font-size: 0.75rem; color: var(--text-muted)">Máx 2MB. PNG, JPG, SVG.</p>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>Factor Horas Extra (Ej: 1.5)</label>
                             <input type="number" name="default_overtime_multiplier" step="0.1" value="${biz.default_overtime_multiplier || 1.5}">
-                        </div>
-                        <div class="form-group">
-                            <label>Tema de la Plataforma</label>
-                            <select name="theme_preference">
-                                <option value="dark" ${biz.theme_preference === 'dark' ? 'selected' : ''}>Oscuro (Noche)</option>
-                                <option value="light" ${biz.theme_preference === 'light' ? 'selected' : ''}>Claro (Día)</option>
-                            </select>
                         </div>
                         <div class="form-group">
                             <label>Ciclo de Pago</label>
@@ -2734,6 +2780,39 @@ const Views = {
         const bizForm = document.getElementById('business-settings-form');
 
         if (bizForm) {
+            const uploadInput = document.getElementById('logo-upload-input');
+            if (uploadInput) {
+                uploadInput.onchange = async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    if (file.size > 2 * 1024 * 1024) return alert("El archivo supera los 2MB permitidos.");
+
+                    const formData = new FormData();
+                    formData.append('logo', file);
+
+                    Storage.showLoader(true, 'Subiendo logo...');
+                    try {
+                        const res = await apiFetch('/api/settings/upload-logo', {
+                            method: 'POST',
+                            headers: {}, // Dejar que browser ponga el boundary
+                            body: formData
+                        });
+                        const result = await res.json();
+                        if (result.success) {
+                            document.getElementById('profile-logo-preview').src = result.logo_url;
+                            // Actualizar sesión para reflejar en sidebar de inmediato
+                            const session = Auth.getUser();
+                            localStorage.setItem(Auth.SCHEMA, JSON.stringify({ ...session, logo_url: result.logo_url }));
+                            alert("Logo actualizado con éxito.");
+                            location.reload();
+                        } else {
+                            alert("Error: " + result.error);
+                        }
+                    } catch (err) { alert("Error de conexión"); }
+                    finally { Storage.showLoader(false); }
+                };
+            }
+
             bizForm.onsubmit = async (e) => {
                 e.preventDefault();
                 const formData = new FormData(bizForm);

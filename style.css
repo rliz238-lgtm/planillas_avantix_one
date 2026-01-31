@@ -26,7 +26,7 @@
     --glass: rgba(255, 255, 255, 0.7);
     --border: rgba(0, 0, 0, 0.1);
     --input-bg: #f8fafc;
-    --input-color: #0f172a;
+    --input-color: #011627;
     --hover-bg: #f1f5f9;
 }
 
@@ -429,6 +429,29 @@ select option {
 
 .btn-secondary:hover {
     background: var(--border);
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.btn-icon:hover {
+    background: var(--hover-bg);
+}
+
+#header-theme-toggle span {
+    font-size: 1.2rem;
+    transition: transform 0.3s ease;
+}
+
+#header-theme-toggle:hover span {
+    transform: rotate(15deg) scale(1.1);
 }
 
 .btn-danger {
