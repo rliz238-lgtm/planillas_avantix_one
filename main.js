@@ -883,7 +883,25 @@ const Views = {
 
                     <div class="form-group" style="grid-column: span 2">
                         <label>Dirección Exacta</label>
-                        <textarea name="address" rows="2" style="width: 100%; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px;"></textarea>
+                        <textarea name="address" rows="1" style="width: 100%; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px;"></textarea>
+                    </div>
+
+                    <div style="grid-column: span 2; margin-top: 20px;">
+                        <h4 style="color: var(--primary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 15px;">⚙️ Configuración de la App</h4>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Logo de la Empresa (URL)</label>
+                        <input type="url" name="logo_url" placeholder="https://ejemplo.com/logo.png">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ciclo de Pago</label>
+                        <select name="cycle_type">
+                            <option value="Weekly">Semanal (48h extras)</option>
+                            <option value="Biweekly">Quincenal (96h extras)</option>
+                            <option value="Monthly">Mensual (192h extras)</option>
+                        </select>
                     </div>
 
                     <div style="grid-column: span 2; margin-top: 2.5rem;">
@@ -1110,9 +1128,34 @@ const Views = {
                     body: JSON.stringify(data)
                 });
                 const result = await res.json();
-                if (result.success) {
-                    alert('Empresa creada con éxito. Ahora puede iniciar sesión.');
-                    location.reload();
+                if (result.success && result.session) {
+                    // Auto-login con la sesión retornada
+                    localStorage.setItem(Auth.SCHEMA, JSON.stringify({
+                        ...result.session,
+                        loginTime: Date.now()
+                    }));
+
+                    // Mostrar pantalla de éxito antes de redirigir
+                    const card = form.closest('.card');
+                    if (card) {
+                        card.innerHTML = `
+                            <div style="text-align: center; padding: 3rem;">
+                                <div style="font-size: 5rem; margin-bottom: 1rem; animation: success-pop 0.5s ease;">🚀</div>
+                                <h2 style="color: var(--primary); margin-bottom: 1rem;">¡Bienvenidos a Avantix One, ${result.session.business_name}!</h2>
+                                <p style="color: var(--text-muted); margin-bottom: 2rem;">Estamos preparando su entorno personalizado...</p>
+                                <div class="loader-spinner" style="margin: 0 auto;"></div>
+                            </div>
+                            <style>
+                                @keyframes success-pop {
+                                    0% { transform: scale(0); opacity: 0; }
+                                    80% { transform: scale(1.2); }
+                                    100% { transform: scale(1); opacity: 1; }
+                                }
+                            </style>
+                        `;
+                    }
+
+                    setTimeout(() => location.reload(), 2000);
                 } else {
                     alert('Error: ' + result.error);
                 }

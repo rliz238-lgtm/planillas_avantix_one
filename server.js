@@ -781,20 +781,35 @@ app.post('/api/onboarding/register', async (req, res) => {
         // 1. Crear Empresa
         const busRes = await db.query(
             `INSERT INTO businesses (
-                name, legal_type, legal_name, cedula_juridica, country, state, city, district, address, email, phone
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
-            [businessName, legal_type, legal_name, cedulaJuridica, country, state, city, district, address, bizEmail, bizPhone]
+                name, legal_type, legal_name, cedula_juridica, country, state, city, district, address, email, phone, logo_url, cycle_type
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
+            [businessName, legal_type, legal_name, cedulaJuridica, country, state, city, district, address, bizEmail, bizPhone, req.body.logo_url || null, req.body.cycle_type || 'Weekly']
         );
         const businessId = busRes.rows[0].id;
 
         // 2. Crear Usuario Owner
-        await db.query(
-            'INSERT INTO users (username, password, name, last_name, email, phone, role, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+        const userRes = await db.query(
+            'INSERT INTO users (username, password, name, last_name, email, phone, role, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
             [username, password, ownerName, ownerLastName, ownerEmail, ownerPhone, 'owner', businessId]
         );
+        const userId = userRes.rows[0].id;
 
         await db.query('COMMIT');
-        res.json({ success: true, businessId });
+
+        // Retornar datos de sesión para auto-login inmediato
+        res.json({
+            success: true,
+            session: {
+                id: userId,
+                username: username,
+                name: ownerName,
+                role: 'owner',
+                business_id: businessId,
+                business_name: businessName,
+                logo_url: req.body.logo_url || null,
+                cycle_type: req.body.cycle_type || 'Weekly'
+            }
+        });
     } catch (err) {
         await db.query('ROLLBACK');
         res.status(500).json({ error: err.message });
