@@ -171,7 +171,7 @@ app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
         const result = await db.query(
-            'SELECT u.*, b.name as business_name, b.logo_url FROM users u LEFT JOIN businesses b ON u.business_id = b.id WHERE u.username = $1 AND u.password = $2',
+            'SELECT u.*, b.name as business_name, b.logo_url, b.cycle_type, b.default_overtime_multiplier FROM users u LEFT JOIN businesses b ON u.business_id = b.id WHERE u.username = $1 AND u.password = $2',
             [username, password]
         );
         if (result.rows.length > 0) {
@@ -183,7 +183,9 @@ app.post('/api/login', async (req, res) => {
                 role: user.role,
                 business_id: user.business_id,
                 business_name: user.business_name,
-                logo_url: user.logo_url
+                logo_url: user.logo_url,
+                cycle_type: user.cycle_type,
+                default_overtime_multiplier: user.default_overtime_multiplier
             });
         } else {
             res.status(401).json({ error: 'Usuario o contraseña incorrectos' });

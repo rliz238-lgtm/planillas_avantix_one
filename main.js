@@ -388,6 +388,8 @@ const Auth = {
                     business_id: user.business_id,
                     business_name: user.business_name || 'Avantix SaaS',
                     logo_url: user.logo_url,
+                    cycle_type: user.cycle_type || 'Weekly',
+                    default_overtime_multiplier: user.default_overtime_multiplier || 1.5,
                     loginTime: Date.now()
                 }));
                 return true;
@@ -729,7 +731,7 @@ const App = {
             dashboard: 'Dashboard',
             employees: 'Gestión de Empleados',
             employeeDetail: 'Detalle de Empleado',
-            calculator: 'Calculadora de Pago Semanal',
+            calculator: `Calculadora de Pago ${Auth.getUser()?.cycle_type === 'Weekly' ? 'Semanal' : Auth.getUser()?.cycle_type === 'Biweekly' ? 'Quincenal' : 'Mensual'}`,
             payroll: 'Cálculo de Planillas',
             benefits: 'Prestaciones de Ley',
             import: 'Importar Datos Excel',
@@ -1680,7 +1682,14 @@ const Views = {
             });
 
             let finalPay = 0;
-            const otThreshold = emp ? parseFloat(emp.overtime_threshold || 48) : 48;
+            const user = Auth.getUser();
+            const cycle = user?.cycle_type || 'Weekly';
+            const baseThreshold = emp ? parseFloat(emp.overtime_threshold || 48) : 48;
+
+            let otThreshold = baseThreshold;
+            if (cycle === 'Biweekly') otThreshold = baseThreshold * 2;
+            if (cycle === 'Monthly') otThreshold = baseThreshold * 4;
+
             const otMultiplier = emp ? parseFloat(emp.overtime_multiplier || 1.5) : 1.5;
             const otEnabled = emp ? emp.enable_overtime !== false : true;
             const otInfo = document.getElementById('calc-overtime-info');
@@ -1831,7 +1840,13 @@ const Views = {
                 empData.regularHours += hours;
             }
 
-            const otThreshold = parseFloat(emp.overtime_threshold || 48);
+            const user = Auth.getUser();
+            const cycle = user?.cycle_type || 'Weekly';
+            const baseThreshold = parseFloat(emp.overtime_threshold || 48);
+            let otThreshold = baseThreshold;
+            if (cycle === 'Biweekly') otThreshold = baseThreshold * 2;
+            if (cycle === 'Monthly') otThreshold = baseThreshold * 4;
+
             const otEnabled = emp.enable_overtime !== false;
 
             // Recalcular extras en base al acumulado (aproximado para el resumen)
