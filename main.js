@@ -2699,6 +2699,7 @@ const Views = {
                         <thead>
                             <tr>
                                 <th>Nombre</th>
+                                <th>Empresa</th>
                                 <th>Usuario</th>
                                 <th>Rol</th>
                                 <th>Acciones</th>
@@ -2708,6 +2709,7 @@ const Views = {
                             ${users.map(u => `
                                 <tr>
                                     <td>${u.name}</td>
+                                    <td style="font-size: 0.8rem; color: var(--text-muted)">${u.business_name || 'N/A'}</td>
                                     <td>${u.username}</td>
                                     <td><span class="badge ${u.role === 'super_admin' ? 'badge-primary' : u.role === 'owner' ? 'badge-secondary' : 'badge-info'}" style="font-size: 0.8rem; padding: 2px 6px;">${u.role}</span></td>
                                     <td>

@@ -124,15 +124,19 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 // --- Usuarios ---
 app.get('/api/users', checkAuth, async (req, res) => {
     try {
-        let query = 'SELECT id, username, name, role, created_at FROM users ';
+        let query = `
+            SELECT u.id, u.username, u.name, u.role, u.created_at, b.name as business_name 
+            FROM users u 
+            LEFT JOIN businesses b ON u.business_id = b.id 
+        `;
         let params = [];
 
         if (req.userRole !== 'super_admin') {
-            query += 'WHERE business_id = $1 ';
+            query += 'WHERE u.business_id = $1 ';
             params.push(req.businessId);
         }
 
-        query += 'ORDER BY username ASC';
+        query += 'ORDER BY u.username ASC';
         const result = await db.query(query, params);
         res.json(result.rows);
     } catch (err) {
