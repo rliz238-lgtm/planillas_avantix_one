@@ -19,7 +19,6 @@ CREATE TABLE IF NOT EXISTS businesses (
     status VARCHAR(20) DEFAULT 'Active', -- Active, Suspended, Expired
     cycle_type VARCHAR(20) DEFAULT 'Weekly',
     expires_at TIMESTAMP NULL,
-    theme_preference VARCHAR(20) DEFAULT 'dark', -- dark, light
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
