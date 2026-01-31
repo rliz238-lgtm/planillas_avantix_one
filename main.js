@@ -801,14 +801,15 @@ const App = {
 
         const titles = {
             dashboard: 'Dashboard',
+            adminStats: 'Métricas Globales',
             employees: 'Gestión de Empleados',
+            users: 'Gestión de Usuarios',
             employeeDetail: 'Detalle de Empleado',
             calculator: `Calculadora de Pago ${Auth.getUser()?.cycle_type === 'Weekly' ? 'Semanal' : Auth.getUser()?.cycle_type === 'Biweekly' ? 'Quincenal' : 'Mensual'}`,
             payroll: 'Cálculo de Planillas',
             import: 'Importar Datos Excel',
-            profile: 'Configuración de Mi Perfil',
+            profile: 'Configuración de Empresa',
             adminBusinesses: 'Gestión de Empresas SaaS',
-            adminStats: 'Métricas Globales',
             registration: 'Registro de Nueva Empresa'
         };
 
@@ -1321,6 +1322,42 @@ const Views = {
         const modal = document.getElementById('business-modal');
         const form = document.getElementById('business-form');
 
+        // Logo Upload for Super Admin
+        const uploadBtn = document.getElementById('admin-logo-upload-btn');
+        const uploadInput = document.getElementById('admin-logo-upload-input');
+        const preview = document.getElementById('admin-business-logo-preview');
+        const logoHidden = document.getElementById('business-logo');
+
+        if (uploadBtn && uploadInput) {
+            uploadBtn.onclick = () => uploadInput.click();
+            uploadInput.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (file.size > 2 * 1024 * 1024) return alert("El archivo supera los 2MB permitidos.");
+
+                const formData = new FormData();
+                formData.append('logo', file);
+
+                Storage.showLoader(true, 'Subiendo logo...');
+                try {
+                    const res = await apiFetch('/api/settings/upload-logo', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        preview.src = result.logo_url;
+                        preview.style.display = 'block';
+                        logoHidden.value = result.logo_url;
+                        alert("Logo subido con éxito.");
+                    } else {
+                        alert("Error: " + result.error);
+                    }
+                } catch (err) { alert("Error de conexión"); }
+                finally { Storage.showLoader(false); }
+            };
+        }
+
         // Dynamic labels based on country
         const countryInput = document.getElementById('business-country');
         const updateLabels = (country) => {
@@ -1344,6 +1381,8 @@ const Views = {
             form.reset();
             document.getElementById('business-id').value = '';
             document.getElementById('business-modal-title').innerText = 'Nueva Empresa';
+            preview.style.display = 'none';
+            preview.src = '';
             updateLabels('Costa Rica');
             modal.showModal();
         };
@@ -1372,6 +1411,13 @@ const Views = {
             document.getElementById('business-cycle').value = biz.cycle_type;
             document.getElementById('business-logo').value = biz.logo_url || '';
             document.getElementById('business-theme').value = biz.theme_preference || 'dark';
+
+            if (biz.logo_url) {
+                preview.src = biz.logo_url;
+                preview.style.display = 'block';
+            } else {
+                preview.style.display = 'none';
+            }
 
             if (biz.expires_at) {
                 document.getElementById('business-expiry').value = new Date(biz.expires_at).toISOString().split('T')[0];
@@ -2732,53 +2778,9 @@ const Views = {
         }
     },
 
-    profile: async () => {
-        const user = Auth.getUser();
+    users: async () => {
         const users = await Storage.get('users');
-
-        let businessSection = '';
-        if (user.role === 'owner' || user.role === 'super_admin') {
-            const biz = await apiFetch('/api/settings/business').then(r => r.json()).catch(() => ({}));
-            businessSection = `
-                <div class="card-container" style="margin-top: 2rem;">
-                    <h3>🏢 Configuración de Empresa</h3>
-                    <form id="business-settings-form" class="form-grid" style="margin-top: 1.5rem;">
-                        <div class="form-group">
-                            <label>Nombre de la Empresa</label>
-                            <input type="text" name="name" value="${biz.name || ''}" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Cédula Jurídica</label>
-                            <input type="text" name="cedula_juridica" value="${biz.cedula_juridica || ''}" required>
-                        </div>
-                        <div class="form-group" style="grid-column: span 2;">
-                            <label>Logo de la Empresa</label>
-                            <div style="display: flex; gap: 10px; align-items: center;">
-                                <img src="${biz.logo_url || ''}" id="profile-logo-preview" style="max-height: 50px; border-radius: 8px; background: rgba(255,255,255,0.05);">
-                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('logo-upload-input').click()">📁 Subir Logo</button>
-                                <input type="file" id="logo-upload-input" accept="image/*" style="display: none;">
-                                <p style="font-size: 0.75rem; color: var(--text-muted)">Máx 2MB. PNG, JPG, SVG.</p>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Factor Horas Extra (Ej: 1.5)</label>
-                            <input type="number" name="default_overtime_multiplier" step="0.1" value="${biz.default_overtime_multiplier || 1.5}">
-                        </div>
-                        <div class="form-group">
-                            <label>Ciclo de Pago</label>
-                            <select name="cycle_type">
-                                <option value="Weekly" ${biz.cycle_type === 'Weekly' ? 'selected' : ''}>Semanal</option>
-                                <option value="Biweekly" ${biz.cycle_type === 'Biweekly' ? 'selected' : ''}>Quincenal</option>
-                                <option value="Monthly" ${biz.cycle_type === 'Monthly' ? 'selected' : ''}>Mensual</option>
-                            </select>
-                        </div>
-                        <div style="grid-column: span 2; margin-top: 1rem;">
-                            <button type="submit" class="btn btn-primary">Guardar Cambios de Empresa</button>
-                        </div>
-                    </form>
-                </div>
-            `;
-        }
+        const currentUser = Auth.getUser();
 
         return `
             <div class="card-container">
@@ -2814,7 +2816,140 @@ const Views = {
                     </table>
                 </div>
 
-            ${businessSection}
+                <dialog id="user-modal">
+                    <div class="modal-content">
+                        <button class="modal-close-btn" onclick="document.getElementById('user-modal').close()">✕</button>
+                        <h3 id="user-modal-title">Registrar Usuario</h3>
+                        <form id="user-form" style="display: flex; flex-direction: column; gap: 15px; margin-top: 1rem">
+                            <input type="hidden" name="id" id="user-id-input">
+                            <div class="form-group">
+                                <label>Nombre Real</label>
+                                <input type="text" name="name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Nombre de Usuario</label>
+                                <input type="text" name="username" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Rol</label>
+                                <select name="role">
+                                    <option value="editor">Admin Editor (Solo Planillas)</option>
+                                    <option value="owner">Admin Dueño (Control de Empresa)</option>
+                                    ${currentUser.role === 'super_admin' ? '<option value="super_admin">Super Administrador (Global)</option>' : ''}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Contraseña (Opcional si edita)</label>
+                                <div class="password-wrapper">
+                                    <input type="password" name="password" id="admin-password-input">
+                                    <button type="button" class="password-toggle" onclick="window.togglePassword('admin-password-input')">${PayrollHelpers.EYE_ICON}</button>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                                <button type="submit" class="btn btn-primary" style="flex:1">Guardar</button>
+                                <button type="button" class="btn btn-secondary" style="flex:1" onclick="document.getElementById('user-modal').close()">Cerrar</button>
+                            </div>
+                        </form>
+                    </div>
+                </dialog>
+            </div>
+        `;
+    },
+
+    profile: async () => {
+        const user = Auth.getUser();
+        const biz = await apiFetch('/api/settings/business').then(r => r.json()).catch(() => ({}));
+
+        return `
+            <div class="card-container">
+                <h3>🏢 Configuración de Empresa</h3>
+                <form id="business-settings-form" class="form-grid" style="margin-top: 1.5rem;">
+                    <div style="grid-column: span 2; margin-bottom: 1rem;">
+                        <h4 style="color: var(--primary); border-bottom: 1px solid rgba(99,102,241,0.2); padding-bottom: 5px;">Información General</h4>
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre Comercial</label>
+                        <input type="text" name="name" value="${biz.name || ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Razón Social (Legal)</label>
+                        <input type="text" name="legal_name" value="${biz.legal_name || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo de Identidad</label>
+                        <select name="legal_type">
+                            <option value="Persona Jurídica" ${biz.legal_type === 'Persona Jurídica' ? 'selected' : ''}>Persona Jurídica</option>
+                            <option value="Persona Física" ${biz.legal_type === 'Persona Física' ? 'selected' : ''}>Persona Física</option>
+                            <option value="Sociedad Anónima (S.A.)" ${biz.legal_type === 'Sociedad Anónima (S.A.)' ? 'selected' : ''}>Sociedad Anónima (S.A.)</option>
+                            <option value="Soc. Resp. Limitada (S.R.L.)" ${biz.legal_type === 'Soc. Resp. Limitada (S.R.L.)' ? 'selected' : ''}>Soc. Resp. Limitada (S.R.L.)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Cédula o Identificación</label>
+                        <input type="text" name="cedula_juridica" value="${biz.cedula_juridica || ''}">
+                    </div>
+
+                    <div style="grid-column: span 2; margin-top: 2rem; margin-bottom: 1rem;">
+                        <h4 style="color: var(--primary); border-bottom: 1px solid rgba(99,102,241,0.2); padding-bottom: 5px;">Ubicación</h4>
+                    </div>
+                    <div class="form-group">
+                        <label>País</label>
+                        <input type="text" name="country" value="${biz.country || 'Costa Rica'}">
+                    </div>
+                    <div class="form-group">
+                        <label>Provincia / Estado</label>
+                        <input type="text" name="state" value="${biz.state || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Cantón / Ciudad</label>
+                        <input type="text" name="city" value="${biz.city || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Distrito / Barrio</label>
+                        <input type="text" name="district" value="${biz.district || ''}">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2">
+                        <label>Dirección Exacta</label>
+                        <textarea name="address" rows="2" style="width: 100%; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px;">${biz.address || ''}</textarea>
+                    </div>
+
+                    <div style="grid-column: span 2; margin-top: 2rem; margin-bottom: 1rem;">
+                        <h4 style="color: var(--primary); border-bottom: 1px solid rgba(99,102,241,0.2); padding-bottom: 5px;">Ajustes del Sistema</h4>
+                    </div>
+                    <div class="form-group">
+                        <label>Factor Horas Extra (Ej: 1.5)</label>
+                        <input type="number" name="default_overtime_multiplier" step="0.1" value="${biz.default_overtime_multiplier || 1.5}">
+                    </div>
+                    <div class="form-group">
+                        <label>Ciclo de Pago</label>
+                        <select name="cycle_type">
+                            <option value="Weekly" ${biz.cycle_type === 'Weekly' ? 'selected' : ''}>Semanal</option>
+                            <option value="Biweekly" ${biz.cycle_type === 'Biweekly' ? 'selected' : ''}>Quincenal</option>
+                            <option value="Monthly" ${biz.cycle_type === 'Monthly' ? 'selected' : ''}>Mensual</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Logo de la Empresa</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <img src="${biz.logo_url || ''}" id="profile-logo-preview" style="max-height: 50px; border-radius: 8px; background: rgba(255,255,255,0.05); ${biz.logo_url ? '' : 'display:none;'}">
+                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('logo-upload-input').click()">📁 Subir Logo</button>
+                            <input type="file" id="logo-upload-input" accept="image/*" style="display: none;">
+                            <p style="font-size: 0.75rem; color: var(--text-muted)">Máx 2MB. PNG, JPG, SVG.</p>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Preferencia de Tema</label>
+                        <select name="theme_preference">
+                            <option value="dark" ${biz.theme_preference === 'dark' ? 'selected' : ''}>Oscuro</option>
+                            <option value="light" ${biz.theme_preference === 'light' ? 'selected' : ''}>Claro</option>
+                        </select>
+                    </div>
+
+                    <div style="grid-column: span 2; margin-top: 30px;">
+                        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 15px; font-weight: 600;">Guardar Todos los Cambios</button>
+                    </div>
+                </form>
+            </div>
 
             <div class="card-container" style="margin-top: 2rem; border: 1px solid var(--danger); background: rgba(239, 68, 68, 0.02);">
                 <div style="margin-bottom: 1.5rem">
@@ -2828,49 +2963,63 @@ const Views = {
                     <button class="btn" style="background: var(--danger); color: white; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);" onclick="window.clearTable('all')">🔥 REINICIO TOTAL</button>
                 </div>
             </div>
-
-            <dialog id="user-modal">
-                <div class="modal-content">
-                    <button class="modal-close-btn" onclick="document.getElementById('user-modal').close()">✕</button>
-                    <h3 id="user-modal-title">Registrar Usuario</h3>
-                    <form id="user-form" style="display: flex; flex-direction: column; gap: 15px; margin-top: 1rem">
-                        <input type="hidden" name="id" id="user-id-input">
-                        <div class="form-group">
-                            <label>Nombre Real</label>
-                            <input type="text" name="name" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Nombre de Usuario</label>
-                            <input type="text" name="username" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Rol</label>
-                            <select name="role">
-                                <option value="editor">Admin Editor (Solo Planillas)</option>
-                                <option value="owner">Admin Dueño (Control de Empresa)</option>
-                                ${user.role === 'super_admin' ? '<option value="super_admin">Super Administrador (Global)</option>' : ''}
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Contraseña (Opcional si edita)</label>
-                            <div class="password-wrapper">
-                                <input type="password" name="password" id="admin-password-input">
-                                <button type="button" class="password-toggle" onclick="window.togglePassword('admin-password-input')">${PayrollHelpers.EYE_ICON}</button>
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 10px; margin-top: 20px;">
-                            <button type="submit" class="btn btn-primary" style="flex:1">Guardar</button>
-                            <button type="button" class="btn btn-secondary" style="flex:1" onclick="document.getElementById('user-modal').close()">Cerrar</button>
-                        </div>
-                    </form>
-                </div>
-            </dialog>
         `;
     },
 
-    init_profile: async () => {
+    init_users: async () => {
         const modal = document.getElementById('user-modal');
         const form = document.getElementById('user-form');
+
+        window.openUserModal = async (id = null) => {
+            form.reset();
+            const idInput = document.getElementById('user-id-input');
+            const title = document.getElementById('user-modal-title');
+            if (idInput) idInput.value = id || '';
+            if (title) title.textContent = id ? 'Editar Usuario' : 'Nuevo Usuario';
+
+            if (id) {
+                const users = await Storage.get('users');
+                const u = users.find(x => x.id == id);
+                if (u) {
+                    form.name.value = u.name;
+                    form.username.value = u.username;
+                    form.role.value = u.role || 'editor';
+                }
+            }
+            if (modal) modal.showModal();
+        };
+
+        window.deleteUser = async (id) => {
+            const currentUser = Auth.getUser();
+            if (currentUser && id == currentUser.id) return alert('No puede eliminarse a sí mismo');
+            if (!confirm('¿Eliminar este usuario administrador?')) return;
+            await Storage.delete('users', id);
+            App.renderView('users');
+        };
+
+        if (form) {
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('user-id-input').value;
+                const data = {
+                    name: form.name.value,
+                    username: form.username.value,
+                    role: form.role.value
+                };
+                if (form.password.value) data.password = form.password.value;
+
+                if (id) {
+                    await Storage.update('users', id, data);
+                } else {
+                    await Storage.add('users', data);
+                }
+                modal.close();
+                App.renderView('users');
+            };
+        }
+    },
+
+    init_profile: async () => {
         const bizForm = document.getElementById('business-settings-form');
 
         if (bizForm) {
@@ -2888,12 +3037,15 @@ const Views = {
                     try {
                         const res = await apiFetch('/api/settings/upload-logo', {
                             method: 'POST',
-                            headers: {}, // Dejar que browser ponga el boundary
                             body: formData
                         });
                         const result = await res.json();
                         if (result.success) {
-                            document.getElementById('profile-logo-preview').src = result.logo_url;
+                            const preview = document.getElementById('profile-logo-preview');
+                            if (preview) {
+                                preview.src = result.logo_url;
+                                preview.style.display = 'block';
+                            }
                             // Actualizar sesión para reflejar en sidebar de inmediato
                             const session = Auth.getUser();
                             localStorage.setItem(Auth.SCHEMA, JSON.stringify({ ...session, logo_url: result.logo_url }));
@@ -2944,54 +3096,6 @@ const Views = {
                 } finally {
                     Storage.showLoader(false);
                 }
-            };
-        }
-
-        window.openUserModal = async (id = null) => {
-            form.reset();
-            const idInput = document.getElementById('user-id-input');
-            const title = document.getElementById('user-modal-title');
-            if (idInput) idInput.value = id || '';
-            if (title) title.textContent = id ? 'Editar Usuario' : 'Nuevo Usuario';
-
-            if (id) {
-                const users = await Storage.get('users');
-                const u = users.find(x => x.id == id);
-                if (u) {
-                    form.name.value = u.name;
-                    form.username.value = u.username;
-                    form.role.value = u.role || 'editor';
-                }
-            }
-            if (modal) modal.showModal();
-        };
-
-        window.deleteUser = async (id) => {
-            const currentUser = Auth.getUser();
-            if (currentUser && id == currentUser.id) return alert('No puede eliminarse a sí mismo');
-            if (!confirm('¿Eliminar este usuario administrador?')) return;
-            await Storage.delete('users', id);
-            App.renderView('profile');
-        };
-
-        if (form) {
-            form.onsubmit = async (e) => {
-                e.preventDefault();
-                const id = document.getElementById('user-id-input').value;
-                const data = {
-                    name: form.name.value,
-                    username: form.username.value,
-                    role: form.role.value
-                };
-                if (form.password.value) data.password = form.password.value;
-
-                if (id) {
-                    await Storage.update('users', id, data);
-                } else {
-                    await Storage.add('users', data);
-                }
-                modal.close();
-                App.renderView('profile');
             };
         }
     }

@@ -106,6 +106,9 @@
                 <button class="nav-item" data-view="employees">
                     <span class="nav-icon">👥</span> Empleados
                 </button>
+                <button class="nav-item" data-view="users">
+                    <span class="nav-icon">🔑</span> Usuarios
+                </button>
                 <button class="nav-item" data-view="calculator">
                     <span class="nav-icon">🧮</span> Calculadora
                 </button>
@@ -424,9 +427,17 @@
                         <option value="Monthly">Mensual</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Logo de la Empresa (URL)</label>
-                    <input type="url" name="logo_url" id="business-logo" placeholder="https://ejemplo.com/logo.png">
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Logo de la Empresa</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <img src="" id="admin-business-logo-preview"
+                            style="max-height: 50px; border-radius: 8px; background: rgba(255,255,255,0.05); display: none;">
+                        <button type="button" class="btn btn-secondary" id="admin-logo-upload-btn">📁 Subir
+                            Logo</button>
+                        <input type="file" id="admin-logo-upload-input" accept="image/*" style="display: none;">
+                        <input type="hidden" name="logo_url" id="business-logo">
+                        <p style="font-size: 0.75rem; color: var(--text-muted)">Máx 2MB. PNG, JPG, SVG.</p>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Pref. de Tema</label>
