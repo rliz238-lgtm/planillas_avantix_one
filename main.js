@@ -795,7 +795,6 @@ const App = {
             employeeDetail: 'Detalle de Empleado',
             calculator: `Calculadora de Pago ${Auth.getUser()?.cycle_type === 'Weekly' ? 'Semanal' : Auth.getUser()?.cycle_type === 'Biweekly' ? 'Quincenal' : 'Mensual'}`,
             payroll: 'Cálculo de Planillas',
-            benefits: 'Prestaciones de Ley',
             import: 'Importar Datos Excel',
             profile: 'Configuración de Mi Perfil',
             adminBusinesses: 'Gestión de Empresas SaaS',
@@ -2270,77 +2269,6 @@ const Views = {
         XLSX.utils.book_append_sheet(wb, ws, "Pagos"); XLSX.writeFile(wb, "Pagos.xlsx");
     },
 
-    benefits: async () => {
-        const employees = await Storage.get('employees');
-        return `
-            <div class="grid-2">
-                <div class="card-container">
-                    <h3>Calculadora de Prestaciones (CR)</h3>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem">Basado en legislación costarricense (Cálculo aproximado).</p>
-                    <div class="form-group">
-                        <label>Seleccionar Empleado</label>
-                        <select id="benefit-emp-select">
-                            <option value="">Seleccione...</option>
-                            ${employees.filter(e => e.status === 'Active').map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div id="benefit-results" style="margin-top: 1.5rem">
-                         <div style="text-align: center; color: var(--text-muted)">Seleccione un empleado para ver la proyección anual</div>
-                    </div>
-                </div>
-
-                <div class="card-container" style="background: linear-gradient(135deg, var(--bg-card) 0%, #2d3748 100%); border: 1px solid var(--primary);">
-                    <h3 style="color: var(--primary)">Información Legal</h3>
-                    <ul style="margin: 1rem 0; color: var(--text-muted); line-height: 1.6; list-style-position: inside;">
-                        <li><strong>Aguinaldo:</strong> Un mes de salario promedio (1/12 de lo ganado en el año).</li>
-                        <li><strong>Vacaciones:</strong> 2 semanas por cada 50 trabajadas.</li>
-                        <li><strong>Cesantía:</strong> Indemnización en caso de despido sin causa.</li>
-                    </ul>
-                    <div style="padding: 1rem; background: rgba(99, 102, 241, 0.1); border-radius: 12px; border-left: 4px solid var(--primary)">
-                        <small>Estos cálculos son ilustrativos y se basan en el pago por hora actual multiplicado por una jornada estándar.</small>
-                    </div>
-                </div>
-            </div>
-        `;
-    },
-
-    init_benefits: async () => {
-        const select = document.getElementById('benefit-emp-select');
-        const results = document.getElementById('benefit-results');
-
-        if (select) {
-            select.onchange = async () => {
-                const empId = select.value;
-                if (!empId) return;
-
-                const employees = await Storage.get('employees');
-                const emp = employees.find(e => e.id == empId);
-                const rate = parseFloat(emp.hourly_rate);
-                const monthlySalary = rate * 8 * 26; // Est mntly (26 days)
-
-                const aguinaldo = monthlySalary;
-                const vacaciones = (monthlySalary / 30) * 14;
-                const cesantia = monthlySalary * 0.5; // Simplificado
-
-                results.innerHTML = `
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div class="stat-card" style="background: rgba(255,255,255,0.02)">
-                            <h3 style="margin:0">Proyección Aguinaldo</h3>
-                            <div class="value" style="color: var(--success); font-size: 1.5rem">₡${Math.round(aguinaldo).toLocaleString()}</div>
-                        </div>
-                        <div class="stat-card" style="background: rgba(255,255,255,0.02)">
-                            <h3 style="margin:0">Proyección Vacaciones</h3>
-                            <div class="value" style="color: var(--warning); font-size: 1.5rem">₡${Math.round(vacaciones).toLocaleString()}</div>
-                        </div>
-                        <div class="stat-card" style="background: rgba(255,255,255,0.02)">
-                            <h3 style="margin:0">Proyección Cesantía</h3>
-                            <div class="value" style="color: var(--accent); font-size: 1.5rem">₡${Math.round(cesantia).toLocaleString()}</div>
-                        </div>
-                    </div>
-                `;
-            };
-        }
-    },
 
     import: async () => {
         return `
