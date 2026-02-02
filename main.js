@@ -1363,6 +1363,17 @@ const Views = {
         const preview = document.getElementById('admin-business-logo-preview');
         const logoHidden = document.getElementById('business-logo');
 
+        const removeBtn = document.getElementById('admin-logo-remove-btn');
+        if (removeBtn) {
+            removeBtn.onclick = () => {
+                if (!confirm("¿Seguro que desea quitar el logo de esta empresa?")) return;
+                preview.style.display = 'none';
+                preview.src = '';
+                logoHidden.value = '';
+                removeBtn.style.display = 'none';
+            };
+        }
+
         if (uploadBtn && uploadInput) {
             uploadBtn.onclick = () => uploadInput.click();
             uploadInput.onchange = async (e) => {
@@ -1384,6 +1395,7 @@ const Views = {
                         preview.src = result.logo_url;
                         preview.style.display = 'block';
                         logoHidden.value = result.logo_url;
+                        if (removeBtn) removeBtn.style.display = 'block';
                         alert("Logo subido con éxito.");
                     } else {
                         alert("Error: " + result.error);
@@ -1418,6 +1430,7 @@ const Views = {
             document.getElementById('business-modal-title').innerText = 'Nueva Empresa';
             preview.style.display = 'none';
             preview.src = '';
+            if (removeBtn) removeBtn.style.display = 'none';
             updateLabels('Costa Rica');
             modal.showModal();
         };
@@ -1450,8 +1463,10 @@ const Views = {
             if (biz.logo_url) {
                 preview.src = biz.logo_url;
                 preview.style.display = 'block';
+                if (removeBtn) removeBtn.style.display = 'block';
             } else {
                 preview.style.display = 'none';
+                if (removeBtn) removeBtn.style.display = 'none';
             }
 
             if (biz.expires_at) {
