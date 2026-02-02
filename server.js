@@ -736,19 +736,19 @@ app.put('/api/admin/businesses/:id', checkAuth, async (req, res) => {
         );
 
         // Update Owner User
-        let userQuery = `UPDATE users SET name=$1, last_name=$2, email=$3, phone=$4`;
+        let userQuery = `UPDATE users SET name = $1, last_name = $2, email = $3, phone = $4`;
         let userParams = [ownerName, ownerLastName, ownerEmail, ownerPhone];
 
         if (ownerUsername) {
-            userQuery += `, username=$${userParams.length + 1}`;
+            userQuery += `, username = $${userParams.length + 1}`;
             userParams.push(ownerUsername);
         }
         if (ownerPassword) {
-            userQuery += `, password=$${userParams.length + 1}`;
+            userQuery += `, password = $${userParams.length + 1}`;
             userParams.push(ownerPassword);
         }
 
-        userQuery += ` WHERE business_id=$${userParams.length + 1} AND role='owner'`;
+        userQuery += ` WHERE business_id = $${userParams.length + 1} AND role = 'owner'`;
         userParams.push(req.params.id);
 
         await db.query(userQuery, userParams);
@@ -773,11 +773,11 @@ app.post('/api/admin/businesses', checkAuth, async (req, res) => {
 
         // Create Business
         const busRes = await db.query(
-            `INSERT INTO businesses (
+            `INSERT INTO businesses(
                 name, cedula_juridica, default_overtime_multiplier, status, cycle_type,
                 expires_at, legal_name, legal_type, country, state, city,
                 district, address, phone, email, logo_url, theme_preference
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id`,
+            ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id`,
             [
                 name, cedula_juridica, default_overtime_multiplier || 1.5, status || 'Active', cycle_type || 'Weekly',
                 expires_at || null, legal_name, legal_type, country, state, city,
@@ -856,9 +856,9 @@ app.post('/api/onboarding/register', async (req, res) => {
 
         // 1. Crear Empresa
         const busRes = await db.query(
-            `INSERT INTO businesses (
+            `INSERT INTO businesses(
                 name, legal_type, legal_name, cedula_juridica, country, state, city, district, address, email, phone, logo_url, cycle_type
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
+            ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
             [businessName, legal_type, legal_name, cedulaJuridica, country, state, city, district, address, bizEmail, bizPhone, req.body.logo_url || null, req.body.cycle_type || 'Weekly']
         );
         const businessId = busRes.rows[0].id;
@@ -882,9 +882,9 @@ app.post('/api/onboarding/register', async (req, res) => {
                 role: 'owner',
                 business_id: businessId,
                 business_name: businessName,
-                logo_url: logo_url,
-                cycle_type: cycle_type,
-                theme_preference: theme_preference || 'dark'
+                logo_url: req.body.logo_url || null,
+                cycle_type: req.body.cycle_type || 'Weekly',
+                theme_preference: req.body.theme_preference || 'dark'
             }
         });
     } catch (err) {
@@ -945,13 +945,13 @@ app.post('/api/webhooks/hotmart', async (req, res) => {
 
             await db.query('COMMIT');
 
-            console.log(`✅ Provisionamiento automático exitoso para: ${buyer.email}. Pass temporal: ${password}`);
+            console.log(`✅ Provisionamiento automático exitoso para: ${buyer.email}.Pass temporal: ${password}`);
 
             // --- Envío de Notificación Automática vía WhatsApp ---
             const buyerPhone = buyer.phone || (payload.data && payload.data.buyer ? payload.data.buyer.checkout_phone : null);
 
             if (buyerPhone) {
-                const welcomeMsg = `*¡Bienvenido a Avantix One!* 🚀\n\nHola ${buyer.name || 'Propietario'},\n\nTu acceso a la plataforma de planillas ya está listo. Aquí tienes tus credenciales:\n\n*🌐 URL:* https://tu-dominio.com\n*👤 Usuario:* ${username}\n*🔑 Contraseña:* ${password}\n\nTe recomendamos cambiar tu contraseña una vez que ingreses.`;
+                const welcomeMsg = `*¡Bienvenido a Avantix One! * 🚀\n\nHola ${buyer.name || 'Propietario'}, \n\nTu acceso a la plataforma de planillas ya está listo.Aquí tienes tus credenciales: \n\n *🌐 URL:* https://tu-dominio.com\n*👤 Usuario:* ${username}\n*🔑 Contraseña:* ${password}\n\nTe recomendamos cambiar tu contraseña una vez que ingreses.`;
 
                 try {
                     await sendWhatsAppMessage(buyerPhone, welcomeMsg);
