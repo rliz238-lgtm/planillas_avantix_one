@@ -729,7 +729,7 @@ app.put('/api/admin/businesses/:id', checkAuth, async (req, res) => {
                 district=$11, address=$12, phone=$13, email=$14, logo_url=$15, theme_preference=$16
             WHERE id=$17 RETURNING *`,
             [
-                name, cedula_juridica, status, expires_at, cycle_type,
+                name, cedula_juridica, status, expires_at || null, cycle_type,
                 legal_name, legal_type, country, state, city,
                 district, address, phone, email, logo_url, theme_preference || 'dark', req.params.id
             ]
