@@ -2843,83 +2843,100 @@ const Views = {
     },
 
     users: async () => {
-        const users = await apiFetch(`/api/users?_t=${Date.now()}`).then(r => r.json());
-        const currentUser = Auth.getUser();
+        try {
+            const users = await apiFetch(`/api/users?_t=${Date.now()}`).then(r => r.json());
+            const currentUser = Auth.getUser();
 
-        return `
-            <div class="card-container">
-                <div class="table-header">
-                    <h3>Gestión de Usuarios Admins</h3>
-                    <button class="btn btn-primary" onclick="window.openUserModal()">+ Nuevo Admin</button>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Empresa</th>
-                                <th>Usuario</th>
-                                <th>Rol</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${users.map(u => `
+            if (!Array.isArray(users)) {
+                return `<div class="card-container"><p style="color:var(--danger)">Error al cargar usuarios: ${users.error || 'Respuesta inválida'}</p></div>`;
+            }
+
+            return `
+                <div class="card-container">
+                    <div class="table-header">
+                        <h3>Gestión de Usuarios Admins</h3>
+                        <button class="btn btn-primary" onclick="window.openUserModal()">+ Nuevo Admin</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
                                 <tr>
-                                    <td>${u.name}</td>
-                                    <td style="font-size: 0.8rem; color: var(--text-muted)">${u.business_name || 'N/A'}</td>
-                                    <td>${u.username}</td>
-                                    <td><span class="badge ${u.role === 'super_admin' ? 'badge-primary' : u.role === 'owner' ? 'badge-secondary' : 'badge-info'}" style="font-size: 0.8rem; padding: 2px 6px;">${u.role}</span></td>
-                                    <td>
-                                        <button class="btn btn-secondary" style="padding: 4px 8px;" onclick="window.openUserModal('${u.id}')">✏️</button>
-                                        <button class="btn btn-danger" style="padding: 4px 8px;" onclick="window.deleteUser('${u.id}')">🗑️</button>
-                                    </td>
+                                    <th>Nombre</th>
+                                    <th>Empresa</th>
+                                    <th>Usuario</th>
+                                    <th>Rol</th>
+                                    <th>Acciones</th>
                                 </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                ${users.map(u => `
+                                    <tr>
+                                        <td>${u.name}</td>
+                                        <td style="font-size: 0.8rem; color: var(--text-muted)">${u.business_name || 'N/A'}</td>
+                                        <td>${u.username}</td>
+                                        <td><span class="badge ${u.role === 'super_admin' ? 'badge-primary' : u.role === 'owner' ? 'badge-secondary' : 'badge-info'}" style="font-size: 0.8rem; padding: 2px 6px;">${u.role}</span></td>
+                                        <td>
+                                            <button class="btn btn-secondary" style="padding: 4px 8px;" onclick="window.openUserModal('${u.id}')">✏️</button>
+                                            <button class="btn btn-danger" style="padding: 4px 8px;" onclick="window.deleteUser('${u.id}')">🗑️</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                                ${users.length === 0 ? '<tr><td colspan="5" style="text-align:center">No hay usuarios registrados.</td></tr>' : ''}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-
-                </div>
-            </div>
-        `;
+            `;
+        } catch (err) {
+            return `<div class="card-container"><p style="color:var(--danger)">Error de conexión: ${err.message}</p></div>`;
+        }
     },
 
     adminSuperUsers: async () => {
-        const users = await apiFetch(`/api/users?role=super_admin&_t=${Date.now()}`).then(r => r.json());
-        return `
-            <div class="card-container">
-                <div class="table-header">
-                    <h3>Gestión de Super Usuarios Desarrollador</h3>
-                    <button class="btn btn-primary" onclick="window.openUserModal()">+ Nuevo Super Usuario</button>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Usuario</th>
-                                <th>Rol</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${users.map(u => `
+        try {
+            const users = await apiFetch(`/api/users?role=super_admin&_t=${Date.now()}`).then(r => r.json());
+
+            if (!Array.isArray(users)) {
+                return `<div class="card-container"><p style="color:var(--danger)">Error al cargar super usuarios: ${users.error || 'Respuesta inválida'}</p></div>`;
+            }
+
+            return `
+                <div class="card-container">
+                    <div class="table-header">
+                        <h3>Gestión de Super Usuarios Desarrollador</h3>
+                        <button class="btn btn-primary" onclick="window.openUserModal()">+ Nuevo Super Usuario</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
                                 <tr>
-                                    <td>${u.name}</td>
-                                    <td>${u.username}</td>
-                                    <td><span class="badge badge-primary" style="font-size: 0.8rem; padding: 2px 6px;">super_admin</span></td>
-                                    <td>
-                                        <button class="btn btn-secondary" style="padding: 4px 8px;" onclick="window.openUserModal('${u.id}')">✏️</button>
-                                        <button class="btn btn-danger" style="padding: 4px 8px;" onclick="window.deleteUser('${u.id}')">🗑️</button>
-                                    </td>
+                                    <th>Nombre</th>
+                                    <th>Usuario</th>
+                                    <th>Rol</th>
+                                    <th>Acciones</th>
                                 </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                ${users.map(u => `
+                                    <tr>
+                                        <td>${u.name}</td>
+                                        <td>${u.username}</td>
+                                        <td><span class="badge badge-primary" style="font-size: 0.8rem; padding: 2px 6px;">super_admin</span></td>
+                                        <td>
+                                            <button class="btn btn-secondary" style="padding: 4px 8px;" onclick="window.openUserModal('${u.id}')">✏️</button>
+                                            <button class="btn btn-danger" style="padding: 4px 8px;" onclick="window.deleteUser('${u.id}')">🗑️</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                                ${users.length === 0 ? '<tr><td colspan="4" style="text-align:center">No hay super usuarios registrados.</td></tr>' : ''}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        } catch (err) {
+            return `<div class="card-container"><p style="color:var(--danger)">Error de conexión: ${err.message}</p></div>`;
+        }
     },
 
     init_adminSuperUsers: async () => {

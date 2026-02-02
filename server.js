@@ -130,6 +130,7 @@ app.get('/api/users', checkAuth, async (req, res) => {
             LEFT JOIN businesses b ON u.business_id = b.id 
         `;
         const { role: filterRole } = req.query;
+        let params = [];
 
         if (req.userRole !== 'super_admin') {
             query += 'WHERE u.business_id = $1 ';
