@@ -504,11 +504,23 @@ const App = {
         if (loginBizName) loginBizName.textContent = user.business_name || 'Avantix One';
 
         if (logoContainer) {
-            if (user.logo_url) {
-                logoContainer.innerHTML = `<img src="${user.logo_url}" alt="${user.business_name}" style="max-height: 80px; width: auto; margin-bottom: 2rem;">`;
+            // Eliminar imagen anterior si existe para evitar duplicados o rotas
+            logoContainer.querySelectorAll('img').forEach(img => img.remove());
+
+            if (user.logo_url && user.logo_url !== 'null' && user.logo_url !== 'undefined' && user.logo_url !== '') {
+                const img = document.createElement('img');
+                img.src = user.logo_url;
+                img.alt = user.business_name || 'Logo';
+                img.style.maxHeight = '80px';
+                img.style.width = 'auto';
+                img.style.marginBottom = '2rem';
+                img.onerror = () => {
+                    img.style.display = 'none';
+                    if (bizNameDisplay) bizNameDisplay.style.display = 'block';
+                };
+                logoContainer.prepend(img);
                 if (bizNameDisplay) bizNameDisplay.style.display = 'none';
             } else {
-                logoContainer.innerHTML = ''; // Limpiar si no hay logo
                 if (bizNameDisplay) bizNameDisplay.style.display = 'block';
             }
         }
