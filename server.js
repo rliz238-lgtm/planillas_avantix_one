@@ -253,7 +253,7 @@ app.get('/api/employees', checkAuth, async (req, res) => {
 });
 
 app.post('/api/employees', checkAuth, async (req, res) => {
-    const { name, cedula, phone, pin, position, hourlyRate, status, startDate, endDate, applyCCSS, overtimeThreshold, overtimeMultiplier, enableOvertime, salaryHistory } = req.body;
+    const { name, cedula, phone, email, pin, position, hourlyRate, status, startDate, endDate, applyCCSS, overtimeThreshold, overtimeMultiplier, enableOvertime, salaryHistory } = req.body;
 
     if (!name || !hourlyRate || !startDate) {
         return res.status(400).json({ error: 'Faltan campos obligatorios: name, hourlyRate o startDate' });

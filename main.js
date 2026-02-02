@@ -459,7 +459,28 @@ const App = {
             return;
         }
 
-        const user = Auth.getUser();
+        let user = Auth.getUser();
+
+        // --- Refresh Session from Server (Admin/Owner only) ---
+        if (user.role !== 'employee') {
+            try {
+                const res = await apiFetch('/api/settings/business');
+                const freshBiz = await res.json();
+                if (freshBiz && !freshBiz.error) {
+                    user = {
+                        ...user,
+                        business_name: freshBiz.name,
+                        logo_url: freshBiz.logo_url,
+                        theme_preference: freshBiz.theme_preference,
+                        cycle_type: freshBiz.cycle_type,
+                        default_overtime_multiplier: freshBiz.default_overtime_multiplier
+                    };
+                    localStorage.setItem(Auth.SCHEMA, JSON.stringify(user));
+                }
+            } catch (err) {
+                console.warn("No se pudo refrescar la sesión desde el servidor:", err);
+            }
+        }
 
         // --- Apply Theme Preference ---
         if (user.theme_preference) {
@@ -667,13 +688,19 @@ const App = {
                 salaryHistory: []
             };
 
+            let result;
             if (id) {
                 const employees = await Storage.get('employees');
                 const oldEmp = employees.find(e => e.id == id);
                 if (oldEmp) empData.salaryHistory = oldEmp.salary_history || [];
-                await Storage.update('employees', id, empData);
+                result = await Storage.update('employees', id, empData);
             } else {
-                await Storage.add('employees', empData);
+                result = await Storage.add('employees', empData);
+            }
+
+            if (result.error) {
+                alert("Error: " + result.error);
+                return;
             }
 
             modal.close();
