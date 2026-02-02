@@ -158,6 +158,19 @@ BEGIN
         DELETE FROM businesses WHERE id NOT IN (SELECT MIN(id) FROM businesses GROUP BY name);
         ALTER TABLE businesses ADD CONSTRAINT businesses_name_unique UNIQUE (name);
     END IF;
+
+    -- Migration to add missing theme_preference and other columns
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='businesses' AND column_name='theme_preference') THEN
+        ALTER TABLE businesses ADD COLUMN theme_preference VARCHAR(20) DEFAULT 'dark';
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='businesses' AND column_name='logo_url') THEN
+        ALTER TABLE businesses ADD COLUMN logo_url TEXT;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='businesses' AND column_name='cycle_type') THEN
+        ALTER TABLE businesses ADD COLUMN cycle_type VARCHAR(20) DEFAULT 'Weekly';
+    END IF;
 END $$;
 
 -- Asegurar que la tabla settings tenga business_id si ya existía sin ella

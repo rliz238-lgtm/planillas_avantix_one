@@ -503,11 +503,14 @@ const App = {
         if (bizNameDisplay) bizNameDisplay.textContent = user.business_name || 'Avantix SaaS';
         if (loginBizName) loginBizName.textContent = user.business_name || 'Avantix One';
 
-        if (logoContainer && user.logo_url) {
-            logoContainer.innerHTML = `<img src="${user.logo_url}" alt="${user.business_name}" style="max-height: 80px; width: auto; margin-bottom: 2rem;">`;
-            if (bizNameDisplay) bizNameDisplay.style.display = 'none'; // Ocultar texto si hay logo
-        } else if (bizNameDisplay) {
-            bizNameDisplay.style.display = 'block';
+        if (logoContainer) {
+            if (user.logo_url) {
+                logoContainer.innerHTML = `<img src="${user.logo_url}" alt="${user.business_name}" style="max-height: 80px; width: auto; margin-bottom: 2rem;">`;
+                if (bizNameDisplay) bizNameDisplay.style.display = 'none';
+            } else {
+                logoContainer.innerHTML = ''; // Limpiar si no hay logo
+                if (bizNameDisplay) bizNameDisplay.style.display = 'block';
+            }
         }
 
         const userNameDisplay = document.querySelector('.username');
@@ -2962,11 +2965,12 @@ const Views = {
                     </div>
                     <div class="form-group" style="grid-column: span 2;">
                         <label>Logo de la Empresa</label>
-                        <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                             <img src="${biz.logo_url || ''}" id="profile-logo-preview" style="max-height: 50px; border-radius: 8px; background: rgba(255,255,255,0.05); ${biz.logo_url ? '' : 'display:none;'}">
                             <button type="button" class="btn btn-secondary" onclick="document.getElementById('logo-upload-input').click()">📁 Subir Logo</button>
+                            ${biz.logo_url ? `<button type="button" class="btn btn-danger" id="btn-remove-logo" style="padding: 8px 12px;">🗑️ Quitar Logo</button>` : ''}
                             <input type="file" id="logo-upload-input" accept="image/*" style="display: none;">
-                            <p style="font-size: 0.75rem; color: var(--text-muted)">Máx 2MB. PNG, JPG, SVG.</p>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); width: 100%;">Máx 2MB. PNG, JPG, SVG. Si no hay logo, se mostrará el nombre.</p>
                         </div>
                     </div>
                     <div class="form-group">
@@ -3056,6 +3060,31 @@ const Views = {
 
         if (bizForm) {
             const uploadInput = document.getElementById('logo-upload-input');
+            const removeLogoBtn = document.getElementById('btn-remove-logo');
+            if (removeLogoBtn) {
+                removeLogoBtn.onclick = async () => {
+                    if (!confirm("¿Seguro que desea quitar el logo de la empresa?")) return;
+
+                    Storage.showLoader(true, 'Quitando logo...');
+                    try {
+                        const session = Auth.getUser();
+                        const res = await apiFetch('/api/settings/business', {
+                            method: 'PUT',
+                            body: JSON.stringify({ ...session, logo_url: null })
+                        });
+                        const result = await res.json();
+                        if (result.id) {
+                            localStorage.setItem(Auth.SCHEMA, JSON.stringify({ ...session, logo_url: null }));
+                            alert("Logo eliminado con éxito.");
+                            location.reload();
+                        } else {
+                            alert("Error: " + result.error);
+                        }
+                    } catch (err) { alert("Error de conexión"); }
+                    finally { Storage.showLoader(false); }
+                };
+            }
+
             if (uploadInput) {
                 uploadInput.onchange = async (e) => {
                     const file = e.target.files[0];
