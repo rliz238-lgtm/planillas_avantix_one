@@ -540,6 +540,7 @@ const App = {
             await this.switchView('calculator');
         } else if (user.role === 'super_admin') {
             document.getElementById('nav-admin-businesses').style.display = 'flex';
+            document.getElementById('nav-admin-super-users').style.display = 'flex';
             document.getElementById('nav-admin-stats').style.display = 'flex';
             const divider = document.getElementById('super-admin-divider');
             const label = document.getElementById('super-admin-label');
@@ -857,6 +858,7 @@ const App = {
             import: 'Importar Datos Excel',
             profile: 'Configuración de Empresa',
             adminBusinesses: 'Gestión de Empresas SaaS',
+            adminSuperUsers: 'Gestión de Super Usuarios',
             registration: 'Registro de Nueva Empresa'
         };
 
@@ -2841,7 +2843,7 @@ const Views = {
     },
 
     users: async () => {
-        const users = await Storage.get('users');
+        const users = await apiFetch(`/api/users?_t=${Date.now()}`).then(r => r.json());
         const currentUser = Auth.getUser();
 
         return `
@@ -2878,44 +2880,50 @@ const Views = {
                     </table>
                 </div>
 
-                <dialog id="user-modal">
-                    <div class="modal-content">
-                        <button class="modal-close-btn" onclick="document.getElementById('user-modal').close()">✕</button>
-                        <h3 id="user-modal-title">Registrar Usuario</h3>
-                        <form id="user-form" style="display: flex; flex-direction: column; gap: 15px; margin-top: 1rem">
-                            <input type="hidden" name="id" id="user-id-input">
-                            <div class="form-group">
-                                <label>Nombre Real</label>
-                                <input type="text" name="name" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Nombre de Usuario</label>
-                                <input type="text" name="username" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Rol</label>
-                                <select name="role">
-                                    <option value="editor">Admin Editor (Solo Planillas)</option>
-                                    <option value="owner">Admin Dueño (Control de Empresa)</option>
-                                    ${currentUser.role === 'super_admin' ? '<option value="super_admin">Super Administrador (Global)</option>' : ''}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Contraseña (Opcional si edita)</label>
-                                <div class="password-wrapper">
-                                    <input type="password" name="password" id="admin-password-input">
-                                    <button type="button" class="password-toggle" onclick="window.togglePassword('admin-password-input')">${PayrollHelpers.EYE_ICON}</button>
-                                </div>
-                            </div>
-                            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                                <button type="submit" class="btn btn-primary" style="flex:1">Guardar</button>
-                                <button type="button" class="btn btn-secondary" style="flex:1" onclick="document.getElementById('user-modal').close()">Cerrar</button>
-                            </div>
-                        </form>
-                    </div>
-                </dialog>
+                </div>
             </div>
         `;
+    },
+
+    adminSuperUsers: async () => {
+        const users = await apiFetch(`/api/users?role=super_admin&_t=${Date.now()}`).then(r => r.json());
+        return `
+            <div class="card-container">
+                <div class="table-header">
+                    <h3>Gestión de Super Usuarios Desarrollador</h3>
+                    <button class="btn btn-primary" onclick="window.openUserModal()">+ Nuevo Super Usuario</button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Usuario</th>
+                                <th>Rol</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${users.map(u => `
+                                <tr>
+                                    <td>${u.name}</td>
+                                    <td>${u.username}</td>
+                                    <td><span class="badge badge-primary" style="font-size: 0.8rem; padding: 2px 6px;">super_admin</span></td>
+                                    <td>
+                                        <button class="btn btn-secondary" style="padding: 4px 8px;" onclick="window.openUserModal('${u.id}')">✏️</button>
+                                        <button class="btn btn-danger" style="padding: 4px 8px;" onclick="window.deleteUser('${u.id}')">🗑️</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    },
+
+    init_adminSuperUsers: async () => {
+        await Views.init_users();
     },
 
     profile: async () => {
@@ -3032,6 +3040,8 @@ const Views = {
     init_users: async () => {
         const modal = document.getElementById('user-modal');
         const form = document.getElementById('user-form');
+        const roleSelect = document.getElementById('user-role-select');
+        const currentUser = Auth.getUser();
 
         window.openUserModal = async (id = null) => {
             form.reset();
@@ -3040,13 +3050,26 @@ const Views = {
             if (idInput) idInput.value = id || '';
             if (title) title.textContent = id ? 'Editar Usuario' : 'Nuevo Usuario';
 
+            // Configurar opciones de rol dinámicamente
+            if (roleSelect) {
+                roleSelect.innerHTML = `
+                    <option value="editor">Admin Editor (Solo Planillas)</option>
+                    <option value="owner">Admin Dueño (Control de Empresa)</option>
+                    ${currentUser.role === 'super_admin' ? '<option value="super_admin">Super Administrador (Global)</option>' : ''}
+                `;
+                // Si estamos en la vista de super usuarios, preseleccionar super_admin
+                if (App.currentView === 'adminSuperUsers' && !id) {
+                    roleSelect.value = 'super_admin';
+                }
+            }
+
             if (id) {
-                const users = await Storage.get('users');
-                const u = users.find(x => x.id == id);
+                // Fetch user data directly to ensure we have it regardless of current view filtering
+                const u = await apiFetch(`/api/users/${id}`).then(r => r.json()).catch(() => null);
                 if (u) {
                     form.name.value = u.name;
                     form.username.value = u.username;
-                    form.role.value = u.role || 'editor';
+                    if (roleSelect) roleSelect.value = u.role || 'editor';
                 }
             }
             if (modal) modal.showModal();
@@ -3057,7 +3080,7 @@ const Views = {
             if (currentUser && id == currentUser.id) return alert('No puede eliminarse a sí mismo');
             if (!confirm('¿Eliminar este usuario administrador?')) return;
             await Storage.delete('users', id);
-            App.renderView('users');
+            App.renderView(App.currentView);
         };
 
         if (form) {
@@ -3067,7 +3090,7 @@ const Views = {
                 const data = {
                     name: form.name.value,
                     username: form.username.value,
-                    role: form.role.value
+                    role: roleSelect ? roleSelect.value : 'editor'
                 };
                 if (form.password.value) data.password = form.password.value;
 
@@ -3077,7 +3100,7 @@ const Views = {
                     await Storage.add('users', data);
                 }
                 modal.close();
-                App.renderView('users');
+                App.renderView(App.currentView);
             };
         }
     },

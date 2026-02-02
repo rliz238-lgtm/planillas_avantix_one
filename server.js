@@ -129,16 +129,36 @@ app.get('/api/users', checkAuth, async (req, res) => {
             FROM users u 
             LEFT JOIN businesses b ON u.business_id = b.id 
         `;
-        let params = [];
+        const { role: filterRole } = req.query;
 
         if (req.userRole !== 'super_admin') {
             query += 'WHERE u.business_id = $1 ';
             params.push(req.businessId);
+        } else if (filterRole) {
+            query += 'WHERE u.role = $1 ';
+            params.push(filterRole);
+        } else {
+            // Default for super_admin if no filter: exclude super_admins from the regular "Users" list?
+            // Actually, the user wants "Super Usuarios" separated, so regular "Users" should show non-super_admins
+            query += 'WHERE u.role != \'super_admin\' ';
         }
 
         query += 'ORDER BY u.username ASC';
         const result = await db.query(query, params);
         res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/users/:id', checkAuth, async (req, res) => {
+    try {
+        const result = await db.query(
+            'SELECT id, username, name, role, business_id FROM users WHERE id = $1 AND (business_id = $2 OR $3 = \'super_admin\')',
+            [req.params.id, req.businessId, req.userRole]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
+        res.json(result.rows[0]);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
