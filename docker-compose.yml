@@ -12,6 +12,8 @@ services:
       PORT: 3000
     ports:
       - "3000:3000"
+    volumes:
+      - ./img/logos:/app/img/logos
 
   frontend:
     build: .

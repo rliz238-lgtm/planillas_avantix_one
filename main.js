@@ -394,6 +394,7 @@ const Auth = {
                     business_id: user.business_id,
                     business_name: user.business_name || 'Avantix SaaS',
                     logo_url: user.logo_url,
+                    theme_preference: user.theme_preference || 'dark',
                     cycle_type: user.cycle_type || 'Weekly',
                     default_overtime_multiplier: user.default_overtime_multiplier || 1.5,
                     loginTime: Date.now()
