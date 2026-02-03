@@ -3114,7 +3114,7 @@ const Views = {
                 const data = {
                     name: form.name.value,
                     username: form.username.value,
-                    role: roleSelect ? roleSelect.value : 'editor'
+                    role: roleSelect ? roleSelect.value : (form.role ? form.role.value : 'editor')
                 };
                 if (form.password.value) data.password = form.password.value;
 

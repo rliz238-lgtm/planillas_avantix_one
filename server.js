@@ -170,10 +170,11 @@ app.post('/api/users', checkAuth, async (req, res) => {
     try {
         // Validación de seguridad: solo un super_admin puede crear otro super_admin
         const finalRole = (role === 'super_admin' && req.userRole !== 'super_admin') ? 'editor' : (role || 'editor');
+        const finalBusinessId = finalRole === 'super_admin' ? null : req.businessId;
 
         const result = await db.query(
             'INSERT INTO users (username, password, name, role, business_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, name, role',
-            [username, password, name, finalRole, req.businessId]
+            [username, password, name, finalRole, finalBusinessId]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -194,9 +195,13 @@ app.put('/api/users/:id', checkAuth, async (req, res) => {
             params.push(password);
         }
 
-        if (role) {
+        const finalRoleValue = (role === 'super_admin' && req.userRole !== 'super_admin') ? undefined : role;
+        if (finalRoleValue) {
             query += `, role=$${paramIdx++}`;
-            params.push(role);
+            params.push(finalRoleValue);
+            if (finalRoleValue === 'super_admin') {
+                query += `, business_id=NULL`;
+            }
         }
 
         query += ` WHERE id=$${paramIdx++} AND (business_id=$${paramIdx} OR $${paramIdx + 1}='super_admin')`;
