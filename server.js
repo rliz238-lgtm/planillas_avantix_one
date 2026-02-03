@@ -81,8 +81,13 @@ app.use(express.json());
 
 // --- Middleware de Multi-tenancy y Roles ---
 const checkAuth = async (req, res, next) => {
-    const businessId = req.headers['x-business-id'];
+    let businessId = req.headers['x-business-id'];
     const role = req.headers['x-user-role'];
+
+    // Normalizar businessId: si es un string vacío o 'null', tratarlo como null
+    if (businessId === '' || businessId === 'null' || businessId === 'undefined') {
+        businessId = null;
+    }
 
     // El Super Admin puede no tener business_id asociado directamente en algunos contextos
     if (!businessId && role !== 'super_admin') {
@@ -168,8 +173,14 @@ app.get('/api/users/:id', checkAuth, async (req, res) => {
 app.post('/api/users', checkAuth, async (req, res) => {
     const { username, password, name, role } = req.body;
     try {
+        if (!username || !password || !name) {
+            return res.status(400).json({ error: 'Faltan campos obligatorios: nombre, usuario y contraseña' });
+        }
+
         // Validación de seguridad: solo un super_admin puede crear otro super_admin
         const finalRole = (role === 'super_admin' && req.userRole !== 'super_admin') ? 'editor' : (role || 'editor');
+
+        // El business_id debe ser null para super_admin
         const finalBusinessId = finalRole === 'super_admin' ? null : req.businessId;
 
         const result = await db.query(
@@ -178,6 +189,7 @@ app.post('/api/users', checkAuth, async (req, res) => {
         );
         res.json(result.rows[0]);
     } catch (err) {
+        console.error("POST /api/users error:", err.message);
         res.status(500).json({ error: err.message });
     }
 });
@@ -210,6 +222,7 @@ app.put('/api/users/:id', checkAuth, async (req, res) => {
         const result = await db.query(query + ' RETURNING id, username, name, role', params);
         res.json(result.rows[0]);
     } catch (err) {
+        console.error("PUT /api/users error:", err.message);
         res.status(500).json({ error: err.message });
     }
 });

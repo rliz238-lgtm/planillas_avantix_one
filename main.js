@@ -3116,15 +3116,33 @@ const Views = {
                     username: form.username.value,
                     role: roleSelect ? roleSelect.value : (form.role ? form.role.value : 'editor')
                 };
-                if (form.password.value) data.password = form.password.value;
-
-                if (id) {
-                    await Storage.update('users', id, data);
-                } else {
-                    await Storage.add('users', data);
+                if (form.password.value) {
+                    data.password = form.password.value;
+                } else if (!id) {
+                    return alert('La contraseña es obligatoria para nuevos usuarios');
                 }
-                modal.close();
-                App.renderView(App.currentView);
+
+                Storage.showLoader(true, id ? 'Actualizando usuario...' : 'Creando usuario...');
+                try {
+                    let result;
+                    if (id) {
+                        result = await Storage.update('users', id, data);
+                    } else {
+                        result = await Storage.add('users', data);
+                    }
+
+                    if (result && (result.success || result.id)) {
+                        modal.close();
+                        App.renderView(App.currentView);
+                    } else {
+                        alert('Error: ' + (result?.error || 'No se pudo guardar el usuario'));
+                    }
+                } catch (err) {
+                    console.error("User form submit error:", err);
+                    alert('Error técnico al procesar el usuario');
+                } finally {
+                    Storage.showLoader(false);
+                }
             };
         }
     },
