@@ -209,6 +209,10 @@ app.put('/api/users/:id', checkAuth, async (req, res) => {
 
         const finalRoleValue = (role === 'super_admin' && req.userRole !== 'super_admin') ? undefined : role;
         if (finalRoleValue) {
+            // Solo permitir cambiar a super_admin si el que edita es super_admin
+            if (finalRoleValue === 'super_admin' && req.userRole !== 'super_admin') {
+                return res.status(403).json({ error: 'No tiene permisos para asignar el rol de Super Administrador' });
+            }
             query += `, role=$${paramIdx++}`;
             params.push(finalRoleValue);
             if (finalRoleValue === 'super_admin') {
@@ -587,23 +591,24 @@ app.post('/api/payments', checkAuth, async (req, res) => {
     }
 });
 
-app.put('/api/payments/:id', async (req, res) => {
+app.put('/api/payments/:id', checkAuth, async (req, res) => {
     const { id } = req.params;
     const { employeeId, amount, hours, deductionCCSS, netAmount, date, isImported, logsDetail, startDate, endDate } = req.body;
     try {
         const result = await db.query(
-            'UPDATE payments SET employee_id=$1, amount=$2, hours=$3, deduction_ccss=$4, net_amount=$5, date=$6, is_imported=$7, logs_detail=$8, start_date=$9, end_date=$10 WHERE id=$11 RETURNING *',
-            [employeeId, amount, hours, deductionCCSS, netAmount, date, isImported, JSON.stringify(logsDetail || []), startDate, endDate, id]
+            'UPDATE payments SET employee_id=$1, amount=$2, hours=$3, deduction_ccss=$4, net_amount=$5, date=$6, is_imported=$7, logs_detail=$8, start_date=$9, end_date=$10 WHERE id=$11 AND business_id=$12 RETURNING *',
+            [employeeId, amount, hours, deductionCCSS, netAmount, date, isImported, JSON.stringify(logsDetail || []), startDate, endDate, id, req.businessId]
         );
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Pago no encontrado o no pertenece a su empresa' });
         res.json(result.rows[0]);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.delete('/api/payments/:id', async (req, res) => {
+app.delete('/api/payments/:id', checkAuth, async (req, res) => {
     try {
-        await db.query('DELETE FROM payments WHERE id = $1', [req.params.id]);
+        const result = await db.query('DELETE FROM payments WHERE id = $1 AND business_id = $2', [req.params.id, req.businessId]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -611,7 +616,7 @@ app.delete('/api/payments/:id', async (req, res) => {
 });
 
 // --- Generic WhatsApp Send ---
-app.post('/api/whatsapp/send', async (req, res) => {
+app.post('/api/whatsapp/send', checkAuth, async (req, res) => {
     const { phone, message } = req.body;
     if (!phone || !message) return res.status(400).json({ error: 'Phone and message are required' });
 

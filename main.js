@@ -2850,13 +2850,12 @@ const Views = {
     },
 
     users: async () => {
+        const currentUser = Auth.getUser();
+        if (currentUser.role !== 'owner' && currentUser.role !== 'super_admin') {
+            return `<div class="card-container"><p style="color:var(--danger)">Acceso denegado. Solo administradores pueden gestionar usuarios.</p></div>`;
+        }
         try {
             const users = await apiFetch(`/api/users?_t=${Date.now()}`).then(r => r.json());
-            const currentUser = Auth.getUser();
-
-            if (!Array.isArray(users)) {
-                return `<div class="card-container"><p style="color:var(--danger)">Error al cargar usuarios: ${users.error || 'Respuesta inválida'}</p></div>`;
-            }
 
             return `
                 <div class="card-container">
@@ -3076,13 +3075,17 @@ const Views = {
 
             // Configurar opciones de rol dinámicamente
             if (roleSelect) {
-                roleSelect.innerHTML = `
+                let options = `
                     <option value="editor">Admin Editor (Solo Planillas)</option>
                     <option value="owner">Admin Dueño (Control de Empresa)</option>
-                    ${currentUser.role === 'super_admin' ? '<option value="super_admin">Super Administrador (Global)</option>' : ''}
                 `;
+                if (currentUser.role === 'super_admin') {
+                    options += '<option value="super_admin">Super Administrador (Global)</option>';
+                }
+                roleSelect.innerHTML = options;
+
                 // Si estamos en la vista de super usuarios, preseleccionar super_admin
-                if (App.currentView === 'adminSuperUsers' && !id) {
+                if (App.currentView === 'adminSuperUsers' && !id && currentUser.role === 'super_admin') {
                     roleSelect.value = 'super_admin';
                 }
             }
