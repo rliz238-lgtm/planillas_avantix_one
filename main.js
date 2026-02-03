@@ -270,8 +270,12 @@ const apiFetch = async (url, options = {}) => {
 
     const response = await fetch(url, { ...options, headers });
     if (response.status === 401) {
-        alert("Sesión expirada o no autorizada");
-        Auth.logout();
+        // No alertar ni desloguear si es el refresh inicial de business settings
+        // o si ya estamos en la pantalla de login.
+        if (url !== '/api/settings/business' && !url.includes('/api/login')) {
+            alert("Sesión expirada o no autorizada");
+            Auth.logout();
+        }
     }
     return response;
 };

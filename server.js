@@ -91,7 +91,7 @@ const checkAuth = async (req, res, next) => {
 
     // El Super Admin puede no tener business_id asociado directamente en algunos contextos
     if (!businessId && role !== 'super_admin') {
-        return res.status(401).json({ error: 'Empresa no identificada' });
+        return res.status(401).json({ error: 'Sesión no autorizada o empresa no identificada' });
     }
 
     if (businessId && role !== 'super_admin') {
