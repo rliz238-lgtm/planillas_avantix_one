@@ -26,7 +26,7 @@ const EmployeePortal = {
                 this.currentEmployee = {
                     ...emp,
                     hourlyRate: parseFloat(emp.hourly_rate),
-                    business_name: emp.business_name || 'Avantix SaaS'
+                    business_name: emp.business_name || 'Planillas Avantix One'
                 };
 
                 // Cargar logs del empleado desde el servidor con headers de negocio
@@ -70,7 +70,8 @@ const EmployeePortal = {
         return `
             <div class="login-container">
                 <div class="login-card">
-                    <h1 style="color: white; margin-bottom: 0.5rem;">Avantix SaaS</h1>
+                    <img src="img/avantix_one_logo.png" alt="Logo" style="height: 80px; margin-bottom: 1.5rem;">
+                    <h1 style="color: white; margin-bottom: 0.5rem;">Planillas Avantix One</h1>
                     <p style="color: var(--text-muted); margin-bottom: 2rem;">Portal de Empleados</p>
                     
                     <input 

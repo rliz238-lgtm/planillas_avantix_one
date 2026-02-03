@@ -1,5 +1,5 @@
 /**
- * Planillas Tom Tom Wok - Core Logic
+ * Planillas Avantix One - Core Logic
  */
 
 // --- Payroll Global Helpers (Top Level) ---
@@ -123,7 +123,7 @@ const PayrollHelpers = {
                 details += `• ${day} ${l.date.split('T')[0]}: ${l.time_in || '--'} - ${l.time_out || '--'} (${parseFloat(l.hours).toFixed(1)}h) → ₡${Math.round(l.net).toLocaleString()}\n`;
             });
         }
-        const text = `*RESUMEN PAGO - TTW*\n\n*Empleado:* ${d.name}\n*Total Neto:* ₡${Math.round(d.net).toLocaleString()}\n*Total Horas:* ${d.hours.toFixed(1)}h${details}`;
+        const text = `*RESUMEN PAGO - AVANTIX ONE*\n\n*Empleado:* ${d.name}\n*Total Neto:* ₡${Math.round(d.net).toLocaleString()}\n*Total Horas:* ${d.hours.toFixed(1)}h${details}`;
         PayrollHelpers.sendServerWhatsApp(d.phone, text);
     },
     showPaymentHistoryDetail: async (paymentId) => {
