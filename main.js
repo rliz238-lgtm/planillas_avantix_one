@@ -458,8 +458,34 @@ const App = {
     currentView: 'dashboard',
 
     async init() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('action') === 'register') {
+            document.body.classList.add('onboarding-fullscreen');
+            const landingView = document.getElementById('landing-view');
+            const loginView = document.getElementById('login-view');
+            const appElem = document.getElementById('app');
+            if (landingView) landingView.style.display = 'none';
+            if (loginView) loginView.style.display = 'none';
+            if (appElem) appElem.style.display = 'flex';
+            this.renderView('registration');
+
+            // Auto-fill if params provided
+            setTimeout(() => {
+                const nameInput = document.querySelector('input[name="ownerName"]');
+                const lastNameInput = document.querySelector('input[name="ownerLastName"]');
+                const emailInput = document.querySelector('input[name="ownerEmail"]');
+                if (nameInput && urlParams.get('name')) nameInput.value = urlParams.get('name');
+                if (lastNameInput && urlParams.get('lastname')) lastNameInput.value = urlParams.get('lastname');
+                if (emailInput && urlParams.get('email')) {
+                    emailInput.value = urlParams.get('email');
+                    emailInput.dispatchEvent(new Event('input'));
+                }
+            }, 500);
+            return;
+        }
+
         if (!Auth.isAuthenticated()) {
-            this.renderLogin();
+            this.renderLanding();
             return;
         }
 
@@ -745,10 +771,28 @@ const App = {
         }
     },
 
+    renderLanding() {
+        const landingView = document.getElementById('landing-view');
+        const loginView = document.getElementById('login-view');
+        const appElem = document.getElementById('app');
+
+        if (appElem) appElem.style.display = 'none';
+        if (loginView) loginView.style.display = 'none';
+
+        if (landingView) {
+            landingView.innerHTML = Views.landing();
+            landingView.style.display = 'block';
+            Views.init_landing();
+        }
+    },
+
     renderLogin() {
         const appElem = document.getElementById('app');
         const loginView = document.getElementById('login-view');
+        const landingView = document.getElementById('landing-view');
+
         if (appElem) appElem.style.display = 'none';
+        if (landingView) landingView.style.display = 'none';
         if (loginView) loginView.style.display = 'flex';
 
         const form = document.getElementById('login-form');
@@ -928,6 +972,124 @@ const ROLES = {
 };
 
 const Views = {
+    landing: () => {
+        return `
+            <div class="landing-navbar">
+                <div class="logo" style="display: flex; align-items: center; gap: 10px;">
+                    <img src="img/avantix_one_logo.png" alt="Logo" style="height: 40px;">
+                    <h2 style="font-size: 1.4rem; margin: 0; color: white;">Planillas Avantix One</h2>
+                </div>
+                <div class="landing-nav-links">
+                    <a href="#features">Funciones</a>
+                    <a href="#pricing">Precios</a>
+                    <a href="#" id="landing-login-btn" class="btn btn-secondary" style="padding: 10px 25px;">Iniciar Sesión</a>
+                </div>
+            </div>
+
+            <section class="hero-section">
+                <h1>Simplifique su nómina hoy mismo</h1>
+                <p>La plataforma líder en Costa Rica para el control de horas, cálculo de CCSS y gestión de planillas SaaS.</p>
+                <div class="hero-btns">
+                    <a href="#pricing" class="btn btn-primary" style="padding: 15px 35px; font-size: 1.1rem;">Comenzar Ahora</a>
+                    <a href="#features" class="btn btn-secondary" style="padding: 15px 35px; font-size: 1.1rem;">Ver Funciones</a>
+                </div>
+            </section>
+
+            <section class="features-section" id="features">
+                <div class="section-title">
+                    <h2>Todo lo que su empresa necesita</h2>
+                    <p style="color: var(--text-muted)">Gestione su personal de forma profesional y sin errores.</p>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <span class="feature-icon">⏱️</span>
+                        <h3>Control de Asistencia</h3>
+                        <p>Portal intuitivo para que sus empleados registren entradas y salidas con un PIN de seguridad.</p>
+                    </div>
+                    <div class="feature-card">
+                        <span class="feature-icon">🇨🇷</span>
+                        <h3>Reportes CCSS</h3>
+                        <p>Cálculo automático del 10.67% y generación de reportes listos para la Caja.</p>
+                    </div>
+                    <div class="feature-card">
+                        <span class="feature-icon">⚡</span>
+                        <h3>Cálculo de Extras</h3>
+                        <p>Algoritmo inteligente para horas extras, feriados y días dobles configurables.</p>
+                    </div>
+                    <div class="feature-card">
+                        <span class="feature-icon">📱</span>
+                        <h3>WhatsApp Directo</h3>
+                        <p>Envíe comprobantes de pago detallados directamente al WhatsApp de sus empleados.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="pricing-section" id="pricing">
+                <div class="section-title">
+                    <h2>Plan Simple y Transparente</h2>
+                    <p style="color: var(--text-muted)">Únase a las empresas que ya optimizaron su tiempo.</p>
+                </div>
+                <div class="pricing-card">
+                    <div class="pricing-badge">Oferta de Lanzamiento</div>
+                    <h3>Plan Anual SaaS</h3>
+                    <div class="price">$120 <span>/ año</span></div>
+                    <ul class="pricing-features">
+                        <li>Empresas Ilimitadas</li>
+                        <li>Empleados Ilimitados</li>
+                        <li>Soporte Técnico 24/7</li>
+                        <li>Actualizaciones de Ley automáticas</li>
+                        <li>Módulo de Reportería Avanzada</li>
+                    </ul>
+                    <a href="https://pay.hotmart.com/PLACEHOLDER" target="_blank" class="btn btn-primary" style="width: 100%; padding: 20px; font-size: 1.2rem; font-weight: 700;">ADQUIRIR AHORA</a>
+                    <p style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">Pago seguro procesado por Hotmart®</p>
+                </div>
+            </section>
+
+            <section class="testimonial-section">
+                <div class="testimonial-card">
+                    "Desde que usamos Avantix One, el cierre de quincena pasó de ser una pesadilla de 4 horas a solo 15 minutos. El envío por WhatsApp es lo que más aman mis empleados."
+                    <div class="testimonial-author">— Tom Tom Wok, Restaurante Gourmet</div>
+                </div>
+            </section>
+
+            <footer class="landing-footer">
+                <p>© 2026 Planillas Avantix One. Desarrollado para empresas de alto rendimiento.</p>
+                <div style="margin-top: 1rem;">
+                    <a href="#" style="color: var(--primary); text-decoration: none;" id="landing-footer-login">Acceso Administrador</a>
+                </div>
+            </footer>
+        `;
+    },
+
+    init_landing: () => {
+        const loginBtns = [
+            document.getElementById('landing-login-btn'),
+            document.getElementById('landing-footer-login')
+        ];
+
+        loginBtns.forEach(btn => {
+            if (btn) {
+                btn.onclick = (e) => {
+                    e.preventDefault();
+                    App.renderLogin();
+                };
+            }
+        });
+
+        // Smooth scroll for anchors
+        document.querySelectorAll('.landing-nav-links a[href^="#"], .hero-btns a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                const target = document.querySelector(targetId);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    },
+
     registration: async () => {
         return `
             <div class="card onboarding-card">
