@@ -500,8 +500,8 @@ const App = {
         const loginBizName = document.getElementById('login-biz-name');
         const logoContainer = document.querySelector('.sidebar .logo');
 
-        if (bizNameDisplay) bizNameDisplay.textContent = user.business_name || 'Avantix SaaS';
-        if (loginBizName) loginBizName.textContent = user.business_name || 'Avantix One';
+        if (bizNameDisplay) bizNameDisplay.textContent = user.business_name || 'Planillas Avantix One';
+        if (loginBizName) loginBizName.textContent = user.business_name || 'Planillas Avantix One';
 
         if (logoContainer) {
             // Eliminar imagen anterior si existe para evitar duplicados o rotas
@@ -1916,8 +1916,8 @@ const Views = {
     calculator: async () => {
         const employees = await Storage.get('employees');
         const user = Auth.getUser();
-        // Robustez: Si el rol es admin o si el usuario no tiene rol pero está logueado por el form de admin
-        const isAdmin = user && (user.role === 'admin' || (user.username && user.role !== 'employee'));
+        // Permitir opciones avanzadas para roles administrativos
+        const isAdmin = user && ['super_admin', 'owner', 'editor'].includes(user.role);
         const activeEmployees = employees.filter(e => e.status === 'Active');
 
         return `
@@ -1956,8 +1956,8 @@ const Views = {
                                 <th>Entrada</th>
                                 <th>Salida</th>
                                 <th>Horas</th>
-                                ${isAdmin ? '<th>Horas Dobles</th>' : ''}
-                                ${isAdmin ? '<th>Horas Almuerzo</th>' : ''}
+                                <th>Horas Dobles</th>
+                                <th>Horas Almuerzo</th>
                                 <th style="width: 50px"></th>
                             </tr>
                         </thead>
@@ -2026,8 +2026,8 @@ const Views = {
                 <td><input type="time" class="calc-in" value="${nextIn}"></td>
                 <td><input type="time" class="calc-out" value="${nextOut}"></td>
                 <td class="calc-subtotal" style="font-weight: 600">0.00h</td>
-                ${Auth.getUser().role === 'admin' ? '<td style="text-align:center"><input type="checkbox" class="calc-double" title="Marcar como Día Doble" style="width: 20px; height: 20px;"></td>' : ''}
-                ${Auth.getUser().role === 'admin' ? '<td><input type="number" class="calc-deduction" value="0" step="0.5" style="width:100px" title="Horas de almuerzo o permisos"></td>' : ''}
+                <td style="text-align:center"><input type="checkbox" class="calc-double" title="Marcar como Día Doble" style="width: 20px; height: 20px;"></td>
+                <td><input type="number" class="calc-deduction" value="0" step="0.5" style="width:100px" title="Horas de almuerzo o permisos"></td>
                 <td style="text-align: center;"><button class="btn" style="padding: 6px; color: var(--danger)" onclick="this.closest('tr').remove(); window.updateCalcTotal();">✕</button></td>
             `;
             tbody.appendChild(tr);
