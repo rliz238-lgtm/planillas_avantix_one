@@ -958,3 +958,156 @@ dialog::backdrop {
     background: rgba(99, 102, 241, 0.1);
     color: var(--primary);
 }
+
+/* --- Onboarding / Registration Redesign --- */
+.onboarding-fullscreen {
+    --sidebar-width: 0px !important;
+}
+
+.onboarding-fullscreen .sidebar {
+    display: none !important;
+}
+
+.onboarding-fullscreen .content {
+    margin-left: 0 !important;
+    max-width: 100% !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem !important;
+    background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+    min-height: 100vh;
+}
+
+/* Redesigned Onboarding Card */
+.onboarding-card {
+    max-width: 650px !important;
+    width: 100%;
+    margin: 2rem auto !important;
+    padding: 2.5rem !important;
+    background: rgba(30, 41, 59, 0.7) !important;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    border-radius: 24px !important;
+}
+
+.onboarding-steps {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2.5rem;
+    position: relative;
+    padding: 0 20px;
+}
+
+.onboarding-steps::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    left: 40px;
+    right: 40px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    z-index: 1;
+}
+
+.step-indicator {
+    width: 38px;
+    height: 38px;
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    z-index: 2;
+    transition: var(--transition);
+    position: relative;
+}
+
+.step-indicator::after {
+    content: attr(data-label);
+    position: absolute;
+    top: 45px;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.step-indicator.active {
+    border-color: var(--primary);
+    color: white;
+    background: var(--primary);
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+}
+
+.step-indicator.active::after {
+    color: white;
+}
+
+.step-indicator.completed {
+    background: var(--success);
+    border-color: var(--success);
+    color: white;
+}
+
+.onboarding-section {
+    display: none;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.onboarding-section.active {
+    display: block;
+}
+
+.onboarding-nav {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2.5rem;
+    gap: 15px;
+}
+
+.onboarding-nav button {
+    flex: 1;
+    padding: 14px !important;
+}
+
+/* Logo Upload Area */
+.logo-upload-zone {
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    background: rgba(255, 255, 255, 0.02);
+    margin-bottom: 1rem;
+}
+
+.logo-upload-zone:hover {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.logo-preview-container {
+    margin-top: 1rem;
+    display: none;
+    text-align: center;
+}
+
+.logo-preview {
+    max-height: 100px;
+    max-width: 100%;
+    border-radius: 8px;
+    object-fit: contain;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.onboarding-fullscreen .content header {
+    display: none !important;
+}

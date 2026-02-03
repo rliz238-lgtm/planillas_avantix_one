@@ -890,11 +890,19 @@ app.get('/api/admin/stats', checkAuth, async (req, res) => {
 });
 
 // --- Onboarding Flow ---
-app.post('/api/onboarding/register', async (req, res) => {
+app.post('/api/onboarding/register', upload.single('logo'), async (req, res) => {
     const {
         businessName, legal_type, legal_name, cedulaJuridica, country, state, city, district, address, email: bizEmail, phone: bizPhone,
         ownerName, ownerLastName, ownerEmail, ownerPhone, username, password
     } = req.body;
+
+    let logo_url = req.body.logo_url || null;
+    if (req.file) {
+        logo_url = `/img/logos/${req.file.filename}`;
+    }
+
+    const finalBusinessName = businessName || `Empresa de ${ownerName}`;
+
     try {
         await db.query('BEGIN');
 
@@ -903,7 +911,7 @@ app.post('/api/onboarding/register', async (req, res) => {
             `INSERT INTO businesses(
                 name, legal_type, legal_name, cedula_juridica, country, state, city, district, address, email, phone, logo_url, cycle_type
             ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
-            [businessName, legal_type, legal_name, cedulaJuridica, country, state, city, district, address, bizEmail, bizPhone, req.body.logo_url || null, req.body.cycle_type || 'Weekly']
+            [finalBusinessName, legal_type || 'Persona Jurídica', legal_name || null, cedulaJuridica || null, country || 'Costa Rica', state || null, city || null, district || null, address || null, bizEmail, bizPhone, logo_url, req.body.cycle_type || 'Weekly']
         );
         const businessId = busRes.rows[0].id;
 
@@ -925,14 +933,15 @@ app.post('/api/onboarding/register', async (req, res) => {
                 name: ownerName,
                 role: 'owner',
                 business_id: businessId,
-                business_name: businessName,
-                logo_url: req.body.logo_url || null,
+                business_name: finalBusinessName,
+                logo_url: logo_url,
                 cycle_type: req.body.cycle_type || 'Weekly',
                 theme_preference: req.body.theme_preference || 'dark'
             }
         });
     } catch (err) {
         await db.query('ROLLBACK');
+        console.error("Error en registro onboarding:", err);
         res.status(500).json({ error: err.message });
     }
 });

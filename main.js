@@ -765,8 +765,9 @@ const App = {
         if (registerLink) {
             registerLink.onclick = (e) => {
                 e.preventDefault();
+                document.body.classList.add('onboarding-fullscreen'); // Nueva clase para ocultar sidebar
                 if (loginView) loginView.style.display = 'none';
-                if (appElem) appElem.style.display = 'flex'; // Usamos el container de app para el onboarding
+                if (appElem) appElem.style.display = 'flex';
                 this.renderView('registration');
             };
         }
@@ -929,118 +930,148 @@ const ROLES = {
 const Views = {
     registration: async () => {
         return `
-            <div class="card" style="max-width: 750px; margin: 2rem auto;">
-                <h2 style="margin-bottom: 2rem; text-align: center; color: var(--primary);">Registrar Nueva Empresa SaaS</h2>
-                <form id="registration-form" class="form-grid">
-                    
-                    <div style="grid-column: span 2;">
-                        <h4 style="color: var(--primary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 15px;">👤 Información del Usuario (Dueño)</h4>
+            <div class="card onboarding-card">
+                <div class="onboarding-steps">
+                    <div class="step-indicator active" data-step="1" data-label="Usuario">1</div>
+                    <div class="step-indicator" data-step="2" data-label="Empresa">2</div>
+                    <div class="step-indicator" data-step="3" data-label="Finalizar">3</div>
+                </div>
+
+                <form id="registration-form">
+                    <!-- Paso 1: Cuenta de Usuario -->
+                    <div class="onboarding-section active" data-section="1">
+                        <div style="margin-bottom: 2rem; text-align: center;">
+                            <h2 style="color: var(--primary); margin-bottom: 0.5rem;">Crea tu Cuenta</h2>
+                            <p style="color: var(--text-muted);">Comencemos con tus datos básicos.</p>
+                        </div>
+                        
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Nombre *</label>
+                                <input type="text" name="ownerName" placeholder="Ej: Juan" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Apellidos *</label>
+                                <input type="text" name="ownerLastName" placeholder="Ej: Pérez" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Correo Electrónico * (Será su Usuario)</label>
+                            <input type="email" name="ownerEmail" id="reg-owner-email" placeholder="juan@ejemplo.com" required 
+                                oninput="document.getElementById('reg-owner-username').value = this.value">
+                        </div>
+
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Teléfono *</label>
+                                <input type="tel" name="ownerPhone" placeholder="Ej: 8888-8888" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Contraseña *</label>
+                                <input type="password" name="password" placeholder="••••••••" required>
+                            </div>
+                        </div>
+
+                        <input type="hidden" name="username" id="reg-owner-username">
+                        
+                        <div class="onboarding-nav">
+                            <div></div>
+                            <button type="button" class="btn btn-primary next-step">Siguiente</button>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label>Nombre</label>
-                        <input type="text" name="ownerName" placeholder="Ej: Juan" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Apellidos</label>
-                        <input type="text" name="ownerLastName" placeholder="Ej: Pérez" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Correo Electrónico (Será su Usuario)</label>
-                        <input type="email" name="ownerEmail" id="reg-owner-email" placeholder="juan@ejemplo.com" required oninput="document.getElementById('reg-owner-username').value = this.value">
-                    </div>
-                    <div class="form-group">
-                        <label>Teléfono</label>
-                        <input type="tel" name="ownerPhone" placeholder="Ej: 8888-8888" required>
+                    <!-- Paso 2: Información de Empresa -->
+                    <div class="onboarding-section" data-section="2">
+                        <div style="margin-bottom: 2rem; text-align: center;">
+                            <h2 style="color: var(--primary); margin-bottom: 0.5rem;">Datos de la Empresa</h2>
+                            <p style="color: var(--text-muted);">Puedes completar esto ahora o después.</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Nombre Comercial</label>
+                            <input type="text" name="businessName" placeholder="Ej: Restaurante El Sabor">
+                        </div>
+
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Cédula Jurídica / Física</label>
+                                <input type="text" name="cedulaJuridica" placeholder="Ej: 3-101-123456">
+                            </div>
+                            <div class="form-group">
+                                <label>Tipo de Identidad</label>
+                                <select name="legal_type">
+                                    <option value="Persona Jurídica">Persona Jurídica</option>
+                                    <option value="Persona Física">Persona Física</option>
+                                    <option value="Sociedad Anónima (S.A.)">Sociedad Anónima (S.A.)</option>
+                                    <option value="Soc. Resp. Limitada (S.R.L.)">Soc. Resp. Limitada (S.R.L.)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Provincia / Estado</label>
+                                <input type="text" name="state">
+                            </div>
+                            <div class="form-group">
+                                <label>Cantón / Ciudad</label>
+                                <input type="text" name="city">
+                            </div>
+                        </div>
+
+                        <div class="onboarding-nav">
+                            <button type="button" class="btn btn-secondary prev-step">Anterior</button>
+                            <button type="button" class="btn btn-primary next-step">Siguiente</button>
+                        </div>
                     </div>
 
-                    <div style="grid-column: span 2; margin-top: 10px;">
-                        <h4 style="color: var(--primary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 15px;">🔐 Credenciales de Acceso</h4>
-                    </div>
+                    <!-- Paso 3: Configuración y Logo -->
+                    <div class="onboarding-section" data-section="3">
+                        <div style="margin-bottom: 2rem; text-align: center;">
+                            <h2 style="color: var(--primary); margin-bottom: 0.5rem;">Configuración Final</h2>
+                            <p style="color: var(--text-muted);">Personaliza tu espacio de trabajo.</p>
+                        </div>
 
-                    <div class="form-group">
-                        <label>Usuario</label>
-                        <input type="text" name="username" id="reg-owner-username" placeholder="juan@ejemplo.com" readonly required style="background: rgba(255,255,255,0.02); opacity: 0.8;">
-                    </div>
-                    <div class="form-group">
-                        <label>Contraseña</label>
-                        <input type="password" name="password" placeholder="••••••••" required>
-                    </div>
+                        <div class="form-group">
+                            <label>Ciclo de Pago</label>
+                            <select name="cycle_type">
+                                <option value="Weekly">Semanal (Pago cada 7 días)</option>
+                                <option value="Biweekly">Quincenal (Pago cada 15 días)</option>
+                                <option value="Monthly">Mensual (Pago cada 30 días)</option>
+                            </select>
+                        </div>
 
-                    <div style="grid-column: span 2; margin-top: 20px;">
-                        <h4 style="color: var(--primary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 15px;">🏢 Información de la Empresa</h4>
-                    </div>
+                        <div class="form-group">
+                            <label>Logo de la Empresa (Opcional)</label>
+                            <div class="logo-upload-zone" id="logo-drop-zone">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 10px; opacity: 0.5;">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <polyline points="21 15 16 10 5 21"/>
+                                </svg>
+                                <p style="font-size: 0.9rem;">Click para subir o arrastra una imagen</p>
+                                <input type="file" id="onboarding-logo-input" accept="image/*" style="display: none;">
+                            </div>
+                            <div class="logo-preview-container" id="logo-preview-container">
+                                <img src="" class="logo-preview" id="logo-preview-img">
+                                <button type="button" class="btn btn-danger btn-icon" id="remove-logo-btn" style="margin-top: 10px;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                                    Quitar Logo
+                                </button>
+                            </div>
+                        </div>
 
-                    <div class="form-group" style="grid-column: span 2">
-                        <label>Nombre Comercial</label>
-                        <input type="text" name="businessName" placeholder="Ej: Restaurante El Sabor" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Tipo de Identidad</label>
-                        <select name="legal_type">
-                            <option value="Persona Jurídica">Persona Jurídica</option>
-                            <option value="Persona Física">Persona Física</option>
-                            <option value="Sociedad Anónima (S.A.)">Sociedad Anónima (S.A.)</option>
-                            <option value="Soc. Resp. Limitada (S.R.L.)">Soc. Resp. Limitada (S.R.L.)</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Cédula Jurídica / Física</label>
-                        <input type="text" name="cedulaJuridica" placeholder="Ej: 3-101-123456" required>
-                    </div>
-
-                    <div class="form-group" style="grid-column: span 2">
-                        <label>Razón Social (Legal)</label>
-                        <input type="text" name="legal_name" placeholder="Nombre legal completo">
-                    </div>
-
-                    <div class="form-group">
-                        <label>País</label>
-                        <input type="text" name="country" value="Costa Rica">
-                    </div>
-                    <div class="form-group">
-                        <label>Provincia / Estado</label>
-                        <input type="text" name="state">
-                    </div>
-                    <div class="form-group">
-                        <label>Cantón / Ciudad</label>
-                        <input type="text" name="city">
-                    </div>
-                    <div class="form-group">
-                        <label>Distrito / Barrio</label>
-                        <input type="text" name="district">
-                    </div>
-
-                    <div class="form-group" style="grid-column: span 2">
-                        <label>Dirección Exacta</label>
-                        <textarea name="address" rows="1" style="width: 100%; border-radius: 8px; background: var(--input-bg); border: 1px solid var(--border); color: var(--input-color); padding: 10px;"></textarea>
-                    </div>
-
-                    <div style="grid-column: span 2; margin-top: 20px;">
-                        <h4 style="color: var(--primary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 15px;">⚙️ Configuración de la App</h4>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Logo de la Empresa (URL)</label>
-                        <input type="url" name="logo_url" placeholder="https://ejemplo.com/logo.png">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Ciclo de Pago</label>
-                        <select name="cycle_type">
-                            <option value="Weekly">Semanal (48h extras)</option>
-                            <option value="Biweekly">Quincenal (96h extras)</option>
-                            <option value="Monthly">Mensual (192h extras)</option>
-                        </select>
-                    </div>
-
-                    <div style="grid-column: span 2; margin-top: 2.5rem;">
-                        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 15px; font-weight: 600;">Finalizar y Crear Empresa</button>
-                        <button type="button" class="btn btn-secondary" style="width: 100%; margin-top: 10px;" onclick="location.reload()">Regresar al Login</button>
+                        <div class="onboarding-nav">
+                            <button type="button" class="btn btn-secondary prev-step">Anterior</button>
+                            <button type="submit" class="btn btn-primary">Finalizar Registro</button>
+                        </div>
                     </div>
                 </form>
+
+                <div style="text-align: center; margin-top: 2rem;">
+                    <a href="#" onclick="location.reload()" style="color: var(--text-muted); font-size: 0.85rem; text-decoration: none;">¿Ya tienes cuenta? Regresar al Login</a>
+                </div>
             </div>
         `;
     },
@@ -1322,55 +1353,145 @@ const Views = {
     init_registration: async () => {
         const form = document.getElementById('registration-form');
         if (!form) return;
+
+        // --- Multi-step Logic ---
+        const sections = document.querySelectorAll('.onboarding-section');
+        const indicators = document.querySelectorAll('.step-indicator');
+        const nextBtns = document.querySelectorAll('.next-step');
+        const prevBtns = document.querySelectorAll('.prev-step');
+
+        const goToStep = (step) => {
+            sections.forEach(s => s.classList.remove('active'));
+            indicators.forEach(i => {
+                i.classList.remove('active');
+                if (parseInt(i.dataset.step) < step) i.classList.add('completed');
+                else i.classList.remove('completed');
+            });
+
+            document.querySelector(`.onboarding-section[data-section="${step}"]`).classList.add('active');
+            document.querySelector(`.step-indicator[data-step="${step}"]`).classList.add('active');
+        };
+
+        nextBtns.forEach(btn => {
+            btn.onclick = () => {
+                const currentSection = btn.closest('.onboarding-section');
+                const step = parseInt(currentSection.dataset.section);
+
+                // Validación básica para el paso 1
+                if (step === 1) {
+                    const required = currentSection.querySelectorAll('[required]');
+                    let valid = true;
+                    required.forEach(input => {
+                        if (!input.value) {
+                            input.style.borderColor = 'var(--danger)';
+                            valid = false;
+                        } else {
+                            input.style.borderColor = 'var(--border)';
+                        }
+                    });
+                    if (!valid) return;
+                }
+
+                goToStep(step + 1);
+            };
+        });
+
+        prevBtns.forEach(btn => {
+            btn.onclick = () => {
+                const step = parseInt(btn.closest('.onboarding-section').dataset.section);
+                goToStep(step - 1);
+            };
+        });
+
+        // --- Logo Upload Logic ---
+        const dropZone = document.getElementById('logo-drop-zone');
+        const fileInput = document.getElementById('onboarding-logo-input');
+        const previewContainer = document.getElementById('logo-preview-container');
+        const previewImg = document.getElementById('logo-preview-img');
+        const removeLogoBtn = document.getElementById('remove-logo-btn');
+
+        if (dropZone && fileInput) {
+            dropZone.onclick = () => fileInput.click();
+            fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (re) => {
+                        previewImg.src = re.target.result;
+                        previewContainer.style.display = 'block';
+                        dropZone.style.display = 'none';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+        }
+
+        if (removeLogoBtn) {
+            removeLogoBtn.onclick = () => {
+                fileInput.value = '';
+                previewContainer.style.display = 'none';
+                dropZone.style.display = 'block';
+            };
+        }
+
+        // --- Form Final Submit ---
         form.onsubmit = async (e) => {
             e.preventDefault();
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
 
-            // Sync business email/phone with owner if missing
-            if (!data.email) data.email = data.ownerEmail;
-            if (!data.phone) data.phone = data.ownerPhone;
+            const formDataRaw = new FormData(form);
+            const data = Object.fromEntries(formDataRaw.entries());
+
+            const finalData = new FormData();
+            for (const key in data) finalData.append(key, data[key]);
+
+            if (fileInput.files[0]) {
+                finalData.append('logo', fileInput.files[0]);
+            }
+
+            // Sync business email/phone with owner
+            if (!data.businessName) finalData.set('businessName', 'Empresa de ' + data.ownerName);
+            finalData.append('email', data.ownerEmail);
+            finalData.append('phone', data.ownerPhone);
 
             Storage.showLoader(true, 'Creando su empresa...');
             try {
-                const res = await fetch('/api/onboarding/register', {
+                // Determine if we send JSON or Mulipart based on file presence
+                const hasFile = fileInput.files.length > 0;
+                let fetchOptions = {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
+                    body: hasFile ? finalData : JSON.stringify(Object.fromEntries(finalData))
+                };
+
+                if (!hasFile) {
+                    fetchOptions.headers = { 'Content-Type': 'application/json' };
+                }
+
+                const res = await fetch('/api/onboarding/register', fetchOptions);
                 const result = await res.json();
+
                 if (result.success && result.session) {
-                    // Auto-login con la sesión retornada
                     localStorage.setItem(Auth.SCHEMA, JSON.stringify({
                         ...result.session,
                         loginTime: Date.now()
                     }));
 
-                    // Mostrar pantalla de éxito antes de redirigir
                     const card = form.closest('.card');
                     if (card) {
                         card.innerHTML = `
                             <div style="text-align: center; padding: 3rem;">
-                                <div style="font-size: 5rem; margin-bottom: 1rem; animation: success-pop 0.5s ease;">🚀</div>
-                                <h2 style="color: var(--primary); margin-bottom: 1rem;">¡Bienvenidos a Avantix One, ${result.session.business_name}!</h2>
-                                <p style="color: var(--text-muted); margin-bottom: 2rem;">Estamos preparando su entorno personalizado...</p>
+                                <div style="font-size: 5rem; margin-bottom: 1rem;">🚀</div>
+                                <h2 style="color: var(--primary); margin-bottom: 1rem;">¡Bienvenidos a Avantix One!</h2>
+                                <p style="color: var(--text-muted); margin-bottom: 2rem;">Estamos preparando su entorno personalizado para <b>${result.session.business_name}</b>...</p>
                                 <div class="loader-spinner" style="margin: 0 auto;"></div>
                             </div>
-                            <style>
-                                @keyframes success-pop {
-                                    0% { transform: scale(0); opacity: 0; }
-                                    80% { transform: scale(1.2); }
-                                    100% { transform: scale(1); opacity: 1; }
-                                }
-                            </style>
                         `;
                     }
-
                     setTimeout(() => location.reload(), 2000);
                 } else {
                     alert('Error: ' + result.error);
                 }
             } catch (err) {
+                console.error(err);
                 alert('Error de conexión');
             } finally {
                 Storage.showLoader(false);
