@@ -809,10 +809,7 @@ const App = {
         if (registerLink) {
             registerLink.onclick = (e) => {
                 e.preventDefault();
-                document.body.classList.add('onboarding-fullscreen'); // Nueva clase para ocultar sidebar
-                if (loginView) loginView.style.display = 'none';
-                if (appElem) appElem.style.display = 'flex';
-                this.renderView('registration');
+                window.location.href = 'https://pay.hotmart.com/L104170872R';
             };
         }
 
@@ -1040,7 +1037,7 @@ const Views = {
                         <li>Actualizaciones de Ley automáticas</li>
                         <li>Módulo de Reportería Avanzada</li>
                     </ul>
-                    <a href="https://pay.hotmart.com/PLACEHOLDER" target="_blank" class="btn btn-primary" style="width: 100%; padding: 20px; font-size: 1.2rem; font-weight: 700;">ADQUIRIR AHORA</a>
+                    <a href="https://pay.hotmart.com/L104170872R" target="_blank" class="btn btn-primary" style="width: 100%; padding: 20px; font-size: 1.2rem; font-weight: 700;">ADQUIRIR AHORA</a>
                     <p style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">Pago seguro procesado por Hotmart®</p>
                 </div>
             </section>
