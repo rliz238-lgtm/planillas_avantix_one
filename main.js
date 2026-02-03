@@ -1011,7 +1011,7 @@ const Views = {
 
                     <div class="form-group" style="grid-column: span 2">
                         <label>Dirección Exacta</label>
-                        <textarea name="address" rows="1" style="width: 100%; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px;"></textarea>
+                        <textarea name="address" rows="1" style="width: 100%; border-radius: 8px; background: var(--input-bg); border: 1px solid var(--border); color: var(--input-color); padding: 10px;"></textarea>
                     </div>
 
                     <div style="grid-column: span 2; margin-top: 20px;">
@@ -1721,7 +1721,7 @@ const Views = {
                         <tbody>
                             ${filteredEmployees.map(emp => `
                                 <tr>
-                                    <td style="font-weight:600; cursor:pointer; color:white" onclick="App.switchView('employeeDetail', '${emp.id}')">${emp.name}</td>
+                                    <td style="font-weight:600; cursor:pointer;" onclick="App.switchView('employeeDetail', '${emp.id}')">${emp.name}</td>
                                     <td>${emp.position}</td>
                                     <td>₡${parseFloat(emp.hourly_rate).toLocaleString()}</td>
                                     <td>
@@ -1892,7 +1892,7 @@ const Views = {
                             <tbody>
                                 ${empPayments.length > 0 ? empPayments.sort((a, b) => new Date(b.date) - new Date(a.date)).map(p => `
                                     <tr>
-                                        <td style="color: white">${p.date ? p.date.split('T')[0] : '—'}</td>
+                                        <td>${p.date ? p.date.split('T')[0] : '—'}</td>
                                         <td>${p.period || 'N/A'}</td>
                                         <td style="font-weight: 600; color: var(--success)">₡${parseFloat(p.amount).toLocaleString()}</td>
                                         <td>${p.method || 'Transferencia'}</td>
@@ -2294,7 +2294,7 @@ const Views = {
                                         data-start="${ps.startDate.split('T')[0]}"
                                         data-end="${ps.endDate.split('T')[0]}"
                                         checked></td>
-                                    <td style="font-weight: 600; color: white; cursor: pointer; text-decoration: underline;" 
+                                    <td style="font-weight: 600; cursor: pointer; text-decoration: underline;" 
                                         onclick="PayrollHelpers.showPayrollDetail(${ps.empId})">
                                         ${ps.name}
                                     </td>
@@ -2353,7 +2353,7 @@ const Views = {
                                     <tr>
                                         <td><input type="checkbox" class="payment-check" data-id="${p.id}" data-full-payment='${paymentJson}'></td>
                                         <td>${p.date ? p.date.split('T')[0] : '—'}</td>
-                                        <td style="font-weight: 600; color: white; cursor: pointer; text-decoration: underline;" 
+                                        <td style="font-weight: 600; cursor: pointer; text-decoration: underline;" 
                                             onclick="PayrollHelpers.showPaymentHistoryDetail('${p.id}')">
                                             ${emp ? emp.name : 'Desconocido'}
                                         </td>
@@ -3004,7 +3004,7 @@ const Views = {
                     </div>
                     <div class="form-group" style="grid-column: span 2">
                         <label>Dirección Exacta</label>
-                        <textarea name="address" rows="2" style="width: 100%; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px;">${biz.address || ''}</textarea>
+                        <textarea name="address" rows="2" style="width: 100%; border-radius: 8px; background: var(--input-bg); border: 1px solid var(--border); color: var(--input-color); padding: 10px;">${biz.address || ''}</textarea>
                     </div>
 
                     <div style="grid-column: span 2; margin-top: 2rem; margin-bottom: 1rem;">

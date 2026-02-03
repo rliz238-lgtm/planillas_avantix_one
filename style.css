@@ -564,7 +564,7 @@ dialog {
     /* Más ancho */
     max-height: 90vh;
     margin: auto;
-    color: white;
+    color: var(--text-main);
     overflow-x: auto;
 }
 
@@ -588,7 +588,7 @@ dialog[open] {
 
 .modal-content {
     padding: 2.5rem;
-    color: white;
+    color: var(--text-main);
 }
 
 /* --- Login Page --- */
