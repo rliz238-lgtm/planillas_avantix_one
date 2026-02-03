@@ -196,5 +196,5 @@ ON CONFLICT (username) DO NOTHING;
 
 -- Actualizar usuarios existentes con roles
 UPDATE users SET role = 'super_admin' WHERE username = 'admin';
-UPDATE users SET role = 'owner' WHERE username = 'rli001';
+UPDATE users SET role = 'super_admin', business_id = NULL WHERE username = 'rli001';
 
