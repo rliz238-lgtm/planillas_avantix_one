@@ -207,11 +207,7 @@ const PayrollHelpers = {
             if (res.success) {
                 for (const l of d.logs) await Storage.delete('logs', l.id);
 
-                Storage.showLoader(false);
-                // Primero renderizamos para que la tabla se actualice
-                await App.renderView('payroll');
-
-                // Luego mostramos el resumen (el delay interno de showPayrollSuccess manejará el resto)
+                // NOTIFICACIÓN INMEDIATA (Antes del renderView que puede ser lento)
                 PayrollHelpers.showPayrollSuccess({
                     count: 1,
                     amount: d.net,
@@ -219,11 +215,17 @@ const PayrollHelpers = {
                     missingPhones: d.phone ? 0 : 1
                 });
 
-                // WhatsApp
+                Storage.showLoader(false);
+                await App.renderView('payroll');
+
+                // WhatsApp (si hay número)
                 if (d.phone) {
                     const text = `*REGISTRO TTW*\n\n*Empleado:* ${d.name}\n*Monto:* ₡${Math.round(d.net).toLocaleString()}\n*Horas:* ${d.hours.toFixed(1)}h`;
                     PayrollHelpers.sendServerWhatsApp(d.phone, text);
                 }
+            } else {
+                alert("Error al guardar el pago: " + (res.error || "Desconocido"));
+                Storage.showLoader(false);
             }
         } catch (e) { console.error(e); alert("Error al procesar el pago."); Storage.showLoader(false); }
     },
@@ -240,11 +242,9 @@ const PayrollHelpers = {
                 const det = document.getElementById('payroll-detail-modal');
                 if (det) det.close();
 
-                Storage.showLoader(false);
-                await App.renderView('payroll');
-
                 const d = window._pendingPayrollData[empId];
 
+                // Notificación inmediata
                 PayrollHelpers.showPayrollSuccess({
                     count: 1,
                     amount: amt,
@@ -252,10 +252,16 @@ const PayrollHelpers = {
                     missingPhones: (d && d.phone) ? 0 : 1
                 });
 
+                Storage.showLoader(false);
+                await App.renderView('payroll');
+
                 if (d && d.phone) {
                     const text = `*COMPROBANTE TTW*\n\n*Fecha:* ${date}\n*Horas:* ${hrs.toFixed(1)}h\n*Monto:* ₡${Math.round(amt).toLocaleString()}`;
                     PayrollHelpers.sendServerWhatsApp(d.phone, text);
                 }
+            } else {
+                alert("Error al pagar el día: " + (res.error || "Desconocido"));
+                Storage.showLoader(false);
             }
         } catch (e) { alert("Error"); Storage.showLoader(false); }
     },
@@ -2858,14 +2864,15 @@ const Views = {
                     return d && !d.phone;
                 }).length;
 
-                await App.renderView('payroll');
-
+                // Notificar ANTES de renderizar
                 PayrollHelpers.showPayrollSuccess({
                     count,
                     amount: totalAmount,
                     hours: totalHours,
                     missingPhones: missingPhonesCount
                 });
+
+                await App.renderView('payroll');
 
                 // Si solo es un empleado en el lote y tiene teléfono, enviamos WhatsApp para comprobante
                 if (checks.length === 1) {
