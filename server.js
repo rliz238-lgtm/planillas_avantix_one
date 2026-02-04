@@ -1028,6 +1028,31 @@ app.post('/api/webhooks/hotmart', async (req, res) => {
     res.json({ received: true });
 });
 
+// --- Reportes CCSS ---
+app.get('/api/reports/ccss', checkAuth, async (req, res) => {
+    const { month, year } = req.query;
+    if (!month || !year) return res.status(400).json({ error: 'Mes y año son requeridos' });
+
+    try {
+        const query = `
+            SELECT e.cedula, e.name, SUM(p.amount + p.deduction_ccss) as gross_salary
+            FROM payments p
+            JOIN employees e ON p.employee_id = e.id
+            WHERE p.business_id = $1
+            AND e.apply_ccss = TRUE
+            AND EXTRACT(MONTH FROM p.date) = $2
+            AND EXTRACT(YEAR FROM p.date) = $3
+            GROUP BY e.cedula, e.name
+            ORDER BY e.name ASC
+        `;
+        const result = await db.query(query, [req.businessId, month, year]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Error en reporte CCSS:", err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Servidor backend de Tom Tom Wok corriendo en puerto ${PORT}`);
 });

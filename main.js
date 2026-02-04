@@ -944,7 +944,7 @@ window.clearTable = async (target) => {
 
     Storage.showLoader(true, 'Limpiando base de datos...');
     try {
-        const response = await fetch(`/api/maintenance/clear-all?target=${target}`, { method: 'DELETE' });
+        const response = await apiFetch(`/api/maintenance/clear-all?target=${target}`, { method: 'DELETE' });
         const result = await response.json();
         Storage.showLoader(false);
 
@@ -2441,9 +2441,8 @@ const Views = {
             Storage.showLoader(true, 'Guardando y enviando resumen...');
 
             try {
-                const response = await fetch('/api/logs/batch', {
+                const response = await apiFetch('/api/logs/batch', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ employeeId: parseInt(empId), logs: batchLogs })
                 });
 
@@ -2609,6 +2608,7 @@ const Views = {
                 <div class="table-header">
                     <h3>Historial de Pagos</h3>
                     <div style="display: flex; gap: 10px">
+                        <button class="btn btn-info" onclick="window.exportCCSS()" style="background: var(--primary)">🇨🇷 Exportar CCSS</button>
                         <button class="btn btn-warning" onclick="window.exportPayments()">📥 Excel</button>
                         <button class="btn btn-danger" id="delete-selected-payments">🗑️ Eliminar</button>
                     </div>
@@ -2767,7 +2767,7 @@ const Views = {
 
         window.clearAllLogs = async () => {
             if (confirm("¿Borrar TODAS las horas pendientes del sistema?")) {
-                await fetch('/api/maintenance/clear-all?target=logs', { method: 'DELETE' });
+                await apiFetch('/api/maintenance/clear-all?target=logs', { method: 'DELETE' });
                 App.renderView('payroll');
             }
         };
@@ -2804,6 +2804,7 @@ const Views = {
         window.shareWhatsApp = Views.shareWhatsApp;
         window.payLine = PayrollHelpers.payLine;
         window.editPaymentRecord = window.editPaymentRecord;
+        window.exportCCSS = Views.exportCCSS;
     },
 
     shareWhatsApp: async (id) => {
@@ -2832,6 +2833,42 @@ const Views = {
         });
         const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Pagos"); XLSX.writeFile(wb, "Pagos.xlsx");
+    },
+
+    exportCCSS: async () => {
+        const now = new Date();
+        const month = prompt("Ingrese el Mes (1-12):", now.getMonth() + 1);
+        if (!month) return;
+        const year = prompt("Ingrese el Año (YYYY):", now.getFullYear());
+        if (!year) return;
+
+        Storage.showLoader(true, 'Generando reporte CCSS...');
+        try {
+            const res = await apiFetch(`/api/reports/ccss?month=${month}&year=${year}`);
+            const data = await res.json();
+
+            if (data.error) throw new Error(data.error);
+            if (data.length === 0) {
+                alert("No se encontraron pagos con CCSS para este periodo.");
+                return;
+            }
+
+            const exportData = data.map(row => ({
+                'Identificación': row.cedula,
+                'Nombre Completo': row.name,
+                'Salario Bruto': Math.round(row.gross_salary),
+                'Días Laborados': 30
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Planilla CCSS");
+            XLSX.writeFile(wb, `Planilla_CCSS_${month}_${year}.xlsx`);
+        } catch (e) {
+            alert("Error: " + e.message);
+        } finally {
+            Storage.showLoader(false);
+        }
     },
 
 
