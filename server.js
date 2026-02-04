@@ -548,16 +548,20 @@ app.post('/api/logs/batch', checkAuth, async (req, res) => {
 
             try {
                 await sendEmailMessage(emp.email, subject, messagePlain, messageHtml);
-                return res.json({ success: true, count: logs.length, emailSent: true });
+                return res.json({ success: true, count: logs.length, emailSent: true, messageSent: messagePlain });
             } catch (emailErr) {
                 console.error("❌ Error enviando email:", emailErr.message);
-                // No fallamos el registro si el email falla, pero avisamos
                 return res.json({ success: true, count: logs.length, emailSent: false, emailError: emailErr.message });
             }
         } else if (emp.phone) {
-            // Fallback to WhatsApp if no email but phone exists (optional, keeping it as fallback for now or removing as per user request)
-            // The user said "no por WhatsApp", so I'll comment this out or just skip it if email is missing.
-            console.log(`⚠️ Empleado ${emp.name} no tiene correo. No se envió notificación.`);
+            const messagePlain = `REGISTRO DE HORAS TTW\n\nEmpleado: ${emp.name}\nTotal Horas: ${totalH.toFixed(1)}h\nMonto Est.: ₡${Math.round(totalAmt).toLocaleString()}\n\nDETALLE:\n${summaryDetails}`;
+            try {
+                await sendWhatsAppMessage(emp.phone, messagePlain);
+                return res.json({ success: true, count: logs.length, messageSent: messagePlain });
+            } catch (wsErr) {
+                console.error("❌ Error enviando WhatsApp batch:", wsErr.message);
+                return res.json({ success: true, count: logs.length, wsError: wsErr.message });
+            }
         }
 
         res.json({ success: true, count: logs.length });

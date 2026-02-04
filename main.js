@@ -2450,7 +2450,9 @@ const Views = {
                 Storage.showLoader(false);
 
                 if (result.success) {
-                    PayrollHelpers.showWhatsAppConfirm(result.messageSent);
+                    if (result.messageSent) {
+                        PayrollHelpers.showWhatsAppConfirm(result.messageSent);
+                    }
 
                     if (Auth.getUser().role === 'admin') {
                         App.switchView('payroll');
