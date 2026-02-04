@@ -11,34 +11,39 @@ const PayrollHelpers = {
     showPayrollSuccess: (summary) => {
         const modal = document.getElementById('payroll-success-modal');
         const content = document.getElementById('payroll-success-summary');
-        if (modal && content) {
-            let whatsappStatusLine = '';
-            if (summary.missingPhones > 0) {
-                whatsappStatusLine = `
-                    <div style="margin-top: 1rem; padding: 0.8rem; background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); border-radius: 12px; font-size: 0.85rem; color: var(--warning); text-align: left;">
-                        ⚠️ <strong>WhatsApp no enviado:</strong> ${summary.missingPhones} empleado(s) no tienen teléfono registrado.
-                    </div>`;
-            }
-
-            content.innerHTML = `
-                <div style="max-width: 300px; margin: 0 auto;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; font-size: 0.95rem;">
-                        <span style="color: var(--text-muted);">Empleados:</span>
-                        <span style="font-weight: 700; color: var(--primary);">${summary.count}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; font-size: 0.95rem;">
-                        <span style="color: var(--text-muted);">Total Horas:</span>
-                        <span style="font-weight: 700;">${summary.hours.toFixed(1)}h</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border); padding-top: 0.8rem; margin-top: 0.8rem; font-size: 1.1rem;">
-                        <span style="color: var(--text-muted);">Monto Total:</span>
-                        <span style="font-weight: 800; color: var(--success);">₡${Math.round(summary.amount).toLocaleString()}</span>
-                    </div>
-                </div>
-                ${whatsappStatusLine}
-            `;
-            modal.showModal();
+        if (!modal || !content) {
+            console.error("No se encontró el modal de éxito.");
+            return;
         }
+
+        let whatsappStatusLine = '';
+        const missing = parseInt(summary.missingPhones || 0);
+        if (missing > 0) {
+            whatsappStatusLine = `
+                <div style="margin-top: 1rem; padding: 0.8rem; background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); border-radius: 12px; font-size: 0.85rem; color: var(--warning); text-align: left;">
+                    ⚠️ <strong>WhatsApp no enviado:</strong> ${missing} empleado(s) no tienen teléfono registrado.
+                </div>`;
+        }
+
+        content.innerHTML = `
+            <div style="max-width: 300px; margin: 0 auto;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; font-size: 0.95rem;">
+                    <span style="color: var(--text-muted);">Empleados:</span>
+                    <span style="font-weight: 700; color: var(--primary);">${summary.count}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; font-size: 0.95rem;">
+                    <span style="color: var(--text-muted);">Total Horas:</span>
+                    <span style="font-weight: 700;">${summary.hours.toFixed(1)}h</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border); padding-top: 0.8rem; margin-top: 0.8rem; font-size: 1.1rem;">
+                    <span style="color: var(--text-muted);">Monto Total:</span>
+                    <span style="font-weight: 800; color: var(--success);">₡${Math.round(summary.amount).toLocaleString()}</span>
+                </div>
+            </div>
+            ${whatsappStatusLine}
+        `;
+
+        modal.showModal();
     },
 
     showWhatsAppConfirm: (text, type = 'success') => {
@@ -160,6 +165,9 @@ const PayrollHelpers = {
             if (res.success) {
                 for (const l of d.logs) await Storage.delete('logs', l.id);
 
+                Storage.showLoader(false);
+                await App.renderView('payroll');
+
                 // Mostrar resumen con advertencia integrada si falta teléfono
                 PayrollHelpers.showPayrollSuccess({
                     count: 1,
@@ -173,10 +181,8 @@ const PayrollHelpers = {
                     const text = `*REGISTRO TTW*\n\n*Empleado:* ${d.name}\n*Monto:* ₡${Math.round(d.net).toLocaleString()}\n*Horas:* ${d.hours.toFixed(1)}h`;
                     PayrollHelpers.sendServerWhatsApp(d.phone, text);
                 }
-
-                App.renderView('payroll');
             }
-        } catch (e) { console.error(e); alert("Error al procesar el pago."); } finally { Storage.showLoader(false); }
+        } catch (e) { console.error(e); alert("Error al procesar el pago."); Storage.showLoader(false); }
     },
     payLine: async (id, empId, date, amt, hrs, ded) => {
         if (!confirm("¿Pagar este día?")) return;
@@ -187,6 +193,9 @@ const PayrollHelpers = {
             if (res.success) {
                 await Storage.delete('logs', id);
                 document.getElementById('payroll-detail-modal').close();
+
+                Storage.showLoader(false);
+                await App.renderView('payroll');
 
                 const d = window._pendingPayrollData[empId];
 
@@ -203,10 +212,8 @@ const PayrollHelpers = {
                     const text = `*COMPROBANTE TTW*\n\n*Fecha:* ${date}\n*Horas:* ${hrs.toFixed(1)}h\n*Monto:* ₡${Math.round(amt).toLocaleString()}`;
                     PayrollHelpers.sendServerWhatsApp(d.phone, text);
                 }
-
-                App.renderView('payroll');
             }
-        } catch (e) { alert("Error"); } finally { Storage.showLoader(false); }
+        } catch (e) { alert("Error"); Storage.showLoader(false); }
     },
     shareWhatsAppPending: (empId) => {
         const d = window._pendingPayrollData[empId]; if (!d) return;
@@ -2807,6 +2814,8 @@ const Views = {
                     return d && !d.phone;
                 }).length;
 
+                await App.renderView('payroll');
+
                 PayrollHelpers.showPayrollSuccess({
                     count,
                     amount: totalAmount,
@@ -2823,8 +2832,9 @@ const Views = {
                         PayrollHelpers.sendServerWhatsApp(d.phone, text);
                     }
                 }
+            } else {
+                App.renderView('payroll');
             }
-            App.renderView('payroll');
         };
         const allP = document.getElementById('select-all-pending');
         if (allP) allP.onclick = () => document.querySelectorAll('.pending-check').forEach(c => c.checked = allP.checked);
