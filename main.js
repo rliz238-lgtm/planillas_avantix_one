@@ -43,7 +43,11 @@ const PayrollHelpers = {
             ${whatsappStatusLine}
         `;
 
-        modal.showModal();
+        // Timeout para asegurar que cualquier refresco de vista o cierre de loader haya terminado
+        setTimeout(() => {
+            modal.showModal();
+            modal.focus();
+        }, 150);
     },
 
     showWhatsAppConfirm: (text, type = 'success') => {

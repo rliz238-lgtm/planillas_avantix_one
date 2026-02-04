@@ -102,6 +102,11 @@ body {
     color: white;
 }
 
+.modal-small {
+    max-width: 450px !important;
+    width: 95% !important;
+}
+
 #app {
     display: flex;
     min-height: 100vh;
@@ -561,11 +566,12 @@ dialog {
     padding: 0;
     max-width: 95vw;
     width: 900px;
-    /* Más ancho */
     max-height: 90vh;
     margin: auto;
     color: var(--text-main);
-    overflow-x: auto;
+    overflow: hidden;
+    z-index: 10001;
+    /* Superior al loader que tiene 10000 */
 }
 
 dialog[open] {
