@@ -13,17 +13,19 @@ const PayrollHelpers = {
         const content = document.getElementById('payroll-success-summary');
         if (modal && content) {
             content.innerHTML = `
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; font-size: 0.95rem;">
-                    <span style="color: var(--text-muted);">Empleados:</span>
-                    <span style="font-weight: 700; color: var(--primary);">${summary.count}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; font-size: 0.95rem;">
-                    <span style="color: var(--text-muted);">Total Horas:</span>
-                    <span style="font-weight: 700;">${summary.hours.toFixed(1)}h</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border); pt: 0.8rem; margin-top: 0.8rem; font-size: 1.1rem;">
-                    <span style="color: var(--text-muted);">Monto Total:</span>
-                    <span style="font-weight: 800; color: var(--success);">₡${Math.round(summary.amount).toLocaleString()}</span>
+                <div style="max-width: 300px; margin: 0 auto;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; font-size: 0.95rem;">
+                        <span style="color: var(--text-muted);">Empleados:</span>
+                        <span style="font-weight: 700; color: var(--primary);">${summary.count}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; font-size: 0.95rem;">
+                        <span style="color: var(--text-muted);">Total Horas:</span>
+                        <span style="font-weight: 700;">${summary.hours.toFixed(1)}h</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border); pt: 0.8rem; margin-top: 0.8rem; font-size: 1.1rem; padding-top: 0.8rem;">
+                        <span style="color: var(--text-muted);">Monto Total:</span>
+                        <span style="font-weight: 800; color: var(--success);">₡${Math.round(summary.amount).toLocaleString()}</span>
+                    </div>
                 </div>
             `;
             modal.showModal();
