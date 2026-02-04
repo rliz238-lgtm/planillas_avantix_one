@@ -32,17 +32,36 @@ const PayrollHelpers = {
         }
     },
 
-    showWhatsAppConfirm: (text) => {
+    showWhatsAppConfirm: (text, type = 'success') => {
         const modal = document.getElementById('whatsapp-confirm-modal');
         const content = document.getElementById('whatsapp-confirm-content');
+        const icon = document.getElementById('whatsapp-confirm-icon');
+        const title = document.getElementById('whatsapp-confirm-title');
+        const subtitle = document.getElementById('whatsapp-confirm-subtitle');
+
         if (modal && content) {
             content.textContent = text;
+
+            if (type === 'warning') {
+                icon.textContent = "⚠️";
+                title.textContent = "WhatsApp No Enviado";
+                title.style.color = "var(--warning)";
+                subtitle.textContent = "Agregue el número de teléfono al empleado para enviar resúmenes automáticos.";
+            } else {
+                icon.textContent = "✅";
+                title.textContent = "WhatsApp Enviado";
+                title.style.color = "var(--success)";
+                subtitle.textContent = "El resumen se ha enviado correctamente.";
+            }
+
             modal.showModal();
         }
     },
 
     sendServerWhatsApp: async (phone, text) => {
-        if (!phone) return alert("El empleado no tiene teléfono registrado.");
+        if (!phone) {
+            return PayrollHelpers.showWhatsAppConfirm(text, 'warning');
+        }
         Storage.showLoader(true, 'Enviando WhatsApp...');
         try {
             const res = await apiFetch('/api/whatsapp/send', {
