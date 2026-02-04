@@ -330,6 +330,22 @@
         </div>
     </dialog>
 
+    <dialog id="payroll-success-modal">
+        <div class="modal-content" style="max-width: 450px; text-align: center;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">🎊</div>
+            <h3 style="color: var(--success); margin-bottom: 0.5rem;">¡Planilla Registrada!</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">El procesamiento se ha completado con éxito.</p>
+
+            <div id="payroll-success-summary"
+                style="background: var(--hover-bg); padding: 1.5rem; border-radius: 16px; margin-bottom: 1.5rem; border-top: 4px solid var(--success);">
+                <!-- Resumen inyectado aquí -->
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%; padding: 12px;"
+                onclick="document.getElementById('payroll-success-modal').close()">Entendido</button>
+        </div>
+    </dialog>
+
     <dialog id="business-modal">
         <div class="modal-content" style="max-width: 900px;">
             <button class="modal-close-btn" onclick="document.getElementById('business-modal').close()">✕</button>

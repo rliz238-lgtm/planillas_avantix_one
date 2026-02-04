@@ -8,6 +8,28 @@ const PayrollHelpers = {
     // Icono minimalista de ojo
     EYE_ICON: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:-2px"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>`,
 
+    showPayrollSuccess: (summary) => {
+        const modal = document.getElementById('payroll-success-modal');
+        const content = document.getElementById('payroll-success-summary');
+        if (modal && content) {
+            content.innerHTML = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; font-size: 0.95rem;">
+                    <span style="color: var(--text-muted);">Empleados:</span>
+                    <span style="font-weight: 700; color: var(--primary);">${summary.count}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; font-size: 0.95rem;">
+                    <span style="color: var(--text-muted);">Total Horas:</span>
+                    <span style="font-weight: 700;">${summary.hours.toFixed(1)}h</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border); pt: 0.8rem; margin-top: 0.8rem; font-size: 1.1rem;">
+                    <span style="color: var(--text-muted);">Monto Total:</span>
+                    <span style="font-weight: 800; color: var(--success);">₡${Math.round(summary.amount).toLocaleString()}</span>
+                </div>
+            `;
+            modal.showModal();
+        }
+    },
+
     showWhatsAppConfirm: (text) => {
         const modal = document.getElementById('whatsapp-confirm-modal');
         const content = document.getElementById('whatsapp-confirm-content');
@@ -101,7 +123,11 @@ const PayrollHelpers = {
         Storage.showLoader(true, 'Pagando...');
         try {
             const res = await Storage.add('payments', { employeeId: parseInt(empId), date: Storage.getLocalDate(), amount: d.net, hours: d.hours, deductionCCSS: d.deduction, netAmount: d.net, startDate: d.startDate, endDate: d.endDate, logsDetail: d.logs, isImported: false });
-            if (res.success) { for (const l of d.logs) await Storage.delete('logs', l.id); App.renderView('payroll'); }
+            if (res.success) {
+                for (const l of d.logs) await Storage.delete('logs', l.id);
+                PayrollHelpers.showPayrollSuccess({ count: 1, amount: d.net, hours: d.hours });
+                App.renderView('payroll');
+            }
         } catch (e) { alert("Error"); } finally { Storage.showLoader(false); }
     },
     payLine: async (id, empId, date, amt, hrs, ded) => {
@@ -2671,8 +2697,45 @@ const Views = {
             const checks = document.querySelectorAll('.pending-check:checked');
             if (!checks.length || !confirm(`¿Pagar a ${checks.length} empleados?`)) return;
             Storage.showLoader(true, 'Procesando...');
-            for (const c of checks) await PayrollHelpers.payEmployeeGroup(c.dataset.empid);
-            Storage.showLoader(false); App.renderView('payroll');
+
+            let totalAmount = 0;
+            let totalHours = 0;
+            let count = 0;
+
+            for (const c of checks) {
+                const empId = c.dataset.empid;
+                const d = window._pendingPayrollData[empId];
+                if (d) {
+                    try {
+                        const res = await Storage.add('payments', {
+                            employeeId: parseInt(empId),
+                            date: Storage.getLocalDate(),
+                            amount: d.net,
+                            hours: d.hours,
+                            deductionCCSS: d.deduction,
+                            netAmount: d.net,
+                            startDate: d.startDate,
+                            endDate: d.endDate,
+                            logsDetail: d.logs,
+                            isImported: false
+                        });
+                        if (res.success) {
+                            for (const l of d.logs) await Storage.delete('logs', l.id);
+                            totalAmount += d.net;
+                            totalHours += d.hours;
+                            count++;
+                        }
+                    } catch (err) {
+                        console.error("Error pagando a empleado:", empId, err);
+                    }
+                }
+            }
+
+            Storage.showLoader(false);
+            if (count > 0) {
+                PayrollHelpers.showPayrollSuccess({ count, amount: totalAmount, hours: totalHours });
+            }
+            App.renderView('payroll');
         };
         const allP = document.getElementById('select-all-pending');
         if (allP) allP.onclick = () => document.querySelectorAll('.pending-check').forEach(c => c.checked = allP.checked);
