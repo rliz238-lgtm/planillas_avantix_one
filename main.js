@@ -31,15 +31,28 @@ const PayrollHelpers = {
     },
 
     showPayrollSuccess: (summary) => {
+        console.log("Iniciando PayrollHelpers.showPayrollSuccess con datos:", summary);
         const modal = document.getElementById('payroll-success-modal');
         const content = document.getElementById('payroll-success-summary');
+
+        // NOTIFICACIÓN TOAST (Infalible)
+        const totalNet = Math.round(summary.amount || 0).toLocaleString();
+        const toastMsg = `Registrada planilla de ${summary.count} empleado(s) por ₡${totalNet}.`;
+        PayrollHelpers.showToast("¡Planilla Exitosa!", toastMsg, 'success');
+
+        const missing = parseInt(summary.missingPhones || 0);
+        if (missing > 0) {
+            PayrollHelpers.showToast("WhatsApp No Enviado", `Hay ${missing} empleados sin número de teléfono registrado.`, 'warning', 8000);
+        }
+
         if (!modal || !content) {
-            console.error("No se encontró el modal de éxito.");
+            console.error("No se encontró el modal de éxito en el DOM.");
+            // Alerta clásica de respaldo si el modal fallara
+            alert(`¡Planilla Registrada!\n\n${toastMsg}\n${missing > 0 ? '\nAVISO: No se enviaron algunos WhatsApp por falta de números.' : ''}`);
             return;
         }
 
         let whatsappStatusLine = '';
-        const missing = parseInt(summary.missingPhones || 0);
         if (missing > 0) {
             whatsappStatusLine = `
                 <div style="margin-top: 1rem; padding: 0.8rem; background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); border-radius: 12px; font-size: 0.85rem; color: var(--warning); text-align: left;">
@@ -59,24 +72,15 @@ const PayrollHelpers = {
                 </div>
                 <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border); padding-top: 0.8rem; margin-top: 0.8rem; font-size: 1.1rem;">
                     <span style="color: var(--text-muted);">Monto Total:</span>
-                    <span style="font-weight: 800; color: var(--success);">₡${Math.round(summary.amount).toLocaleString()}</span>
+                    <span style="font-weight: 800; color: var(--success);">₡${totalNet}</span>
                 </div>
             </div>
             ${whatsappStatusLine}
         `;
 
-        // Aumentamos el delay y forzamos el cierre de cualquier otro modal que pueda estorbar
         setTimeout(() => {
             const detailModal = document.getElementById('payroll-detail-modal');
             if (detailModal) detailModal.close();
-
-            // NOTIFICACIÓN TOAST DE RESPALDO (Esta siempre sale)
-            const toastMsg = `Registrados ${summary.count} empleados por ₡${Math.round(summary.amount).toLocaleString()}.`;
-            this.showToast("¡Planilla Exitosa!", toastMsg, 'success');
-
-            if (missing > 0) {
-                this.showToast("WhatsApp No Enviado", `Hay ${missing} empleados sin número de teléfono.`, 'warning', 8000);
-            }
 
             modal.showModal();
             modal.focus();
