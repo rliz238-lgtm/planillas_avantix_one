@@ -146,10 +146,18 @@ const PayrollHelpers = {
             const res = await Storage.add('payments', { employeeId: parseInt(empId), date: Storage.getLocalDate(), amount: d.net, hours: d.hours, deductionCCSS: d.deduction, netAmount: d.net, startDate: d.startDate, endDate: d.endDate, logsDetail: d.logs, isImported: false });
             if (res.success) {
                 for (const l of d.logs) await Storage.delete('logs', l.id);
+                // Mostrar resumen de éxito
                 PayrollHelpers.showPayrollSuccess({ count: 1, amount: d.net, hours: d.hours });
+
+                // Intentar enviar WhatsApp si el usuario lo desea (opcional, pero sendServerWhatsApp manejará el warning si no hay número)
+                // Para este flujo, como el usuario pide que salga el resumen, showPayrollSuccess ya salió.
+                // Si quieres que TAMBIÉN salga la advertencia de WhatsApp, llamamos a sendServerWhatsApp:
+                const text = `*REGISTRO TTW*\n\n*Empleado:* ${d.name}\n*Monto:* ₡${Math.round(d.net).toLocaleString()}\n*Horas:* ${d.hours.toFixed(1)}h`;
+                PayrollHelpers.sendServerWhatsApp(d.phone, text);
+
                 App.renderView('payroll');
             }
-        } catch (e) { alert("Error"); } finally { Storage.showLoader(false); }
+        } catch (e) { console.error(e); alert("Error al procesar el pago."); } finally { Storage.showLoader(false); }
     },
     payLine: async (id, empId, date, amt, hrs, ded) => {
         if (!confirm("¿Pagar este día?")) return;
@@ -157,7 +165,12 @@ const PayrollHelpers = {
         try {
             const logs = await Storage.get('logs');
             const res = await Storage.add('payments', { employeeId: parseInt(empId), date: Storage.getLocalDate(), amount: amt, hours: hrs, deductionCCSS: ded, netAmount: amt, startDate: date, endDate: date, logsDetail: [logs.find(x => x.id == id)], isImported: false });
-            if (res.success) { await Storage.delete('logs', id); document.getElementById('payroll-detail-modal').close(); App.renderView('payroll'); }
+            if (res.success) {
+                await Storage.delete('logs', id);
+                document.getElementById('payroll-detail-modal').close();
+                PayrollHelpers.showPayrollSuccess({ count: 1, amount: amt, hours: hrs });
+                App.renderView('payroll');
+            }
         } catch (e) { alert("Error"); } finally { Storage.showLoader(false); }
     },
     shareWhatsAppPending: (empId) => {
