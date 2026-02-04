@@ -43,11 +43,15 @@ const PayrollHelpers = {
             ${whatsappStatusLine}
         `;
 
-        // Timeout para asegurar que cualquier refresco de vista o cierre de loader haya terminado
+        // Aumentamos el delay y forzamos el cierre de cualquier otro modal que pueda estorbar
         setTimeout(() => {
+            const detailModal = document.getElementById('payroll-detail-modal');
+            if (detailModal) detailModal.close();
+
             modal.showModal();
             modal.focus();
-        }, 150);
+            console.log("Modal de éxito mostrado correctamente.");
+        }, 300);
     },
 
     showWhatsAppConfirm: (text, type = 'success') => {
@@ -170,9 +174,10 @@ const PayrollHelpers = {
                 for (const l of d.logs) await Storage.delete('logs', l.id);
 
                 Storage.showLoader(false);
+                // Primero renderizamos para que la tabla se actualice
                 await App.renderView('payroll');
 
-                // Mostrar resumen con advertencia integrada si falta teléfono
+                // Luego mostramos el resumen (el delay interno de showPayrollSuccess manejará el resto)
                 PayrollHelpers.showPayrollSuccess({
                     count: 1,
                     amount: d.net,
@@ -180,7 +185,7 @@ const PayrollHelpers = {
                     missingPhones: d.phone ? 0 : 1
                 });
 
-                // Solo intentar enviar WhatsApp si tiene número
+                // WhatsApp
                 if (d.phone) {
                     const text = `*REGISTRO TTW*\n\n*Empleado:* ${d.name}\n*Monto:* ₡${Math.round(d.net).toLocaleString()}\n*Horas:* ${d.hours.toFixed(1)}h`;
                     PayrollHelpers.sendServerWhatsApp(d.phone, text);
@@ -196,14 +201,16 @@ const PayrollHelpers = {
             const res = await Storage.add('payments', { employeeId: parseInt(empId), date: Storage.getLocalDate(), amount: amt, hours: hrs, deductionCCSS: ded, netAmount: amt, startDate: date, endDate: date, logsDetail: [logs.find(x => x.id == id)], isImported: false });
             if (res.success) {
                 await Storage.delete('logs', id);
-                document.getElementById('payroll-detail-modal').close();
+
+                // Cerramos este modal explícitamente antes de nada
+                const det = document.getElementById('payroll-detail-modal');
+                if (det) det.close();
 
                 Storage.showLoader(false);
                 await App.renderView('payroll');
 
                 const d = window._pendingPayrollData[empId];
 
-                // Mostrar resumen de éxito con warning integrado si falta cel
                 PayrollHelpers.showPayrollSuccess({
                     count: 1,
                     amount: amt,
@@ -211,7 +218,6 @@ const PayrollHelpers = {
                     missingPhones: (d && d.phone) ? 0 : 1
                 });
 
-                // Intentar enviar WhatsApp solo si tenemos teléfono
                 if (d && d.phone) {
                     const text = `*COMPROBANTE TTW*\n\n*Fecha:* ${date}\n*Horas:* ${hrs.toFixed(1)}h\n*Monto:* ₡${Math.round(amt).toLocaleString()}`;
                     PayrollHelpers.sendServerWhatsApp(d.phone, text);
