@@ -199,6 +199,8 @@ const PayrollHelpers = {
         PayrollHelpers.sendServerWhatsApp(phone, text);
     },
     payEmployeeGroup: async (empId) => {
+        console.log("DEBUG: payEmployeeGroup llamado para ID:", empId);
+        alert("DEBUG: Click capturado. Iniciando pago de grupo...");
         const d = window._pendingPayrollData[empId];
         if (!d || !confirm(`¿Pagar ₡${Math.round(d.net).toLocaleString()} a ${d.name}?`)) return;
         Storage.showLoader(true, 'Pagando...');
@@ -230,6 +232,8 @@ const PayrollHelpers = {
         } catch (e) { console.error(e); alert("Error al procesar el pago."); Storage.showLoader(false); }
     },
     payLine: async (id, empId, date, amt, hrs, ded) => {
+        console.log("DEBUG: payLine llamado para ID:", id);
+        alert("DEBUG: Click capturado. Iniciando pago de línea...");
         if (!confirm("¿Pagar este día?")) return;
         Storage.showLoader(true, 'Pagando día...');
         try {
