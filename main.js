@@ -12,6 +12,14 @@ const PayrollHelpers = {
         const modal = document.getElementById('payroll-success-modal');
         const content = document.getElementById('payroll-success-summary');
         if (modal && content) {
+            let whatsappStatusLine = '';
+            if (summary.missingPhones > 0) {
+                whatsappStatusLine = `
+                    <div style="margin-top: 1rem; padding: 0.8rem; background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); border-radius: 12px; font-size: 0.85rem; color: var(--warning); text-align: left;">
+                        ⚠️ <strong>WhatsApp no enviado:</strong> ${summary.missingPhones} empleado(s) no tienen teléfono registrado.
+                    </div>`;
+            }
+
             content.innerHTML = `
                 <div style="max-width: 300px; margin: 0 auto;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; font-size: 0.95rem;">
@@ -22,11 +30,12 @@ const PayrollHelpers = {
                         <span style="color: var(--text-muted);">Total Horas:</span>
                         <span style="font-weight: 700;">${summary.hours.toFixed(1)}h</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border); pt: 0.8rem; margin-top: 0.8rem; font-size: 1.1rem; padding-top: 0.8rem;">
+                    <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border); padding-top: 0.8rem; margin-top: 0.8rem; font-size: 1.1rem;">
                         <span style="color: var(--text-muted);">Monto Total:</span>
                         <span style="font-weight: 800; color: var(--success);">₡${Math.round(summary.amount).toLocaleString()}</span>
                     </div>
                 </div>
+                ${whatsappStatusLine}
             `;
             modal.showModal();
         }
@@ -43,15 +52,19 @@ const PayrollHelpers = {
             content.textContent = text;
 
             if (type === 'warning') {
-                icon.textContent = "⚠️";
-                title.textContent = "WhatsApp No Enviado";
-                title.style.color = "var(--warning)";
-                subtitle.textContent = "Agregue el número de teléfono al empleado para enviar resúmenes automáticos.";
+                if (icon) icon.textContent = "⚠️";
+                if (title) {
+                    title.textContent = "WhatsApp No Enviado";
+                    title.style.color = "var(--warning)";
+                }
+                if (subtitle) subtitle.textContent = "Agregue el número de teléfono al empleado para enviar resúmenes automáticos.";
             } else {
-                icon.textContent = "✅";
-                title.textContent = "WhatsApp Enviado";
-                title.style.color = "var(--success)";
-                subtitle.textContent = "El resumen se ha enviado correctamente.";
+                if (icon) icon.textContent = "✅";
+                if (title) {
+                    title.textContent = "WhatsApp Enviado";
+                    title.style.color = "var(--success)";
+                }
+                if (subtitle) subtitle.textContent = "El resumen se ha enviado correctamente.";
             }
 
             modal.showModal();
@@ -2777,13 +2790,23 @@ const Views = {
 
             Storage.showLoader(false);
             if (count > 0) {
-                PayrollHelpers.showPayrollSuccess({ count, amount: totalAmount, hours: totalHours });
+                const missingPhonesCount = Array.from(checks).filter(c => {
+                    const d = window._pendingPayrollData[c.dataset.empid];
+                    return d && !d.phone;
+                }).length;
 
-                // Si solo es un empleado en el lote, intentamos enviar WhatsApp para que salga el warning si falta número
+                PayrollHelpers.showPayrollSuccess({
+                    count,
+                    amount: totalAmount,
+                    hours: totalHours,
+                    missingPhones: missingPhonesCount
+                });
+
+                // Si solo es un empleado en el lote y tiene teléfono, enviamos WhatsApp para comprobante
                 if (checks.length === 1) {
                     const empId = checks[0].dataset.empid;
                     const d = window._pendingPayrollData[empId];
-                    if (d) {
+                    if (d && d.phone) {
                         const text = `*RESUMEN TTW*\n\n*Empleado:* ${d.name}\n*Total:* ₡${Math.round(d.net).toLocaleString()}\n*Horas:* ${d.hours.toFixed(1)}h`;
                         PayrollHelpers.sendServerWhatsApp(d.phone, text);
                     }
