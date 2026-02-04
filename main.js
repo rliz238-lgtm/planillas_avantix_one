@@ -2875,19 +2875,61 @@ const Views = {
     },
 
 
+    downloadImportTemplate: () => {
+        const headers = [
+            "Fecha Inicio", "Fecha Fin", "Nombre Empleado", "Horas", "Monto Total"
+        ];
+        const rows = [
+            ["2026-02-01", "2026-02-07", "Juan Perez", 48, 150000],
+            ["2026-02-01", "2026-02-07", "Maria Lopez", 40, 120000]
+        ];
+        const data = [headers, ...rows];
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Plantilla Importacion");
+        XLSX.writeFile(wb, "Plantilla_Importacion_Avantix.xlsx");
+    },
+
     import: async () => {
         return `
             <div class="card-container">
-                <div style="margin-bottom: 2rem">
-                    <h3>Importar Liquidación desde Excel</h3>
-                    <p style="color: var(--text-muted); font-size: 0.9rem">Seleccione o arrastre el archivo de liquidación (Ini, Fin, Empleado, Horas...)</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem">
+                    <div>
+                        <h3>Importar Liquidación desde Excel</h3>
+                        <p style="color: var(--text-muted); font-size: 0.9rem">Seleccione o arrastre el archivo de liquidación (Ini, Fin, Empleado, Horas...)</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="Views.downloadImportTemplate()" style="background: rgba(99,102,241,0.1); border: 1px solid var(--primary); color: var(--primary)">
+                        📥 Descargar Plantilla
+                    </button>
                 </div>
                 
-                <div id="drop-zone" class="import-zone" style="border: 2px dashed var(--primary); background: rgba(99,102,241,0.02); height: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-radius: 20px;">
+                <div id="drop-zone" class="import-zone" style="border: 2px dashed var(--primary); background: rgba(99,102,241,0.02); height: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-radius: 20px; margin-bottom: 2rem;">
                     <div style="font-size: 3.5rem; margin-bottom: 1rem">📊</div>
                     <h4 id="drop-zone-text">Arrastra tu archivo aquí</h4>
                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem">o haz clic para buscar (.xlsx, .xls, .csv)</p>
                     <input type="file" id="excel-input" accept=".xlsx, .xls, .csv" style="position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+                </div>
+
+                <div class="card-container" style="background: rgba(99,102,241,0.05); border: 1px solid rgba(99,102,241,0.2); padding: 1.5rem; border-radius: 12px;">
+                    <h4 style="margin-bottom: 1rem; color: var(--primary);">📋 Guía de Formato Requerido</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <div style="font-size: 0.85rem;">
+                            <strong>Columna A:</strong> Fecha Inicio (YYYY-MM-DD)
+                        </div>
+                        <div style="font-size: 0.85rem;">
+                            <strong>Columna B:</strong> Fecha Fin (YYYY-MM-DD)
+                        </div>
+                        <div style="font-size: 0.85rem;">
+                            <strong>Columna C:</strong> Nombre del Empleado
+                        </div>
+                        <div style="font-size: 0.85rem;">
+                            <strong>Columna D:</strong> Horas Laboradas
+                        </div>
+                        <div style="font-size: 0.85rem;">
+                            <strong>Columna E:</strong> Monto Total (Neto)
+                        </div>
+                    </div>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 1rem;">* El sistema intentará vincular automáticamente a los empleados existentes por su nombre.</p>
                 </div>
 
                 <div id="import-preview-container" style="margin-top: 3rem; display: none">
@@ -3027,12 +3069,12 @@ const Views = {
             console.log("Procesando", rows.length, "filas. Empleados actuales:", employees.length);
 
             for (const row of rows) {
-                // Columnas: A(0)=Ini, B(1)=Fin, C(2)=Empleado, D(3)=Horas, ..., O(14)=Total
+                // Columnas: A(0)=Ini, B(1)=Fin, C(2)=Empleado, D(3)=Horas, E(4)=Total
                 const name = row[2] ? String(row[2]).trim() : null;
-                if (!name || name === "Empleado") continue; // Saltar si no hay nombre o es encabezado repetido
+                if (!name || name === "Empleado" || name === "Nombre Empleado") continue;
 
                 const hours = parseFloat(row[3]) || 0;
-                const amount = parseFloat(row[14]) || 0;
+                const amount = parseFloat(row[4]) || 0;
                 const dateIni = excelDateToJSDate(row[0]);
                 const dateFin = excelDateToJSDate(row[1]);
 
