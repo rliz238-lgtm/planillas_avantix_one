@@ -2807,6 +2807,7 @@ const Views = {
         window.payLine = PayrollHelpers.payLine;
         window.editPaymentRecord = window.editPaymentRecord;
         window.exportCCSS = Views.exportCCSS;
+        window.exportPayments = Views.exportPayments;
     },
 
     shareWhatsApp: async (id) => {
