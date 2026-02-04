@@ -8,6 +8,28 @@ const PayrollHelpers = {
     // Icono minimalista de ojo
     EYE_ICON: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:-2px"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>`,
 
+    showToast: (title, message, type = 'success', duration = 6000) => {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.2rem;">${type === 'success' ? '✅' : '⚠️'}</span>
+                <strong style="color: ${type === 'success' ? 'var(--success)' : 'var(--warning)'}">${title}</strong>
+            </div>
+            <div style="font-size: 0.9rem; margin-top: 5px; line-height: 1.4;">${message}</div>
+        `;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.add('fade-out');
+            setTimeout(() => toast.remove(), 400);
+        }, duration);
+    },
+
     showPayrollSuccess: (summary) => {
         const modal = document.getElementById('payroll-success-modal');
         const content = document.getElementById('payroll-success-summary');
@@ -47,6 +69,14 @@ const PayrollHelpers = {
         setTimeout(() => {
             const detailModal = document.getElementById('payroll-detail-modal');
             if (detailModal) detailModal.close();
+
+            // NOTIFICACIÓN TOAST DE RESPALDO (Esta siempre sale)
+            const toastMsg = `Registrados ${summary.count} empleados por ₡${Math.round(summary.amount).toLocaleString()}.`;
+            this.showToast("¡Planilla Exitosa!", toastMsg, 'success');
+
+            if (missing > 0) {
+                this.showToast("WhatsApp No Enviado", `Hay ${missing} empleados sin número de teléfono.`, 'warning', 8000);
+            }
 
             modal.showModal();
             modal.focus();
