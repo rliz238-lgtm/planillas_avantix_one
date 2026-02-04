@@ -168,7 +168,17 @@ const PayrollHelpers = {
             if (res.success) {
                 await Storage.delete('logs', id);
                 document.getElementById('payroll-detail-modal').close();
+
+                // Mostrar resumen de éxito
                 PayrollHelpers.showPayrollSuccess({ count: 1, amount: amt, hours: hrs });
+
+                // Intentar enviar WhatsApp (o mostrar advertencia si no hay número)
+                const d = window._pendingPayrollData[empId];
+                if (d) {
+                    const text = `*COMPROBANTE TTW*\n\n*Fecha:* ${date}\n*Horas:* ${hrs.toFixed(1)}h\n*Monto:* ₡${Math.round(amt).toLocaleString()}`;
+                    PayrollHelpers.sendServerWhatsApp(d.phone, text);
+                }
+
                 App.renderView('payroll');
             }
         } catch (e) { alert("Error"); } finally { Storage.showLoader(false); }
@@ -2768,6 +2778,16 @@ const Views = {
             Storage.showLoader(false);
             if (count > 0) {
                 PayrollHelpers.showPayrollSuccess({ count, amount: totalAmount, hours: totalHours });
+
+                // Si solo es un empleado en el lote, intentamos enviar WhatsApp para que salga el warning si falta número
+                if (checks.length === 1) {
+                    const empId = checks[0].dataset.empid;
+                    const d = window._pendingPayrollData[empId];
+                    if (d) {
+                        const text = `*RESUMEN TTW*\n\n*Empleado:* ${d.name}\n*Total:* ₡${Math.round(d.net).toLocaleString()}\n*Horas:* ${d.hours.toFixed(1)}h`;
+                        PayrollHelpers.sendServerWhatsApp(d.phone, text);
+                    }
+                }
             }
             App.renderView('payroll');
         };
