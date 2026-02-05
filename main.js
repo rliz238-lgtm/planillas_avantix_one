@@ -3724,8 +3724,8 @@ const Views = {
                         <label>Nueva Contraseña (opcional)</label>
                         <input type="password" name="password" placeholder="Mín. 6 caracteres">
                     </div>
-                    <div style="grid-column: span 2; margin-top: 10px;">
-                        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px;">Actualizar Datos Personales</button>
+                    <div style="grid-column: span 2; margin-top: 10px; display: flex; justify-content: center;">
+                        <button type="submit" class="btn btn-primary" style="padding: 8px 24px; font-weight: 500;">Actualizar Datos Personales</button>
                     </div>
                 </form>
 
@@ -3815,8 +3815,8 @@ const Views = {
                         </select>
                     </div>
 
-                    <div style="grid-column: span 2; margin-top: 30px;">
-                        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 15px; font-weight: 600;">Guardar Todos los Cambios</button>
+                    <div style="grid-column: span 2; margin-top: 30px; display: flex; justify-content: center;">
+                        <button type="submit" class="btn btn-primary" style="padding: 10px 30px; font-weight: 600;">Guardar Todos los Cambios</button>
                     </div>
                 </form>
             </div>
