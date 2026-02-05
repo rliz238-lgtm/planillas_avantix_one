@@ -644,6 +644,7 @@ const Auth = {
                     id: user.id,
                     username: user.username,
                     name: user.name,
+                    phone: user.phone,
                     role: user.role,
                     business_id: user.business_id,
                     business_name: user.business_name || 'Avantix SaaS',
@@ -3705,8 +3706,33 @@ const Views = {
 
         return `
             <div class="card-container">
-                <h3>🏢 Configuración de Empresa</h3>
-                <form id="business-settings-form" class="form-grid" style="margin-top: 1.5rem;">
+                <h3>👤 Mi Cuenta</h3>
+                <form id="personal-settings-form" class="form-grid" style="margin-top: 1.5rem; margin-bottom: 2rem;">
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" name="name" value="${user.name || ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Usuario</label>
+                        <input type="text" value="${user.username || ''}" disabled style="opacity: 0.7;">
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono (WhatsApp)</label>
+                        <input type="text" name="phone" value="${user.phone || ''}" placeholder="Ej: 50688887777">
+                    </div>
+                    <div class="form-group">
+                        <label>Nueva Contraseña (opcional)</label>
+                        <input type="password" name="password" placeholder="Mín. 6 caracteres">
+                    </div>
+                    <div style="grid-column: span 2; margin-top: 10px;">
+                        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px;">Actualizar Datos Personales</button>
+                    </div>
+                </form>
+
+                <div style="margin-top: 2rem;">
+                    <h3 style="margin-bottom: 1rem;">🏢 Configuración de Empresa</h3>
+                </div>
+                <form id="business-settings-form" class="form-grid">
                     <div style="grid-column: span 2; margin-bottom: 1rem;">
                         <h4 style="color: var(--primary); border-bottom: 1px solid rgba(99,102,241,0.2); padding-bottom: 5px;">Información General</h4>
                     </div>
@@ -3846,6 +3872,7 @@ const Views = {
                 if (u) {
                     form.name.value = u.name;
                     form.username.value = u.username;
+                    form.phone.value = u.phone || '';
                     if (roleSelect) roleSelect.value = u.role || 'editor';
                 }
             }
@@ -3867,6 +3894,7 @@ const Views = {
                 const data = {
                     name: form.name.value,
                     username: form.username.value,
+                    phone: form.phone.value,
                     role: roleSelect ? roleSelect.value : (form.role ? form.role.value : 'editor')
                 };
                 if (form.password.value) {
@@ -3901,7 +3929,43 @@ const Views = {
     },
 
     init_profile: async () => {
+        const personalForm = document.getElementById('personal-settings-form');
         const bizForm = document.getElementById('business-settings-form');
+
+        if (personalForm) {
+            personalForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const formData = new FormData(personalForm);
+                const data = Object.fromEntries(formData.entries());
+                const user = Auth.getUser();
+
+                Storage.showLoader(true, 'Actualizando datos personales...');
+                try {
+                    const res = await apiFetch(`/api/users/${user.id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(data)
+                    });
+                    const result = await res.json();
+                    if (result.id) {
+                        // Actualizar sesión local
+                        const session = Auth.getUser();
+                        localStorage.setItem(Auth.SCHEMA, JSON.stringify({
+                            ...session,
+                            name: result.name,
+                            phone: result.phone
+                        }));
+                        alert('Datos actualizados con éxito.');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (result.error || 'Desconocido'));
+                    }
+                } catch (err) {
+                    alert('Error de conexión');
+                } finally {
+                    Storage.showLoader(false);
+                }
+            };
+        }
 
         if (bizForm) {
             const uploadInput = document.getElementById('logo-upload-input');

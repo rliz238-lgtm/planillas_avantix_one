@@ -171,7 +171,7 @@ app.get('/api/users/:id', checkAuth, async (req, res) => {
 });
 
 app.post('/api/users', checkAuth, async (req, res) => {
-    const { username, password, name, role } = req.body;
+    const { username, password, name, role, phone } = req.body;
     try {
         if (!username || !password || !name) {
             return res.status(400).json({ error: 'Faltan campos obligatorios: nombre, usuario y contraseña' });
@@ -184,8 +184,8 @@ app.post('/api/users', checkAuth, async (req, res) => {
         const finalBusinessId = finalRole === 'super_admin' ? null : req.businessId;
 
         const result = await db.query(
-            'INSERT INTO users (username, password, name, role, business_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, name, role',
-            [username, password, name, finalRole, finalBusinessId]
+            'INSERT INTO users (username, password, name, role, business_id, phone) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, name, role, phone',
+            [username, password, name, finalRole, finalBusinessId, phone || null]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -196,11 +196,11 @@ app.post('/api/users', checkAuth, async (req, res) => {
 
 app.put('/api/users/:id', checkAuth, async (req, res) => {
     const { id } = req.params;
-    const { username, password, name, role } = req.body;
+    const { username, password, name, role, phone } = req.body;
     try {
-        let query = 'UPDATE users SET username=$1, name=$2';
-        let params = [username, name];
-        let paramIdx = 3;
+        let query = 'UPDATE users SET username=$1, name=$2, phone=$3';
+        let params = [username, name, phone || null];
+        let paramIdx = 4;
 
         if (password) {
             query += `, password=$${paramIdx++}`;
@@ -223,7 +223,7 @@ app.put('/api/users/:id', checkAuth, async (req, res) => {
         query += ` WHERE id=$${paramIdx++} AND (business_id=$${paramIdx} OR $${paramIdx + 1}='super_admin')`;
         params.push(id, req.businessId, req.userRole);
 
-        const result = await db.query(query + ' RETURNING id, username, name, role', params);
+        const result = await db.query(query + ' RETURNING id, username, name, role, phone', params);
         res.json(result.rows[0]);
     } catch (err) {
         console.error("PUT /api/users error:", err.message);
@@ -254,6 +254,7 @@ app.post('/api/login', async (req, res) => {
                 id: user.id,
                 username: user.username,
                 name: user.name,
+                phone: user.phone,
                 role: user.role,
                 business_id: user.business_id,
                 business_name: user.business_name,
