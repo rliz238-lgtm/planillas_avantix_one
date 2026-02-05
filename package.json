@@ -1,7 +1,7 @@
 {
   "name": "planillas-backend",
   "version": "1.0.0",
-  "description": "Backend para Planillas Tom Tom Wok",
+  "description": "Backend para Planillas Avantix One",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

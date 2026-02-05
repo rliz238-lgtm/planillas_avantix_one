@@ -1153,5 +1153,5 @@ app.get('/api/reports/ccss', checkAuth, async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Servidor backend de Tom Tom Wok corriendo en puerto ${PORT}`);
+    console.log(`Servidor backend de Avantix One corriendo en puerto ${PORT}`);
 });
