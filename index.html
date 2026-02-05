@@ -279,6 +279,44 @@
                         onclick="document.getElementById('employee-modal').close()">Cancelar</button>
                 </div>
             </form>
+
+            <!-- SECCIÓN DE VALES (Dentro del perfil) -->
+            <div id="employee-vouchers-section"
+                style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; display: none;">
+                <h4 style="color: var(--warning); margin-bottom: 1rem;">🎫 Vales y Adelantos Pendientes</h4>
+                <div class="table-container"
+                    style="background: rgba(245, 158, 11, 0.03); border: 1px solid rgba(245, 158, 11, 0.1); border-radius: 12px; padding: 10px;">
+                    <table style="font-size: 0.85rem;">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Descripción</th>
+                                <th>Monto</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="emp-profile-vouchers-body">
+                            <!-- Vouchers here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div
+                    style="margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
+                    <h5 style="margin-top: 0; margin-bottom: 10px; font-size: 0.85rem; color: var(--text-muted);">➕
+                        Agregar Nuevo Vale</h5>
+                    <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                        <input type="date" id="profile-voucher-date" style="padding: 6px; font-size: 0.85rem; flex: 1;">
+                        <input type="text" id="profile-voucher-desc" placeholder="Descripción"
+                            style="padding: 6px; font-size: 0.85rem; flex: 2;">
+                        <input type="number" id="profile-voucher-amount" placeholder="Monto"
+                            style="padding: 6px; font-size: 0.85rem; flex: 1;">
+                        <button type="button" class="btn btn-primary" style="padding: 8px 15px; font-size: 0.85rem;"
+                            id="profile-add-voucher-btn">Agregar</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </dialog>
 
@@ -297,9 +335,9 @@
                             <th title="Fecha del registro">Fecha</th>
                             <th title="Hora de entrada">Entrada</th>
                             <th title="Hora de salida">Salida</th>
+                            <th title="Total de horas laboradas">Horas Totales</th>
                             <th title="Paga doble por feriado">¿Doble?</th>
                             <th title="Horas de almuerzo rebajadas">Almuerzo</th>
-                            <th title="Total de horas laboradas">Horas Totales</th>
                             <th title="Monto neto a pagar">Monto Neto</th>
                         </tr>
                     </thead>
@@ -307,6 +345,57 @@
                         <!-- Log details here -->
                     </tbody>
                 </table>
+            </div>
+
+            <!-- SECCIÓN DE VALES / ADELANTOS -->
+            <div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                <h4 style="color: var(--warning); margin-bottom: 1rem;">🎫 Vales y Adelantos Pendientes</h4>
+                <div class="table-container"
+                    style="background: rgba(245, 158, 11, 0.03); border: 1px solid rgba(245, 158, 11, 0.1); border-radius: 12px; padding: 10px;">
+                    <table style="font-size: 0.85rem;">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Descripción</th>
+                                <th>Monto</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payroll-vouchers-body">
+                            <!-- Vouchers here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Formulario rápido para agregar vale -->
+                <div
+                    style="margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
+                    <h5 style="margin-top: 0; margin-bottom: 10px; font-size: 0.85rem; color: var(--text-muted);">➕
+                        Agregar Nuevo Vale/Adelanto</h5>
+                    <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 120px;">
+                            <label
+                                style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Fecha</label>
+                            <input type="date" id="new-voucher-date" style="padding: 6px; font-size: 0.85rem;">
+                        </div>
+                        <div style="flex: 2; min-width: 200px;">
+                            <label
+                                style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Descripción</label>
+                            <input type="text" id="new-voucher-desc" placeholder="Ej: Adelanto quincena"
+                                style="padding: 6px; font-size: 0.85rem;">
+                        </div>
+                        <div style="flex: 1; min-width: 100px;">
+                            <label
+                                style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Monto
+                                (₡)</label>
+                            <input type="number" id="new-voucher-amount" placeholder="0"
+                                style="padding: 6px; font-size: 0.85rem;">
+                        </div>
+                        <button class="btn btn-primary" style="padding: 8px 15px; font-size: 0.85rem;"
+                            id="add-voucher-btn">Agregar Vale</button>
+                    </div>
+                </div>
             </div>
             <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
                 <button class="btn btn-secondary"

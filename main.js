@@ -141,29 +141,38 @@ const PayrollHelpers = {
         }
     },
 
-    showPayrollDetail: (empId) => {
+    showPayrollDetail: async (empId) => {
         const data = window._pendingPayrollData[empId];
         if (!data) return alert("Error: Datos no encontrados. Recargue la página.");
         const modal = document.getElementById('payroll-detail-modal');
         const body = document.getElementById('payroll-detail-body');
+        const vouchersBody = document.getElementById('payroll-vouchers-body');
+        const addVoucherContainer = document.querySelector('#payroll-detail-modal [style*="border: 1px dashed"]');
+
+        if (addVoucherContainer) addVoucherContainer.style.display = 'block';
+
         document.getElementById('payroll-detail-title').textContent = `Detalle: ${data.name}`;
+
+        // Initial summary
         document.getElementById('payroll-detail-info').innerHTML = `
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div><strong>Pendiente:</strong> ₡${Math.round(data.net).toLocaleString()}</div>
+                <div><strong>Pendiente (Horas):</strong> ₡${Math.round(data.net).toLocaleString()}</div>
                 <div><strong>Horas:</strong> ${data.hours.toFixed(1)}h</div>
             </div>`;
+
+        // Render Logs
+        const employees = await Storage.get('employees');
         body.innerHTML = data.logs.sort((a, b) => new Date(b.date) - new Date(a.date)).map(l => {
-            const isDouble = !!l.is_double_day;
-            const logNet = l.net || (parseFloat(l.hours) * (parseFloat(employees.find(e => e.id == l.employee_id)?.hourly_rate || 0)));
+            const emp = employees.find(e => e.id == l.employee_id);
+            const rate = emp ? parseFloat(emp.hourly_rate) : 0;
+            const logNet = l.net || (parseFloat(l.hours) * rate);
             return `
             <tr>
                 <td style="white-space:nowrap">${l.date.split('T')[0]}</td>
                 <td>${l.time_in || '--'}</td><td>${l.time_out || '--'}</td>
-                <td>
-                    <div style="font-weight:700">${parseFloat(l.hours).toFixed(1)}h</div>
-                </td>
-                <td style="text-align:center">${isDouble ? '✅' : '--'}</td>
-                <td style="text-align:center">${l.deduction_hours > 0 ? l.deduction_hours + 'h' : '--'}</td>
+                <td><div style="font-weight:700">${parseFloat(l.hours).toFixed(1)}h</div></td>
+                <td style="text-align:center">${!!l.is_double_day ? '✅' : '--'}</td>
+                <td style="text-align:center">${(l.deduction_hours || 0) > 0 ? l.deduction_hours + 'h' : '--'}</td>
                 <td style="display:flex; gap:5px; align-items:center;">
                     <span style="color:var(--success); font-weight:600;">₡${Math.round(logNet).toLocaleString()}</span>
                     <button class="btn btn-primary" style="padding:4px 8px; font-size:0.75rem;" onclick="PayrollHelpers.payLine(${l.id},${l.employee_id},'${l.date.split('T')[0]}',${logNet},${l.hours},${l.deduction || 0})" title="Pagar este día únicamente">💰</button>
@@ -173,8 +182,87 @@ const PayrollHelpers = {
                 </td>
             </tr>`;
         }).join('');
+
+        // Vouchers
+        document.getElementById('new-voucher-date').value = Storage.getLocalDate();
+        await PayrollHelpers.renderVouchersForEmployee(empId, 'payroll-vouchers-body', 'payroll-detail-info');
+
+        document.getElementById('add-voucher-btn').onclick = async () => {
+            const date = document.getElementById('new-voucher-date').value;
+            const desc = document.getElementById('new-voucher-desc').value;
+            const amount = parseFloat(document.getElementById('new-voucher-amount').value);
+            if (!date || isNaN(amount) || amount <= 0) return alert("Por favor complete fecha y monto válido.");
+
+            Storage.showLoader(true, 'Guardando vale...');
+            const res = await apiFetch('/api/vouchers', {
+                method: 'POST',
+                body: JSON.stringify({ employeeId: empId, date, description: desc, amount })
+            }).then(r => r.json());
+            Storage.showLoader(false);
+
+            if (res.id) {
+                document.getElementById('new-voucher-desc').value = '';
+                document.getElementById('new-voucher-amount').value = '';
+                PayrollHelpers.renderVouchersForEmployee(empId, 'payroll-vouchers-body', 'payroll-detail-info');
+            } else {
+                alert("Error al guardar el vale.");
+            }
+        };
+
         modal.showModal();
     },
+
+    renderVouchersForEmployee: async (empId, tableId, summaryInfoId = null) => {
+        const body = document.getElementById(tableId);
+        if (!body) return;
+        const vouchers = await apiFetch(`/api/vouchers?employeeId=${empId}&isApplied=false`).then(r => r.json());
+
+        body.innerHTML = vouchers.length > 0 ? vouchers.map(v => `
+            <tr>
+                <td>${v.date.split('T')[0]}</td>
+                <td>${v.description || '—'}</td>
+                <td style="font-weight: 600; color: var(--danger)">-₡${parseFloat(v.amount).toLocaleString()}</td>
+                <td><span class="tag tag-warning">Pendiente</span></td>
+                <td>
+                    <button class="btn btn-danger" style="padding: 2px 6px; font-size: 0.7rem;" onclick="PayrollHelpers.deleteVoucher(${v.id}, ${empId}, '${tableId}', '${summaryInfoId}')">🗑️</button>
+                </td>
+            </tr>
+        `).join('') : '<tr><td colspan="5" style="text-align:center; padding: 10px; color: var(--text-muted)">No hay vales pendientes</td></tr>';
+
+        if (summaryInfoId) {
+            const data = window._pendingPayrollData[empId];
+            if (data) {
+                const voucherTotal = vouchers.reduce((sum, v) => sum + parseFloat(v.amount), 0);
+                const infoDiv = document.getElementById(summaryInfoId);
+                infoDiv.innerHTML = `
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <div><strong>Pendiente (Horas):</strong> ₡${Math.round(data.net).toLocaleString()}</div>
+                        <div><strong>Horas:</strong> ${data.hours.toFixed(1)}h</div>
+                    </div>`;
+                if (voucherTotal > 0) {
+                    infoDiv.insertAdjacentHTML('beforeend', `
+                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.1); display: flex; justify-content: space-between;">
+                            <span style="color: var(--warning)">Subtotal Vales:</span>
+                            <b style="color: var(--danger)">-₡${voucherTotal.toLocaleString()}</b>
+                        </div>
+                        <div style="margin-top: 5px; display: flex; justify-content: space-between; font-size: 1.1rem;">
+                            <span>Total Neto Estimado:</span>
+                            <b style="color: var(--success)">₡${Math.round(data.net - voucherTotal).toLocaleString()}</b>
+                        </div>
+                    `);
+                }
+            }
+        }
+    },
+
+    deleteVoucher: async (id, empId, tableId, summaryInfoId) => {
+        if (!confirm("¿Eliminar este vale?")) return;
+        Storage.showLoader(true, 'Eliminando vale...');
+        await apiFetch(`/api/vouchers/${id}`, { method: 'DELETE' });
+        Storage.showLoader(false);
+        PayrollHelpers.renderVouchersForEmployee(empId, tableId, summaryInfoId);
+    },
+
     editLogLine: async (id) => {
         const logs = await Storage.get('logs');
         const l = logs.find(x => x.id == id);
@@ -188,9 +276,8 @@ const PayrollHelpers = {
         if (modal) modal.close();
         App.renderView('payroll');
     },
+
     shareWhatsAppLine: (empId, date, hours, amount, tIn, tOut) => {
-        const employees = JSON.parse(localStorage.getItem('ttw_temp_employees') || '[]'); // Fallback or assume available
-        // Better: Fetch it from the pending data if available
         const d = window._pendingPayrollData[empId];
         const phone = d ? d.phone : '';
         const name = d ? d.name : 'Empleado';
@@ -198,77 +285,98 @@ const PayrollHelpers = {
         const text = `*REGISTRO TTW*\n\n*Emp:* ${name}\n*Día:* ${day} ${date}\n*Horario:* ${tIn || '--'} - ${tOut || '--'}\n*Horas:* ${parseFloat(hours).toFixed(1)}h\n*Monto:* ₡${Math.round(amount).toLocaleString()}`;
         PayrollHelpers.sendServerWhatsApp(phone, text);
     },
+
     payEmployeeGroup: async (empId) => {
-        console.log("DEBUG: payEmployeeGroup llamado para ID:", empId);
-        alert("DEBUG: Click capturado. Iniciando pago de grupo...");
         const d = window._pendingPayrollData[empId];
-        if (!d || !confirm(`¿Pagar ₡${Math.round(d.net).toLocaleString()} a ${d.name}?`)) return;
+        if (!d) return;
+
+        const vouchers = await apiFetch(`/api/vouchers?employeeId=${empId}&isApplied=false`).then(r => r.json());
+        const voucherTotal = vouchers.reduce((sum, v) => sum + parseFloat(v.amount), 0);
+        const finalNet = d.net - voucherTotal;
+
+        if (!confirm(`¿Pagar ₡${Math.round(finalNet).toLocaleString()} a ${d.name}?\n(Incluye rebajo de ₡${voucherTotal.toLocaleString()} por vales)`)) return;
+
         Storage.showLoader(true, 'Pagando...');
         try {
-            const res = await Storage.add('payments', { employeeId: parseInt(empId), date: Storage.getLocalDate(), amount: d.net, hours: d.hours, deductionCCSS: d.deduction, netAmount: d.net, startDate: d.startDate, endDate: d.endDate, logsDetail: d.logs, isImported: false });
+            const res = await Storage.add('payments', {
+                employeeId: parseInt(empId),
+                date: Storage.getLocalDate(),
+                amount: finalNet,
+                hours: d.hours,
+                deductionCCSS: d.deduction,
+                netAmount: finalNet,
+                startDate: d.startDate,
+                endDate: d.endDate,
+                logsDetail: d.logs,
+                isImported: false,
+                voucherAmount: voucherTotal,
+                voucherDetails: vouchers,
+                grossAmount: d.gross,
+                lunchHours: d.logs.reduce((sum, l) => sum + parseFloat(l.deduction_hours || 0), 0)
+            });
+
             if (res.success) {
+                const paymentId = res.id;
+                for (const v of vouchers) {
+                    await apiFetch(`/api/vouchers/${v.id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ isApplied: true, paymentId })
+                    });
+                }
                 for (const l of d.logs) await Storage.delete('logs', l.id);
-
-                // NOTIFICACIÓN INMEDIATA (Antes del renderView que puede ser lento)
-                PayrollHelpers.showPayrollSuccess({
-                    count: 1,
-                    amount: d.net,
-                    hours: d.hours,
-                    missingPhones: d.phone ? 0 : 1
-                });
-
+                PayrollHelpers.showPayrollSuccess({ count: 1, amount: finalNet, hours: d.hours, missingPhones: d.phone ? 0 : 1 });
                 Storage.showLoader(false);
                 await App.renderView('payroll');
-
-                // WhatsApp (si hay número)
                 if (d.phone) {
-                    const text = `*REGISTRO TTW*\n\n*Empleado:* ${d.name}\n*Monto:* ₡${Math.round(d.net).toLocaleString()}\n*Horas:* ${d.hours.toFixed(1)}h`;
+                    const text = `*REGISTRO TTW*\n\n*Empleado:* ${d.name}\n*Monto Neto:* ₡${Math.round(finalNet).toLocaleString()}\n*Vouchers:* -₡${voucherTotal.toLocaleString()}\n*Horas:* ${d.hours.toFixed(1)}h`;
                     PayrollHelpers.sendServerWhatsApp(d.phone, text);
                 }
             } else {
-                alert("Error al guardar el pago: " + (res.error || "Desconocido"));
+                alert("Error: " + res.error);
                 Storage.showLoader(false);
             }
-        } catch (e) { console.error(e); alert("Error al procesar el pago."); Storage.showLoader(false); }
+        } catch (e) { console.error(e); alert("Error"); Storage.showLoader(false); }
     },
+
     payLine: async (id, empId, date, amt, hrs, ded) => {
-        console.log("DEBUG: payLine llamado para ID:", id);
-        alert("DEBUG: Click capturado. Iniciando pago de línea...");
         if (!confirm("¿Pagar este día?")) return;
         Storage.showLoader(true, 'Pagando día...');
         try {
             const logs = await Storage.get('logs');
-            const res = await Storage.add('payments', { employeeId: parseInt(empId), date: Storage.getLocalDate(), amount: amt, hours: hrs, deductionCCSS: ded, netAmount: amt, startDate: date, endDate: date, logsDetail: [logs.find(x => x.id == id)], isImported: false });
+            const log = logs.find(x => x.id == id);
+            const res = await Storage.add('payments', {
+                employeeId: parseInt(empId),
+                date: Storage.getLocalDate(),
+                amount: amt,
+                hours: hrs,
+                deductionCCSS: ded,
+                netAmount: amt,
+                startDate: date,
+                endDate: date,
+                logsDetail: [log],
+                isImported: false,
+                grossAmount: log ? (parseFloat(log.hours) * (parseFloat(window._pendingPayrollData[empId]?.logs[0]?.gross / window._pendingPayrollData[empId]?.logs[0]?.hours || 0))) : 0,
+                lunchHours: log ? parseFloat(log.deduction_hours || 0) : 0
+            });
             if (res.success) {
                 await Storage.delete('logs', id);
-
-                // Cerramos este modal explícitamente antes de nada
                 const det = document.getElementById('payroll-detail-modal');
                 if (det) det.close();
-
                 const d = window._pendingPayrollData[empId];
-
-                // Notificación inmediata
-                PayrollHelpers.showPayrollSuccess({
-                    count: 1,
-                    amount: amt,
-                    hours: hrs,
-                    missingPhones: (d && d.phone) ? 0 : 1
-                });
-
+                PayrollHelpers.showPayrollSuccess({ count: 1, amount: amt, hours: hrs, missingPhones: (d && d.phone) ? 0 : 1 });
                 Storage.showLoader(false);
                 await App.renderView('payroll');
-
                 if (d && d.phone) {
                     const text = `*COMPROBANTE TTW*\n\n*Fecha:* ${date}\n*Horas:* ${hrs.toFixed(1)}h\n*Monto:* ₡${Math.round(amt).toLocaleString()}`;
                     PayrollHelpers.sendServerWhatsApp(d.phone, text);
                 }
             } else {
-                alert("Error al pagar el día: " + (res.error || "Desconocido"));
+                alert("Error: " + res.error);
                 Storage.showLoader(false);
             }
         } catch (e) { alert("Error"); Storage.showLoader(false); }
     },
+
     shareWhatsAppPending: (empId) => {
         const d = window._pendingPayrollData[empId]; if (!d) return;
         let details = "";
@@ -282,30 +390,37 @@ const PayrollHelpers = {
         const text = `*RESUMEN PAGO - AVANTIX ONE*\n\n*Empleado:* ${d.name}\n*Total Neto:* ₡${Math.round(d.net).toLocaleString()}\n*Total Horas:* ${d.hours.toFixed(1)}h${details}`;
         PayrollHelpers.sendServerWhatsApp(d.phone, text);
     },
+
     showPaymentHistoryDetail: async (paymentId) => {
         const payments = await Storage.get('payments'), employees = await Storage.get('employees');
         const p = payments.find(x => x.id == paymentId); if (!p) return;
         const emp = employees.find(e => e.id == p.employee_id);
         const modal = document.getElementById('payroll-detail-modal'), body = document.getElementById('payroll-detail-body');
-        document.getElementById('payroll-detail-title').textContent = `Detalle Pago: ${emp ? emp.name : '??'}`;
+        const vouchersBody = document.getElementById('payroll-vouchers-body');
+        const addVoucherContainer = document.querySelector('#payroll-detail-modal [style*="border: 1px dashed"]');
+        if (addVoucherContainer) addVoucherContainer.style.display = 'none';
+
+        document.getElementById('payroll-detail-title').textContent = `Detalle Pago Histórico: ${emp ? emp.name : '??'}`;
+
+        const gross = p.gross_amount || p.amount;
+        const lunch = p.lunch_hours || 0;
         document.getElementById('payroll-detail-info').innerHTML = `
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div><strong>Monto:</strong> ₡${Math.round(p.amount).toLocaleString()}</div>
-                <div><strong>Fecha:</strong> ${p.date.split('T')[0]}</div>
+                <div><strong>Monto Neto:</strong> ₡${Math.round(p.amount).toLocaleString()}</div>
+                <div><strong>Fecha Pago:</strong> ${p.date.split('T')[0]}</div>
+                <div><strong>Bruto Est.:</strong> ₡${Math.round(gross).toLocaleString()}</div>
+                <div><strong>Almuerzo:</strong> ${lunch}h</div>
             </div>`;
+
         body.innerHTML = (p.logs_detail || []).map((l, index) => {
-            const day = new Date(l.date + 'T00:00:00').toLocaleString('es-ES', { weekday: 'short' }).toUpperCase();
             const logNet = l.net || (parseFloat(l.hours) * (emp ? parseFloat(emp.hourly_rate) : 0));
             return `
             <tr>
                 <td style="white-space:nowrap">${l.date.split('T')[0]}</td>
-                <td>${l.time_in || '--'}</td>
-                <td>${l.time_out || '--'}</td>
-                <td>
-                    <div style="font-weight:600">${parseFloat(l.hours).toFixed(1)}h</div>
-                </td>
+                <td>${l.time_in || '--'}</td><td>${l.time_out || '--'}</td>
+                <td><div style="font-weight:600">${parseFloat(l.hours).toFixed(1)}h</div></td>
                 <td style="text-align:center">${l.is_double_day ? '✅' : '--'}</td>
-                <td style="text-align:center">${l.deduction_hours > 0 ? l.deduction_hours + 'h' : '--'}</td>
+                <td style="text-align:center">${(l.deduction_hours || 0) > 0 ? l.deduction_hours + 'h' : '--'}</td>
                 <td style="display:flex; gap:5px; align-items:center;">
                     <span style="font-weight:600">₡${Math.round(logNet).toLocaleString()}</span>
                     <button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="PayrollHelpers.editPaidLogLine(${p.id}, ${index})" title="Editar este día pagado">✏️</button>
@@ -313,6 +428,18 @@ const PayrollHelpers = {
                 </td>
             </tr>`;
         }).join('');
+
+        const vDetails = p.voucher_details || [];
+        vouchersBody.innerHTML = vDetails.length > 0 ? vDetails.map(v => `
+            <tr>
+                <td>${v.date ? v.date.split('T')[0] : '—'}</td>
+                <td>${v.description || '—'}</td>
+                <td style="font-weight: 600; color: var(--danger)">-₡${parseFloat(v.amount).toLocaleString()}</td>
+                <td><span class="tag tag-success">Aplicado</span></td>
+                <td>—</td>
+            </tr>
+        `).join('') : '<tr><td colspan="5" style="text-align:center; padding: 10px; color: var(--text-muted)">No se aplicaron vales</td></tr>';
+
         modal.showModal();
     },
 
@@ -320,75 +447,42 @@ const PayrollHelpers = {
         const payments = await Storage.get('payments');
         const p = payments.find(x => x.id == paymentId);
         if (!p || !p.logs_detail[logIndex]) return;
-
         const l = p.logs_detail[logIndex];
         const editLogModal = document.getElementById('edit-log-modal');
         const editLogForm = document.getElementById('edit-log-form');
-
         editLogForm.logId.value = `paid_${paymentId}_${logIndex}`;
         editLogForm.date.value = l.date.split('T')[0];
         editLogForm.timeIn.value = l.time_in || '08:00';
         editLogForm.timeOut.value = l.time_out || '17:00';
         editLogForm.isDoubleDay.checked = !!l.is_double_day;
         editLogForm.deductionHours.value = l.deduction_hours || 0;
-
-        // Custom submit for paid logs
         const originalSubmit = editLogForm.onsubmit;
         editLogForm.onsubmit = async (e) => {
             e.preventDefault();
             const formData = new FormData(editLogForm);
-            const tIn = formData.get('timeIn');
-            const tOut = formData.get('timeOut');
+            const tIn = formData.get('timeIn'), tOut = formData.get('timeOut');
             const isDouble = editLogForm.isDoubleDay.checked;
             const deduction = parseFloat(formData.get('deductionHours') || 0);
-
-            const start = new Date(`2000-01-01T${tIn}`);
-            const end = new Date(`2000-01-01T${tOut}`);
+            const start = new Date(`2000-01-01T${tIn}`), end = new Date(`2000-01-01T${tOut}`);
             let diff = (end - start) / 1000 / 60 / 60;
             if (diff < 0) diff += 24;
             diff = Math.max(0, diff - deduction);
-            const rawHours = diff;
-            if (isDouble) diff *= 2;
-
             const employees = await Storage.get('employees');
             const emp = employees.find(e => e.id == p.employee_id);
             const rate = emp ? parseFloat(emp.hourly_rate) : 0;
-            const logNet = diff * rate;
-
-            // Update log_detail entry
-            p.logs_detail[logIndex] = {
-                ...l,
-                date: formData.get('date'),
-                time_in: tIn,
-                time_out: tOut,
-                is_double_day: isDouble,
-                deduction_hours: deduction,
-                hours: diff.toFixed(2),
-                net: logNet
-            };
-
-            // Recalculate payment totals
+            const logNet = (isDouble ? diff * 2 : diff) * rate;
+            p.logs_detail[logIndex] = { ...l, date: formData.get('date'), time_in: tIn, time_out: tOut, is_double_day: isDouble, deduction_hours: deduction, hours: diff.toFixed(2), net: logNet };
             const totalHours = p.logs_detail.reduce((s, log) => s + parseFloat(log.hours), 0);
             const totalNet = p.logs_detail.reduce((s, log) => s + (log.net || (parseFloat(log.hours) * rate)), 0);
-
             Storage.showLoader(true, 'Actualizando pago...');
-            await Storage.update('payments', paymentId, {
-                ...p,
-                hours: totalHours,
-                amount: totalNet,
-                net_amount: totalNet,
-                logs_detail: p.logs_detail
-            });
+            await Storage.update('payments', paymentId, { ...p, hours: totalHours, amount: totalNet, net_amount: totalNet, logs_detail: p.logs_detail });
             Storage.showLoader(false);
             editLogModal.close();
-
-            // Restore original submit and refresh
             editLogForm.onsubmit = originalSubmit;
             const detailModal = document.getElementById('payroll-detail-modal');
             if (detailModal && detailModal.open) detailModal.close();
             App.renderView('payroll');
         };
-
         editLogModal.showModal();
     }
 };
@@ -828,6 +922,37 @@ const App = {
             form.overtimeThreshold.value = emp.overtime_threshold || 48;
             form.overtimeMultiplier.value = emp.overtime_multiplier || 1.5;
             form.enableOvertime.checked = emp.enable_overtime !== false;
+
+            // Vouchers for Profile
+            const voucherSection = document.getElementById('employee-vouchers-section');
+            if (voucherSection) {
+                voucherSection.style.display = 'block';
+                document.getElementById('profile-voucher-date').value = Storage.getLocalDate();
+                PayrollHelpers.renderVouchersForEmployee(id, 'emp-profile-vouchers-body');
+
+                document.getElementById('profile-add-voucher-btn').onclick = async () => {
+                    const date = document.getElementById('profile-voucher-date').value;
+                    const desc = document.getElementById('profile-voucher-desc').value;
+                    const amount = parseFloat(document.getElementById('profile-voucher-amount').value);
+
+                    if (!date || isNaN(amount) || amount <= 0) return alert("Por favor complete fecha y monto válido.");
+
+                    Storage.showLoader(true, 'Guardando vale...');
+                    const res = await apiFetch('/api/vouchers', {
+                        method: 'POST',
+                        body: JSON.stringify({ employeeId: id, date, description: desc, amount })
+                    }).then(r => r.json());
+                    Storage.showLoader(false);
+
+                    if (res.id) {
+                        document.getElementById('profile-voucher-desc').value = '';
+                        document.getElementById('profile-voucher-amount').value = '';
+                        PayrollHelpers.renderVouchersForEmployee(id, 'emp-profile-vouchers-body');
+                    } else {
+                        alert("Error al guardar el vale.");
+                    }
+                };
+            }
 
             modal.showModal();
         };
@@ -2780,12 +2905,13 @@ const Views = {
                                 <th style="width: 40px"><input type="checkbox" id="select-all-payments"></th>
                                 <th title="Fecha en que se realizó el pago">Fecha Pago</th>
                                 <th title="Nombre del colaborador">Empleado</th>
-                                <th title="Fecha de inicio del periodo">Desde</th>
-                                <th title="Fecha de fin del periodo">Hasta</th>
-                                <th title="Horas extras calculadas">Extras</th>
-                                <th title="Horas dobles por feriado">Dobles</th>
-                                <th title="Total de horas pagadas">Horas</th>
+                                <th>Periodo</th>
+                                <th title="Monto total ganado sin rebajos">Bruto</th>
+                                <th title="Rebajo de CCSS">CCSS</th>
+                                <th title="Rebajo de vales o adelantos">Vales</th>
                                 <th title="Monto neto recibido">Monto Neto</th>
+                                <th title="Total de horas pagadas">Horas</th>
+                                <th title="Total horas de almuerzo tomadas">Almuerzo</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -2793,6 +2919,13 @@ const Views = {
                             ${payments.sort((a, b) => new Date(b.date) - new Date(a.date)).map(p => {
             const emp = employees.find(e => e.id == p.employee_id);
             const paymentJson = JSON.stringify(p).replace(/'/g, "&apos;");
+
+            // Cálculos para columnas (con fallback para registros antiguos)
+            const gross = p.gross_amount || p.amount;
+            const vouchers = p.voucher_amount || 0;
+            const ccss = p.deduction_ccss || 0;
+            const lunch = p.lunch_hours || 0;
+
             return `
                                     <tr>
                                         <td><input type="checkbox" class="payment-check" data-id="${p.id}" data-full-payment='${paymentJson}'></td>
@@ -2801,12 +2934,16 @@ const Views = {
                                             onclick="PayrollHelpers.showPaymentHistoryDetail('${p.id}')">
                                             ${emp ? emp.name : 'Desconocido'}
                                         </td>
-                                        <td style="font-size: 0.85rem">${p.start_date ? p.start_date.split('T')[0] : '—'}</td>
-                                        <td style="font-size: 0.85rem">${p.end_date ? p.end_date.split('T')[0] : '—'}</td>
-                                        <td style="color: var(--warning)">${(p.logs_detail || []).reduce((s, l) => s + (parseFloat(l.extra || 0)), 0).toFixed(1)}h</td>
-                                        <td style="color: var(--accent)">${(p.logs_detail || []).reduce((s, l) => s + (l.is_double_day ? parseFloat(l.hours || 0) : 0), 0).toFixed(1)}h</td>
-                                        <td>${parseFloat(p.hours || 0).toFixed(1)}h</td>
+                                        <td style="font-size: 0.8rem">
+                                            ${p.start_date ? p.start_date.split('T')[0] : '—'}<br>
+                                            ${p.end_date ? p.end_date.split('T')[0] : '—'}
+                                        </td>
+                                        <td style="font-weight: 500">₡${Math.round(gross).toLocaleString()}</td>
+                                        <td style="color: var(--danger); font-size: 0.85rem">₡${Math.round(ccss).toLocaleString()}</td>
+                                        <td style="color: var(--warning); font-size: 0.85rem">${vouchers > 0 ? '₡' + Math.round(vouchers).toLocaleString() : '—'}</td>
                                         <td style="color: var(--success); font-weight: 700;">₡${Math.round(p.amount).toLocaleString()}</td>
+                                        <td>${parseFloat(p.hours || 0).toFixed(1)}h</td>
+                                        <td style="font-size: 0.85rem; color: var(--text-muted)">${parseFloat(lunch).toFixed(1)}h</td>
                                         <td style="display: flex; gap: 5px">
                                             <button class="btn btn-primary" title="Ver Detalle" style="padding: 5px 10px" onclick="PayrollHelpers.showPaymentHistoryDetail('${p.id}')">${PayrollHelpers.EYE_ICON}</button>
                                             <button class="btn btn-secondary" title="Editar" style="padding: 5px 10px" onclick="window.editPaymentRecord('${p.id}')">✏️</button>
@@ -2839,21 +2976,37 @@ const Views = {
                 const d = window._pendingPayrollData[empId];
                 if (d) {
                     try {
+                        const vouchers = await apiFetch(`/api/vouchers?employeeId=${empId}&isApplied=false`).then(r => r.json());
+                        const voucherTotal = vouchers.reduce((sum, v) => sum + parseFloat(v.amount), 0);
+                        const finalNet = d.net - voucherTotal;
+
                         const res = await Storage.add('payments', {
                             employeeId: parseInt(empId),
                             date: Storage.getLocalDate(),
-                            amount: d.net,
+                            amount: finalNet,
                             hours: d.hours,
                             deductionCCSS: d.deduction,
-                            netAmount: d.net,
+                            netAmount: finalNet,
                             startDate: d.startDate,
                             endDate: d.endDate,
                             logsDetail: d.logs,
-                            isImported: false
+                            isImported: false,
+                            voucherAmount: voucherTotal,
+                            voucherDetails: vouchers,
+                            grossAmount: d.gross,
+                            lunchHours: d.logs.reduce((sum, l) => sum + parseFloat(l.deduction_hours || 0), 0)
                         });
+
                         if (res.success) {
+                            const paymentId = res.id;
+                            for (const v of vouchers) {
+                                await apiFetch(`/api/vouchers/${v.id}`, {
+                                    method: 'PUT',
+                                    body: JSON.stringify({ isApplied: true, paymentId })
+                                });
+                            }
                             for (const l of d.logs) await Storage.delete('logs', l.id);
-                            totalAmount += d.net;
+                            totalAmount += finalNet;
                             totalHours += d.hours;
                             count++;
                         }
@@ -2930,6 +3083,11 @@ const Views = {
                 const formData = new FormData(editLogForm);
                 const logId = formData.get('logId');
 
+                // Fetch current log to get employeeId and other metadata
+                const logs = await Storage.get('logs');
+                const currentLog = logs.find(lx => lx.id == logId);
+                if (!currentLog) return alert("Error: Registro no encontrado.");
+
                 const tIn = formData.get('timeIn');
                 const tOut = formData.get('timeOut');
                 const isDouble = editLogForm.isDoubleDay.checked;
@@ -2949,9 +3107,9 @@ const Views = {
                     isDoubleDay: isDouble,
                     deductionHours: deduction,
                     hours: diff.toFixed(2),
-                    employeeId: l.employee_id,
-                    isPaid: l.is_paid || false,
-                    isImported: l.is_imported || false
+                    employeeId: currentLog.employee_id,
+                    isPaid: currentLog.is_paid || false,
+                    isImported: currentLog.is_imported || false
                 };
 
                 Storage.showLoader(true, 'Actualizando registro...');

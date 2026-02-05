@@ -583,11 +583,11 @@ app.get('/api/payments', checkAuth, async (req, res) => {
 });
 
 app.post('/api/payments', checkAuth, async (req, res) => {
-    const { employeeId, amount, hours, deductionCCSS, netAmount, date, isImported, logsDetail, startDate, endDate } = req.body;
+    const { employeeId, amount, hours, deductionCCSS, netAmount, date, isImported, logsDetail, startDate, endDate, voucherAmount, voucherDetails, grossAmount, lunchHours } = req.body;
     try {
         const result = await db.query(
-            'INSERT INTO payments (employee_id, amount, hours, deduction_ccss, net_amount, date, is_imported, logs_detail, start_date, end_date, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
-            [employeeId, amount, hours || 0, deductionCCSS || 0, netAmount || amount, date, isImported || false, JSON.stringify(logsDetail || []), startDate || null, endDate || null, req.businessId]
+            'INSERT INTO payments (employee_id, amount, hours, deduction_ccss, net_amount, date, is_imported, logs_detail, start_date, end_date, voucher_amount, voucher_details, gross_amount, lunch_hours, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *',
+            [employeeId, amount, hours || 0, deductionCCSS || 0, netAmount || amount, date, isImported || false, JSON.stringify(logsDetail || []), startDate || null, endDate || null, voucherAmount || 0, JSON.stringify(voucherDetails || []), grossAmount || 0, lunchHours || 0, req.businessId]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -597,11 +597,11 @@ app.post('/api/payments', checkAuth, async (req, res) => {
 
 app.put('/api/payments/:id', checkAuth, async (req, res) => {
     const { id } = req.params;
-    const { employeeId, amount, hours, deductionCCSS, netAmount, date, isImported, logsDetail, startDate, endDate } = req.body;
+    const { employeeId, amount, hours, deductionCCSS, netAmount, date, isImported, logsDetail, startDate, endDate, voucherAmount, voucherDetails, grossAmount, lunchHours } = req.body;
     try {
         const result = await db.query(
-            'UPDATE payments SET employee_id=$1, amount=$2, hours=$3, deduction_ccss=$4, net_amount=$5, date=$6, is_imported=$7, logs_detail=$8, start_date=$9, end_date=$10 WHERE id=$11 AND business_id=$12 RETURNING *',
-            [employeeId, amount, hours, deductionCCSS, netAmount, date, isImported, JSON.stringify(logsDetail || []), startDate, endDate, id, req.businessId]
+            'UPDATE payments SET employee_id=$1, amount=$2, hours=$3, deduction_ccss=$4, net_amount=$5, date=$6, is_imported=$7, logs_detail=$8, start_date=$9, end_date=$10, voucher_amount=$11, voucher_details=$12, gross_amount=$13, lunch_hours=$14 WHERE id=$15 AND business_id=$16 RETURNING *',
+            [employeeId, amount, hours, deductionCCSS, netAmount, date, isImported, JSON.stringify(logsDetail || []), startDate, endDate, voucherAmount, JSON.stringify(voucherDetails || []), grossAmount, lunchHours, id, req.businessId]
         );
         if (result.rows.length === 0) return res.status(404).json({ error: 'Pago no encontrado o no pertenece a su empresa' });
         res.json(result.rows[0]);
@@ -613,6 +613,100 @@ app.put('/api/payments/:id', checkAuth, async (req, res) => {
 app.delete('/api/payments/:id', checkAuth, async (req, res) => {
     try {
         const result = await db.query('DELETE FROM payments WHERE id = $1 AND business_id = $2', [req.params.id, req.businessId]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Vouchers (Vales / Adelantos) ---
+app.get('/api/vouchers', checkAuth, async (req, res) => {
+    const { employeeId, isApplied } = req.query;
+    try {
+        let query = 'SELECT * FROM vouchers WHERE business_id = $1';
+        let params = [req.businessId];
+        let idx = 2;
+
+        if (employeeId) {
+            query += ` AND employee_id = $${idx++}`;
+            params.push(employeeId);
+        }
+        if (isApplied !== undefined) {
+            query += ` AND is_applied = $${idx++}`;
+            params.push(isApplied === 'true');
+        }
+
+        query += ' ORDER BY date DESC';
+        const result = await db.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/vouchers', checkAuth, async (req, res) => {
+    const { employeeId, date, description, amount } = req.body;
+    if (!employeeId || !date || !amount) {
+        return res.status(400).json({ error: 'Faltan campos obligatorios: employeeId, date o amount' });
+    }
+    try {
+        const result = await db.query(
+            'INSERT INTO vouchers (employee_id, date, description, amount, business_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [employeeId, date, description || null, amount, req.businessId]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/vouchers/:id', checkAuth, async (req, res) => {
+    const { id } = req.params;
+    const { isApplied, paymentId, description, amount, date } = req.body;
+    try {
+        let query = 'UPDATE vouchers SET ';
+        let params = [];
+        let sets = [];
+        let idx = 1;
+
+        if (isApplied !== undefined) {
+            sets.push(`is_applied = $${idx++}`);
+            params.push(isApplied);
+        }
+        if (paymentId !== undefined) {
+            sets.push(`payment_id = $${idx++}`);
+            params.push(paymentId);
+        }
+        if (description !== undefined) {
+            sets.push(`description = $${idx++}`);
+            params.push(description);
+        }
+        if (amount !== undefined) {
+            sets.push(`amount = $${idx++}`);
+            params.push(amount);
+        }
+        if (date !== undefined) {
+            sets.push(`date = $${idx++}`);
+            params.push(date);
+        }
+
+        if (sets.length === 0) return res.status(400).json({ error: 'No hay campos para actualizar' });
+
+        query += sets.join(', ');
+        query += ` WHERE id = $${idx++} AND business_id = $${idx} RETURNING *`;
+        params.push(id, req.businessId);
+
+        const result = await db.query(query, params);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Vale no encontrado' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/vouchers/:id', checkAuth, async (req, res) => {
+    try {
+        await db.query('DELETE FROM vouchers WHERE id = $1 AND business_id = $2', [req.params.id, req.businessId]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });

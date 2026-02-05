@@ -92,6 +92,19 @@ CREATE TABLE IF NOT EXISTS payments (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Tabla de Vales (Adelantos / Préstamos)
+CREATE TABLE IF NOT EXISTS vouchers (
+    id SERIAL PRIMARY KEY,
+    business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE,
+    employee_id INTEGER REFERENCES employees(id) ON DELETE CASCADE,
+    payment_id INTEGER REFERENCES payments(id) ON DELETE SET NULL, -- Se llena cuando el vale es aplicado a un pago
+    date DATE NOT NULL,
+    description TEXT,
+    amount DECIMAL(12, 2) NOT NULL,
+    is_applied BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Tabla de Configuración (Key-Value por empresa)
 CREATE TABLE IF NOT EXISTS settings (
     business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE,
@@ -170,6 +183,14 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='businesses' AND column_name='cycle_type') THEN
         ALTER TABLE businesses ADD COLUMN cycle_type VARCHAR(20) DEFAULT 'Weekly';
+    END IF;
+
+    -- Columnas para Vales y Detalles Extendidos en Pagos
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payments' AND column_name='voucher_amount') THEN
+        ALTER TABLE payments ADD COLUMN voucher_amount DECIMAL(12, 2) DEFAULT 0;
+        ALTER TABLE payments ADD COLUMN voucher_details JSONB DEFAULT '[]'::jsonb;
+        ALTER TABLE payments ADD COLUMN gross_amount DECIMAL(12, 2) DEFAULT 0;
+        ALTER TABLE payments ADD COLUMN lunch_hours DECIMAL(10, 2) DEFAULT 0;
     END IF;
 END $$;
 
