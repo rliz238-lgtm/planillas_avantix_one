@@ -422,15 +422,11 @@ async function sendWhatsAppMessage(number, text) {
     return new Promise((resolve, reject) => {
         try {
             const url = new URL(apiUrl);
-            const isN8n = url.pathname.includes('/webhook');
-
-            // Si es n8n, usamos la ruta completa del URL. Si es Evolution, construimos el path.
-            const path = isN8n ? url.pathname : `/message/sendText/${encodeURIComponent(instance)}`;
-
+            // IMPORTANTE: encodeURIComponent maneja espacios en el nombre de la instancia
             const options = {
                 hostname: url.hostname,
                 port: url.port || (url.protocol === 'https:' ? 443 : 80),
-                path: path,
+                path: `/message/sendText/${encodeURIComponent(instance)}`,
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
