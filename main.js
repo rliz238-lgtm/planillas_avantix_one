@@ -3717,7 +3717,7 @@ const Views = {
                         <input type="text" value="${user.username || ''}" disabled style="opacity: 0.7;">
                     </div>
                     <div class="form-group">
-                        <label>Teléfono (WhatsApp)</label>
+                        <label>Teléfono (Para copia de resumen WhatsApp)</label>
                         <input type="text" name="phone" value="${user.phone || ''}" placeholder="Ej: 50688887777">
                     </div>
                     <div class="form-group">
