@@ -2758,6 +2758,7 @@ const Views = {
         const employees = await Storage.get('employees');
         const logs = await Storage.get('logs');
         const payments = await Storage.get('payments');
+        const pendingVouchers = await apiFetch('/api/vouchers?isApplied=false').then(r => r.json());
 
         // --- RESUMEN DE PENDIENTES (Agrupado por Empleado) ---
         const pendingByEmployee = {};
@@ -2766,6 +2767,10 @@ const Views = {
             if (!emp) return;
 
             if (!pendingByEmployee[emp.id]) {
+                const voucherTotal = pendingVouchers
+                    .filter(v => v.employee_id == emp.id)
+                    .reduce((s, v) => s + parseFloat(v.amount), 0);
+
                 pendingByEmployee[emp.id] = {
                     empId: emp.id,
                     name: emp.name,
@@ -2776,6 +2781,8 @@ const Views = {
                     doubleHours: 0,
                     gross: 0,
                     deduction: 0,
+                    voucherTotal,
+                    lunchHours: 0,
                     net: 0,
                     logs: [],
                     startDate: log.date,
@@ -2789,9 +2796,6 @@ const Views = {
             if (isDouble) {
                 empData.doubleHours += hours;
             } else {
-                // Cálculo simple de extras basado en el threshold semanal del empleado
-                // Nota: Esto es acumulativo, para un reporte exacto por día se requiere lógica más compleja
-                // pero aquí mantenemos la lógica de negocio actual.
                 empData.regularHours += hours;
             }
 
@@ -2804,24 +2808,25 @@ const Views = {
 
             const otEnabled = emp.enable_overtime !== false;
 
-            // Recalcular extras en base al acumulado (aproximado para el resumen)
             if (otEnabled && empData.regularHours > otThreshold) {
                 empData.extraHours = empData.regularHours - otThreshold;
             }
 
             const gross = hours * parseFloat(emp.hourly_rate);
             const deduction = emp.apply_ccss ? (gross * 0.1067) : 0;
-            const net = gross - deduction;
 
             empData.hours += hours;
             empData.gross += gross;
             empData.deduction += deduction;
-            empData.net += net;
-            empData.logs.push({ ...log, isDouble, hours, gross, deduction, net });
-
+            empData.lunchHours += parseFloat(log.deduction_hours || 0);
+            empData.logs.push({ ...log, isDouble, hours, gross, deduction });
         });
 
-        // Convertir objeto en array para el render y guardar en estado global temporal
+        // Finalizar cálculo de Neto restando vales
+        Object.values(pendingByEmployee).forEach(empData => {
+            empData.net = empData.gross - empData.deduction - empData.voucherTotal;
+        });
+
         const pendingSummary = Object.values(pendingByEmployee).sort((a, b) => a.name.localeCompare(b.name));
         window._pendingPayrollData = pendingByEmployee;
 
@@ -2840,13 +2845,13 @@ const Views = {
                             <tr>
                                 <th style="width: 40px"><input type="checkbox" id="select-all-pending" checked></th>
                                 <th>Empleado</th>
-                                <th>Desde</th>
-                                <th>Hasta</th>
-                                <th>Extras</th>
-                                <th>Dobles</th>
-                                <th>Total Horas</th>
-                                <th>CCSS (Est.)</th>
+                                <th>Periodo</th>
+                                <th>Bruto</th>
+                                <th>CCSS</th>
+                                <th>Vales</th>
                                 <th>Monto Neto</th>
+                                <th>Horas</th>
+                                <th>Almuerzo</th>
                                 <th>Acción</th>
                             </tr>
                         </thead>
@@ -2866,18 +2871,20 @@ const Views = {
                                         onclick="PayrollHelpers.showPayrollDetail(${ps.empId})">
                                         ${ps.name}
                                     </td>
-                                    <td style="font-size: 0.85rem">${ps.startDate.split('T')[0]}</td>
-                                    <td style="font-size: 0.85rem">${ps.endDate.split('T')[0]}</td>
-                                    <td style="color: var(--warning)">${ps.extraHours.toFixed(1)}h</td>
-                                    <td style="color: var(--accent)">${ps.doubleHours.toFixed(1)}h</td>
-                                    <td style="font-weight: 600">${ps.hours.toFixed(1)}h</td>
-                                    <td style="color: var(--danger)">₡${Math.round(ps.deduction).toLocaleString()}</td>
+                                    <td style="font-size: 0.8rem">
+                                        ${ps.startDate.split('T')[0]}<br>
+                                        ${ps.endDate.split('T')[0]}
+                                    </td>
+                                    <td style="font-weight: 500">₡${Math.round(ps.gross).toLocaleString()}</td>
+                                    <td style="color: var(--danger); font-size: 0.85rem">₡${Math.round(ps.deduction).toLocaleString()}</td>
+                                    <td style="color: var(--warning); font-size: 0.85rem">${ps.voucherTotal > 0 ? '₡' + Math.round(ps.voucherTotal).toLocaleString() : '—'}</td>
                                     <td style="color: var(--success); font-weight: 700;">₡${Math.round(ps.net).toLocaleString()}</td>
+                                    <td style="font-weight: 600">${ps.hours.toFixed(1)}h</td>
+                                    <td style="font-size: 0.85rem; color: var(--text-muted)">${ps.lunchHours.toFixed(1)}h</td>
                                     <td style="display: flex; gap: 5px">
                                         <button class="btn btn-primary" title="Ver Detalle" style="padding: 5px 10px" onclick="PayrollHelpers.showPayrollDetail(${ps.empId})">${PayrollHelpers.EYE_ICON}</button>
                                         <button class="btn btn-success" title="Pagar Todo" style="padding: 5px 10px; background: var(--success);" onclick="PayrollHelpers.payEmployeeGroup(${ps.empId})">💰</button>
-                                        <button class="btn btn-whatsapp" title="WhatsApp" style="padding: 5px 10px" onclick="PayrollHelpers.shareWhatsAppPending(${ps.empId})">✉️</button>
-                                        <button class="btn btn-secondary" title="Editar Días" style="padding: 5px 10px" onclick="PayrollHelpers.showPayrollDetail(${ps.empId})">✏️</button>
+                                        <button class="btn btn-secondary" title="Editar" style="padding: 5px 10px" onclick="PayrollHelpers.showPayrollDetail(${ps.empId})">✏️</button>
                                         <button class="btn btn-danger" onclick="window.clearEmpLogs(${ps.empId})" style="padding: 4px 8px; font-size: 0.8rem" title="Limpiar">🗑️</button>
                                     </td>
                                 </tr>
