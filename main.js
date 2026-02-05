@@ -2608,6 +2608,8 @@ const Views = {
                 if (result.success) {
                     if (result.messageSent) {
                         PayrollHelpers.showWhatsAppConfirm(result.messageSent);
+                    } else {
+                        PayrollHelpers.showToast("Planilla Procesada", "La planilla se guardó correctamente. (No se envió WhatsApp por falta de número de teléfono o configuración)", 'warning', 8000);
                     }
 
                     if (Auth.getUser().role === 'admin') {
