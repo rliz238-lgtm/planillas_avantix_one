@@ -173,9 +173,16 @@ const PayrollHelpers = {
                 <td><div style="font-weight:700">${parseFloat(l.hours).toFixed(1)}h</div></td>
                 <td style="text-align:center">${!!l.is_double_day ? '✅' : '--'}</td>
                 <td style="text-align:center">${(l.deduction_hours || 0) > 0 ? l.deduction_hours + 'h' : '--'}</td>
+                <td>
+                    <input type="number" 
+                        class="calc-ccss-input" 
+                        style="width: 80px; padding: 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--input-color);" 
+                        value="${Math.round(l.deduction || 0)}"
+                        oninput="PayrollHelpers.updatePayrollDetailTotal(${empId})">
+                </td>
                 <td style="display:flex; gap:5px; align-items:center;">
                     <span style="color:var(--success); font-weight:600;">₡${Math.round(logNet).toLocaleString()}</span>
-                    <button class="btn btn-primary" style="padding:4px 8px; font-size:0.75rem;" onclick="PayrollHelpers.payLine(${l.id},${l.employee_id},'${l.date.split('T')[0]}',${logNet},${l.hours},${l.deduction || 0})" title="Pagar este día únicamente">💰</button>
+                    <button class="btn btn-primary" style="padding:4px 8px; font-size:0.75rem;" onclick="PayrollHelpers.payLine(${l.id},${l.employee_id},'${l.date.split('T')[0]}',${logNet},${l.hours}, parseFloat(this.closest('tr').querySelector('.calc-ccss-input').value || 0))" title="Pagar este día únicamente">💰</button>
                     <button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="window.editLogDetailed(${l.id})" title="Editar horas, día doble o rebajos">✏️</button>
                     <button class="btn btn-whatsapp" style="padding:4px 8px; font-size:0.75rem;" onclick="PayrollHelpers.shareWhatsAppLine(${l.employee_id}, '${l.date.split('T')[0]}', ${l.hours}, ${logNet}, '${l.time_in}', '${l.time_out}')" title="Enviar comprobante de este día por WhatsApp">✉️</button>
                     <button class="btn btn-danger" style="padding:4px 8px; font-size:0.75rem;" onclick="window.deleteLog(${l.id})" title="Eliminar este día">🗑️</button>
@@ -210,6 +217,40 @@ const PayrollHelpers = {
         };
 
         modal.showModal();
+    },
+
+    updatePayrollDetailTotal: (empId) => {
+        const data = window._pendingPayrollData[empId];
+        if (!data) return;
+
+        const inputs = document.querySelectorAll('#payroll-detail-body .calc-ccss-input');
+        let totalCCSS = 0;
+        inputs.forEach(input => totalCCSS += parseFloat(input.value || 0));
+
+        const infoDiv = document.getElementById('payroll-detail-info');
+        const voucherTotal = data.voucherTotal || 0;
+        const finalNet = data.gross - totalCCSS - voucherTotal;
+
+        infoDiv.innerHTML = `
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div><strong>Pendiente (Horas):</strong> ₡${Math.round(data.gross).toLocaleString()}</div>
+                <div><strong>Horas:</strong> ${data.hours.toFixed(1)}h</div>
+            </div>
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.1);">
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--danger)">Total CCSS:</span>
+                    <b style="color: var(--danger)">-₡${Math.round(totalCCSS).toLocaleString()}</b>
+                </div>
+                ${voucherTotal > 0 ? `
+                <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                    <span style="color: var(--warning)">Subtotal Vales:</span>
+                    <b style="color: var(--danger)">-₡${Math.round(voucherTotal).toLocaleString()}</b>
+                </div>` : ''}
+                <div style="margin-top: 10px; display: flex; justify-content: space-between; font-size: 1.1rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
+                    <span>Total Neto Estimado:</span>
+                    <b style="color: var(--success)">₡${Math.round(finalNet).toLocaleString()}</b>
+                </div>
+            </div>`;
     },
 
     renderVouchersForEmployee: async (empId, tableId, summaryInfoId = null) => {
@@ -292,9 +333,25 @@ const PayrollHelpers = {
 
         const vouchers = await apiFetch(`/api/vouchers?employeeId=${empId}&isApplied=false`).then(r => r.json());
         const voucherTotal = vouchers.reduce((sum, v) => sum + parseFloat(v.amount), 0);
-        const finalNet = d.net - voucherTotal;
 
-        if (!confirm(`¿Pagar ₡${Math.round(finalNet).toLocaleString()} a ${d.name}?\n(Incluye rebajo de ₡${voucherTotal.toLocaleString()} por vales)`)) return;
+        // Obtener CCSS actual de los inputs del modal (por si se editaron)
+        const inputs = document.querySelectorAll('#payroll-detail-body .calc-ccss-input');
+        let totalCCSS = 0;
+        const editedLogs = [...d.logs];
+
+        if (inputs.length === d.logs.length) {
+            inputs.forEach((input, idx) => {
+                const val = parseFloat(input.value || 0);
+                totalCCSS += val;
+                editedLogs[idx].deduction = val; // Actualizar con el valor editado
+            });
+        } else {
+            totalCCSS = d.deduction;
+        }
+
+        const finalNet = d.gross - totalCCSS - voucherTotal;
+
+        if (!confirm(`¿Pagar ₡${Math.round(finalNet).toLocaleString()} a ${d.name}?\n(Incluye CCSS: ₡${Math.round(totalCCSS).toLocaleString()} y vales: ₡${Math.round(voucherTotal).toLocaleString()})`)) return;
 
         Storage.showLoader(true, 'Pagando...');
         try {
@@ -303,11 +360,11 @@ const PayrollHelpers = {
                 date: Storage.getLocalDate(),
                 amount: finalNet,
                 hours: d.hours,
-                deductionCCSS: d.deduction,
+                deductionCCSS: totalCCSS,
                 netAmount: finalNet,
                 startDate: d.startDate,
                 endDate: d.endDate,
-                logsDetail: d.logs,
+                logsDetail: editedLogs,
                 isImported: false,
                 voucherAmount: voucherTotal,
                 voucherDetails: vouchers,
@@ -344,13 +401,14 @@ const PayrollHelpers = {
         try {
             const logs = await Storage.get('logs');
             const log = logs.find(x => x.id == id);
+            const finalNet = amt - ded;
             const res = await Storage.add('payments', {
                 employeeId: parseInt(empId),
                 date: Storage.getLocalDate(),
-                amount: amt,
+                amount: finalNet,
                 hours: hrs,
                 deductionCCSS: ded,
-                netAmount: amt,
+                netAmount: finalNet,
                 startDate: date,
                 endDate: date,
                 logsDetail: [log],
@@ -2522,6 +2580,7 @@ const Views = {
                                 <th>Entrada</th>
                                 <th>Salida</th>
                                 <th>Horas</th>
+                                <th>CCSS</th>
                                 <th>Horas Dobles</th>
                                 <th>Horas Almuerzo</th>
                                 <th style="width: 50px"></th>
@@ -2546,7 +2605,11 @@ const Views = {
                             <div id="calc-overtime-info" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;"></div>
                         </div>
                         <div>
-                            <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem">Monto Estimado</div>
+                            <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem">CCSS</div>
+                            <div class="value calc-total-value" id="calc-total-ccss" style="color: var(--danger)">₡0</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem">Monto Neto</div>
                             <div class="value calc-total-value" id="calc-total-pay" style="color: var(--success)">₡0</div>
                         </div>
                     </div>
@@ -2592,6 +2655,7 @@ const Views = {
                 <td><input type="time" class="calc-in" value="${nextIn}"></td>
                 <td><input type="time" class="calc-out" value="${nextOut}"></td>
                 <td class="calc-subtotal" style="font-weight: 600">0.00h</td>
+                <td class="calc-ccss" style="font-weight: 600; color: var(--danger)">₡0</td>
                 <td style="text-align:center"><input type="checkbox" class="calc-double" title="Marcar como Día Doble" style="width: 20px; height: 20px;"></td>
                 <td><input type="number" class="calc-deduction" value="0" step="0.5" style="width:100px" title="Horas de almuerzo o permisos"></td>
                 <td style="text-align: center;"><button class="btn" style="padding: 6px; color: var(--danger)" onclick="this.closest('tr').remove(); window.updateCalcTotal();">✕</button></td>
@@ -2630,6 +2694,12 @@ const Views = {
 
                     const displayHours = isDouble ? diff * 2 : diff;
                     tr.querySelector('.calc-subtotal').textContent = displayHours.toFixed(2) + 'h';
+
+                    const grossLine = displayHours * rate;
+                    const ccssLine = (emp && emp.apply_ccss) ? (grossLine * 0.1067) : 0;
+                    const ccssCell = tr.querySelector('.calc-ccss');
+                    if (ccssCell) ccssCell.textContent = '₡' + Math.round(ccssLine).toLocaleString();
+
                     totalH += displayHours;
                 }
             });
@@ -2663,8 +2733,14 @@ const Views = {
                 }
             }
 
+            const totalCCSS = (emp && emp.apply_ccss) ? (finalPay * 0.1067) : 0;
+            const netPay = finalPay - totalCCSS;
+
             document.getElementById('calc-total-hours').textContent = totalH.toFixed(2) + 'h';
-            document.getElementById('calc-total-pay').textContent = '₡' + Math.round(finalPay).toLocaleString();
+            if (document.getElementById('calc-total-ccss')) {
+                document.getElementById('calc-total-ccss').textContent = '₡' + Math.round(totalCCSS).toLocaleString();
+            }
+            document.getElementById('calc-total-pay').textContent = '₡' + Math.round(netPay).toLocaleString();
 
             summary.style.display = totalH > 0 ? 'block' : 'none';
             saveBtn.disabled = !empId || totalH <= 0;
