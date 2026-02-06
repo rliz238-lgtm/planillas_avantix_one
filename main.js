@@ -210,9 +210,18 @@ const PayrollHelpers = {
             if (res.id) {
                 document.getElementById('new-voucher-desc').value = '';
                 document.getElementById('new-voucher-amount').value = '';
+                window._payrollNeedsRefresh = true;
                 PayrollHelpers.renderVouchersForEmployee(empId, 'payroll-vouchers-body', 'payroll-detail-info');
             } else {
                 alert("Error al guardar el vale.");
+            }
+        };
+
+        // Escuchar el cierre del modal para refrescar la vista principal si hubo cambios
+        window._payrollNeedsRefresh = false;
+        modal.onclose = () => {
+            if (window._payrollNeedsRefresh) {
+                App.renderView('payroll');
             }
         };
 
@@ -301,6 +310,7 @@ const PayrollHelpers = {
         Storage.showLoader(true, 'Eliminando vale...');
         await apiFetch(`/api/vouchers/${id}`, { method: 'DELETE' });
         Storage.showLoader(false);
+        window._payrollNeedsRefresh = true;
         PayrollHelpers.renderVouchersForEmployee(empId, tableId, summaryInfoId);
     },
 
@@ -313,9 +323,10 @@ const PayrollHelpers = {
         Storage.showLoader(true, 'Actualizando horas...');
         await Storage.update('logs', id, { ...l, hours: parseFloat(newHours) });
         Storage.showLoader(false);
-        const modal = document.getElementById('payroll-detail-modal');
-        if (modal) modal.close();
-        App.renderView('payroll');
+
+        window._payrollNeedsRefresh = true;
+        await App.renderView('payroll');
+        PayrollHelpers.showPayrollDetail(l.employee_id);
     },
 
     shareWhatsAppLine: (empId, date, hours, amount, tIn, tOut) => {
@@ -3228,23 +3239,29 @@ const Views = {
                 Storage.showLoader(true, 'Actualizando registro...');
                 await Storage.update('logs', logId, updates);
                 Storage.showLoader(false);
-                editLogModal.close();
 
-                // Si el modal de detalle estaba abierto, lo cerramos para refrescar vista de atrás
-                const detailModal = document.getElementById('payroll-detail-modal');
-                if (detailModal && detailModal.open) detailModal.close();
-
-                App.renderView('payroll');
+                // Marcar que se necesita refrescar el fondo y actualizar el modal actual
+                window._payrollNeedsRefresh = true;
+                await App.renderView('payroll'); // Refresca _pendingPayrollData en background
+                PayrollHelpers.showPayrollDetail(currentLog.employee_id);
             };
         }
 
         window.deleteLog = async (id) => {
             if (confirm("¿Eliminar este registro de horas?")) {
+                const logs = await Storage.get('logs');
+                const l = logs.find(x => x.id == id);
+                const empId = l ? l.employee_id : null;
+
                 await Storage.delete('logs', id);
-                // Si el modal está abierto, lo cerramos para evitar inconsistencias
-                const modal = document.getElementById('payroll-detail-modal');
-                if (modal && modal.open) modal.close();
-                App.renderView('payroll');
+                window._payrollNeedsRefresh = true;
+
+                if (empId) {
+                    await App.renderView('payroll');
+                    PayrollHelpers.showPayrollDetail(empId);
+                } else {
+                    App.renderView('payroll');
+                }
             }
         };
 
