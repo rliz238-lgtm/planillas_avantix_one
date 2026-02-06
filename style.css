@@ -1199,14 +1199,14 @@ dialog::backdrop {
     align-items: center !important;
     flex-wrap: nowrap !important;
     padding: 0 5%;
-    /* Quitamos padding vertical para que min-height mande */
-    min-height: 75px;
+    min-height: 90px;
+    /* Incrementado para acomodar logo más grande */
     position: sticky;
     top: 0;
-    background: #0f172a;
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     z-index: 1000;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .landing-navbar .logo {
@@ -1216,9 +1216,11 @@ dialog::backdrop {
 }
 
 .landing-navbar .logo img {
-    height: 38px;
+    height: 70px;
+    /* Logo más grande */
     display: block;
-    margin: 0;
+    margin-top: 5px;
+    /* Margen arriba solicitado */
 }
 
 .landing-navbar .logo h2 {
@@ -1242,15 +1244,15 @@ dialog::backdrop {
     color: white;
 }
 
-/* Navbar specific button style (Header is Dark) */
+/* Navbar specific button style (Ahora el header es claro) */
 .landing-navbar .btn-secondary {
-    border-color: rgba(255, 255, 255, 0.2);
-    color: white;
+    border-color: #1e293b;
+    color: #1e293b;
 }
 
 .landing-navbar .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: white;
+    background: #1e293b;
+    color: white;
 }
 
 .landing-nav-links {
@@ -1262,9 +1264,9 @@ dialog::backdrop {
 }
 
 .landing-nav-links a {
-    color: #cbd5e1;
+    color: #1e293b;
     text-decoration: none;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 0.95rem;
     transition: var(--transition);
 }
