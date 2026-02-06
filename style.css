@@ -1395,15 +1395,20 @@ footer.landing-footer {
 
 @media (max-width: 768px) {
     .landing-navbar {
-        padding: 1rem 4%;
+        padding: 0.8rem 4%;
+        gap: 10px;
+    }
+
+    .landing-navbar .logo {
+        flex: 1;
+        min-width: 0;
     }
 
     .logo h2 {
-        font-size: 1rem;
+        font-size: 0.95rem;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 180px;
     }
 
     .hero-section h1 {

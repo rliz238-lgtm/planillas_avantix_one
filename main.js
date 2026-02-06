@@ -1432,7 +1432,7 @@ const Views = {
                     mobileToggle.textContent = '☰';
                     if (link.id === 'landing-login-btn') {
                         e.preventDefault();
-                        App.renderView('login');
+                        App.renderLogin();
                     }
                 };
             });
@@ -1442,7 +1442,7 @@ const Views = {
             if (btn && btn.id === 'landing-footer-login') {
                 btn.onclick = (e) => {
                     e.preventDefault();
-                    App.renderView('login');
+                    App.renderLogin();
                 };
             }
         });
