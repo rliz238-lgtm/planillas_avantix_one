@@ -70,7 +70,7 @@ const EmployeePortal = {
         return `
             <div class="login-container">
                 <div class="login-card">
-                    <img src="img/avantix_one_logo.png" alt="Logo" style="height: 80px; margin-bottom: 1.5rem;">
+                    <img src="img/avantix_one_logo.png" alt="Logo" style="height: 60px; margin-bottom: 1.5rem;">
                     <h1 style="color: white; margin-bottom: 0.5rem;">Planillas Avantix One</h1>
                     <p style="color: var(--text-muted); margin-bottom: 2rem;">Portal de Empleados</p>
                     
