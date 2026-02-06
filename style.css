@@ -1182,10 +1182,10 @@ dialog::backdrop {
 }
 
 .landing-navbar {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    padding: 1rem 5%;
+    padding: 0.8rem 5%;
     position: sticky;
     top: 0;
     background: #0f172a;
@@ -1194,14 +1194,46 @@ dialog::backdrop {
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.landing-navbar .logo h2 {
-    color: white !important;
+.landing-navbar .logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
 }
 
+.landing-navbar .logo img {
+    height: 40px;
+}
 
-.landing-nav-links {
+.landing-navbar .logo h2 {
+    color: white !important;
+    font-size: 1.4rem;
+    margin: 0;
+    font-weight: 700;
+    line-height: 1;
+    /* Para balance vertical perfecto */
+}
+
+.landing-nav-left {
     display: flex;
     gap: 2rem;
+}
+
+.landing-nav-left a {
+    color: #cbd5e1;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: var(--transition);
+}
+
+.landing-nav-left a:hover {
+    color: var(--primary);
+}
+
+.landing-nav-right {
+    display: flex;
+    justify-content: flex-end;
     align-items: center;
 }
 
@@ -1398,27 +1430,24 @@ footer.landing-footer {
 
 @media (max-width: 992px) {
     .landing-navbar {
+        grid-template-columns: 1fr auto 1fr;
+        /* Mismo esquema para centrado absoluto */
         padding: 0.8rem 4%;
-        display: grid;
-        grid-template-columns: 44px 1fr 44px;
-        gap: 10px;
-        align-items: center;
     }
 
-    .landing-navbar .header-spacer {
-        display: block !important;
+    .landing-nav-left {
+        display: none;
+        /* Se mueve al menú lateral */
     }
 
-    .landing-navbar .logo {
-        justify-content: center;
+    .logo img {
+        height: 32px !important;
     }
 
     .logo h2 {
         font-size: 0.95rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
         text-align: center;
+        max-width: 150px;
     }
 
     .hero-section h1 {

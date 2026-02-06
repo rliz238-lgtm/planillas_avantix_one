@@ -1323,19 +1323,26 @@ const Views = {
     landing: () => {
         return `
             <div class="landing-navbar">
-                <div class="header-spacer" style="width: 44px; display: none;"></div>
-                <div class="logo" style="display: flex; align-items: center; gap: 10px;">
-                    <img src="img/avantix_one_logo.png" alt="Logo" style="height: 40px;">
-                    <h2 style="font-size: 1.4rem; margin: 0; color: white;">Planillas Avantix One</h2>
+                <div class="landing-nav-left">
+                    <a href="#features">Funciones</a>
+                    <a href="#pricing">Precios</a>
                 </div>
-                <div class="landing-nav-links" id="landing-nav-menu">
-                    <a href="#features" style="color: #cbd5e1; text-decoration: none; font-weight: 500;">Funciones</a>
-                    <a href="#pricing" style="color: #cbd5e1; text-decoration: none; font-weight: 500;">Precios</a>
-                    <a href="#" id="landing-login-btn" class="btn btn-secondary" style="padding: 10px 25px; border: 1px solid rgba(255,255,255,0.1); color: white;">Iniciar Sesión</a>
+                
+                <div class="logo">
+                    <img src="img/avantix_one_logo.png" alt="Logo">
+                    <h2>Planillas Avantix One</h2>
                 </div>
-                <button class="landing-mobile-toggle" id="landing-mobile-toggle">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-                </button>
+
+                <div class="landing-nav-right">
+                    <div class="landing-nav-links" id="landing-nav-menu">
+                        <a href="#features" class="mobile-only">Funciones</a>
+                        <a href="#pricing" class="mobile-only">Precios</a>
+                        <a href="#" id="landing-login-btn" class="btn btn-secondary">Iniciar Sesión</a>
+                    </div>
+                    <button class="landing-mobile-toggle" id="landing-mobile-toggle">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    </button>
+                </div>
             </div>
 
             <section class="hero-section">
