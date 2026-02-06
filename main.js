@@ -1376,6 +1376,43 @@ const Views = {
                 </div>
             </section>
 
+            <section class="sectors-section" id="sectors">
+                <div class="section-title">
+                    <h2>Soluciones para cada sector</h2>
+                    <p style="color: var(--text-muted)">Nuestra plataforma se adapta a las necesidades específicas de su industria.</p>
+                </div>
+                <div class="sectors-grid">
+                    <div class="sector-card">
+                        <div class="sector-img" style="background-image: url('img/sector_restaurant.jpg')"></div>
+                        <div class="sector-content">
+                            <h3>Gastronomía y Restaurantes</h3>
+                            <p>Control exacto de turnos y pago de horas para el sector servicio.</p>
+                        </div>
+                    </div>
+                    <div class="sector-card">
+                        <div class="sector-img" style="background-image: url('img/sector_medical.jpg')"></div>
+                        <div class="sector-content">
+                            <h3>Salud y Clínicas</h3>
+                            <p>Gestión eficiente para personal médico en clínicas y centros hospitalarios.</p>
+                        </div>
+                    </div>
+                    <div class="sector-card">
+                        <div class="sector-img" style="background-image: url('img/sector_office.jpg')"></div>
+                        <div class="sector-content">
+                            <h3>Corporativos y Oficinas</h3>
+                            <p>Optimice el registro de asistencia para empresas de servicios y comercio.</p>
+                        </div>
+                    </div>
+                    <div class="sector-card">
+                        <div class="sector-img" style="background-image: url('img/sector_gym.jpg')"></div>
+                        <div class="sector-content">
+                            <h3>Bienestar y Gimnasios</h3>
+                            <p>Ideal para centros deportivos con pago por sesiones o entrenadores.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section class="pricing-section" id="pricing">
                 <div class="section-title">
                     <h2>Plan Simple y Transparente</h2>
