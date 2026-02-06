@@ -1323,26 +1323,20 @@ const Views = {
     landing: () => {
         return `
             <div class="landing-navbar">
-                <div class="landing-nav-left">
-                    <a href="#features">Funciones</a>
-                    <a href="#pricing">Precios</a>
-                </div>
-                
                 <div class="logo">
                     <img src="img/avantix_one_logo.png" alt="Logo">
                     <h2>Planillas Avantix One</h2>
                 </div>
 
-                <div class="landing-nav-right">
-                    <div class="landing-nav-links" id="landing-nav-menu">
-                        <a href="#features" class="mobile-only">Funciones</a>
-                        <a href="#pricing" class="mobile-only">Precios</a>
-                        <a href="#" id="landing-login-btn" class="btn btn-secondary">Iniciar Sesión</a>
-                    </div>
-                    <button class="landing-mobile-toggle" id="landing-mobile-toggle">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-                    </button>
+                <div class="landing-nav-links" id="landing-nav-menu">
+                    <a href="#features">Funciones</a>
+                    <a href="#pricing">Precios</a>
+                    <a href="#" id="landing-login-btn" class="btn btn-secondary">Iniciar Sesión</a>
                 </div>
+
+                <button class="landing-mobile-toggle" id="landing-mobile-toggle">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
             </div>
 
             <section class="hero-section">

@@ -1182,8 +1182,8 @@ dialog::backdrop {
 }
 
 .landing-navbar {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
     padding: 0.8rem 5%;
     position: sticky;
@@ -1197,7 +1197,6 @@ dialog::backdrop {
 .landing-navbar .logo {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 12px;
 }
 
@@ -1213,20 +1212,13 @@ dialog::backdrop {
     line-height: 1;
 }
 
-.landing-mobile-toggle {
-    display: none;
-}
-
-.mobile-only {
-    display: none;
-}
-
-.landing-nav-left {
+.landing-nav-links {
     display: flex;
     gap: 2rem;
+    align-items: center;
 }
 
-.landing-nav-left a {
+.landing-nav-links a {
     color: #cbd5e1;
     text-decoration: none;
     font-weight: 500;
@@ -1234,22 +1226,8 @@ dialog::backdrop {
     transition: var(--transition);
 }
 
-.landing-nav-left a:hover {
+.landing-nav-links a:hover {
     color: var(--primary);
-}
-
-.landing-nav-right {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-}
-
-.landing-nav-links a {
-    color: #64748b;
-    text-decoration: none;
-    font-weight: 500;
-    transition: var(--transition);
-    font-size: 0.95rem;
 }
 
 .landing-nav-links a:hover {
@@ -1437,14 +1415,9 @@ footer.landing-footer {
 
 @media (max-width: 992px) {
     .landing-navbar {
-        grid-template-columns: 1fr auto 1fr;
-        /* Mismo esquema para centrado absoluto */
+        display: flex;
+        justify-content: space-between;
         padding: 0.8rem 4%;
-    }
-
-    .landing-nav-left {
-        display: none;
-        /* Se mueve al menú lateral */
     }
 
     .logo img {
@@ -1476,7 +1449,6 @@ footer.landing-footer {
         flex-shrink: 0;
         transition: var(--transition);
         outline: none;
-        justify-self: end;
     }
 
     .landing-mobile-toggle:active {
@@ -1506,5 +1478,10 @@ footer.landing-footer {
 
     .landing-nav-links a {
         font-size: 1.5rem;
+        color: #1e293b !important;
     }
+}
+
+.landing-mobile-toggle {
+    display: none;
 }
