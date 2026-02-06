@@ -1182,9 +1182,11 @@ dialog::backdrop {
 }
 
 .landing-navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
     padding: 0.8rem 5%;
     position: sticky;
     top: 0;
@@ -1213,9 +1215,11 @@ dialog::backdrop {
 }
 
 .landing-nav-links {
-    display: flex;
+    display: flex !important;
     gap: 2rem;
     align-items: center;
+    margin-left: auto;
+    /* Empuja el menú a la derecha */
 }
 
 .landing-nav-links a {
