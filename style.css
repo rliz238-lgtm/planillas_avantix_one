@@ -1281,33 +1281,35 @@ dialog::backdrop {
 }
 
 .hero-section {
-    padding: 6rem 5% 5rem 5%;
+    position: relative;
+    padding: 10rem 5% 8rem 5%;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent),
-        radial-gradient(circle at bottom left, rgba(236, 72, 153, 0.05), transparent);
+    background: linear-gradient(rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.85)),
+        url('img/hero_bg.jpg') center/cover no-repeat;
+    color: white;
+    overflow: hidden;
 }
 
 .hero-section h1 {
-    font-size: 3.5rem;
+    font-size: 3.8rem;
     font-weight: 800;
     margin-bottom: 1.5rem;
     line-height: 1.1;
     max-width: 900px;
-    background: linear-gradient(to right, #1e293b, #475569);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #ffffff;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .hero-section p {
-    font-size: 1.25rem;
-    color: var(--text-muted);
-    max-width: 600px;
-    margin-bottom: 2.5rem;
+    font-size: 1.3rem;
+    color: rgba(255, 255, 255, 0.9);
+    max-width: 700px;
+    margin-bottom: 3rem;
     line-height: 1.6;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .hero-btns {
