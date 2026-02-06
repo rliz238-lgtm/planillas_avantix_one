@@ -1199,8 +1199,8 @@ dialog::backdrop {
     align-items: center !important;
     flex-wrap: nowrap !important;
     padding: 0 5%;
-    min-height: 140px;
-    /* Aumentado para el nuevo tamaño de logo */
+    min-height: 160px;
+    /* Aumentado para compensar el margen del logo */
     position: sticky;
     top: 0;
     background: rgba(255, 255, 255, 0.95);
@@ -1220,8 +1220,8 @@ dialog::backdrop {
     /* Logo considerablemente más grande */
     width: auto;
     display: block;
-    margin-top: 10px;
-    /* Pequeño margen superior */
+    margin-top: 30px;
+    /* Margen superior incrementado 20px mas */
 }
 
 .landing-navbar .logo h2 {
