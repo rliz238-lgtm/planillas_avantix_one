@@ -1194,9 +1194,6 @@ dialog::backdrop {
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.landing-mobile-toggle {
-    display: none;
-}
 
 .landing-nav-links {
     display: flex;
@@ -1393,7 +1390,7 @@ footer.landing-footer {
     color: var(--text-muted);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 992px) {
     .landing-navbar {
         padding: 0.8rem 4%;
         gap: 10px;
