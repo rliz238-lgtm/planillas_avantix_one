@@ -1432,7 +1432,7 @@ const Views = {
                     mobileToggle.textContent = '☰';
                     if (link.id === 'landing-login-btn') {
                         e.preventDefault();
-                        Views.renderView('login');
+                        App.renderView('login');
                     }
                 };
             });
