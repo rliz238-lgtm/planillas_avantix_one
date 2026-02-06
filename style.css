@@ -1416,16 +1416,25 @@ footer.landing-footer {
     }
 
     .landing-mobile-toggle {
-        display: block;
-        background: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        background: rgba(255, 255, 255, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.2);
         color: white;
-        font-size: 1.5rem;
-        padding: 5px 10px;
-        border-radius: 8px;
+        border-radius: 10px;
         cursor: pointer;
-        z-index: 1001;
+        z-index: 1100;
         flex-shrink: 0;
+        transition: var(--transition);
+        outline: none;
+    }
+
+    .landing-mobile-toggle:active {
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(0.95);
     }
 
     .landing-nav-links {

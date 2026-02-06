@@ -1332,7 +1332,9 @@ const Views = {
                     <a href="#pricing">Precios</a>
                     <a href="#" id="landing-login-btn" class="btn btn-secondary" style="padding: 10px 25px;">Iniciar Sesión</a>
                 </div>
-                <button class="landing-mobile-toggle" id="landing-mobile-toggle">☰</button>
+                <button class="landing-mobile-toggle" id="landing-mobile-toggle">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
             </div>
 
             <section class="hero-section">
@@ -1422,14 +1424,17 @@ const Views = {
         if (mobileToggle && navMenu) {
             mobileToggle.onclick = () => {
                 navMenu.classList.toggle('active');
-                mobileToggle.textContent = navMenu.classList.contains('active') ? '✕' : '☰';
+                const isOpen = navMenu.classList.contains('active');
+                mobileToggle.innerHTML = isOpen
+                    ? `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`
+                    : `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>`;
             };
 
             // Close menu when clicking a link
             navMenu.querySelectorAll('a').forEach(link => {
                 link.onclick = (e) => {
                     navMenu.classList.remove('active');
-                    mobileToggle.textContent = '☰';
+                    mobileToggle.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>`;
                     if (link.id === 'landing-login-btn') {
                         e.preventDefault();
                         App.renderLogin();
