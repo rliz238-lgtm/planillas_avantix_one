@@ -1211,7 +1211,14 @@ dialog::backdrop {
     margin: 0;
     font-weight: 700;
     line-height: 1;
-    /* Para balance vertical perfecto */
+}
+
+.landing-mobile-toggle {
+    display: none;
+}
+
+.mobile-only {
+    display: none;
 }
 
 .landing-nav-left {
