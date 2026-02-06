@@ -462,6 +462,29 @@ async function sendWhatsAppMessage(number, text) {
     });
 }
 
+// --- Helper: Send WhatsApp with Copy to Owner ---
+async function sendWhatsAppWithCopy(businessId, number, text) {
+    // 1. Send to original recipient
+    await sendWhatsAppMessage(number, text);
+
+    // 2. Find owner phone and send copy
+    try {
+        const ownerRes = await db.query(
+            "SELECT phone FROM users WHERE business_id = $1 AND role = 'owner' AND phone IS NOT NULL AND phone != '' LIMIT 1",
+            [businessId]
+        );
+        if (ownerRes.rows.length > 0) {
+            const ownerPhone = ownerRes.rows[0].phone;
+            if (ownerPhone && ownerPhone.replace(/\D/g, '') !== number.replace(/\D/g, '')) {
+                const copyText = `*COPIA ADMINISTRATIVA*\n\n(Para: ${number})\n\n${text}`;
+                await sendWhatsAppMessage(ownerPhone, copyText);
+            }
+        }
+    } catch (err) {
+        console.error("❌ Error enviando copia de WhatsApp al dueño:", err.message);
+    }
+}
+
 // --- Email Send (Nodemailer) ---
 async function sendEmailMessage(to, subject, text, html) {
     const transporter = nodemailer.createTransport({
@@ -557,7 +580,7 @@ app.post('/api/logs/batch', checkAuth, async (req, res) => {
         } else if (emp.phone) {
             const messagePlain = `REGISTRO DE HORAS TTW\n\nEmpleado: ${emp.name}\nTotal Horas: ${totalH.toFixed(1)}h\nMonto Est.: ₡${Math.round(totalAmt).toLocaleString()}\n\nDETALLE:\n${summaryDetails}`;
             try {
-                await sendWhatsAppMessage(emp.phone, messagePlain);
+                await sendWhatsAppWithCopy(req.businessId, emp.phone, messagePlain);
                 return res.json({ success: true, count: logs.length, messageSent: messagePlain });
             } catch (wsErr) {
                 console.error("❌ Error enviando WhatsApp batch:", wsErr.message);
@@ -720,7 +743,7 @@ app.post('/api/whatsapp/send', checkAuth, async (req, res) => {
     if (!phone || !message) return res.status(400).json({ error: 'Phone and message are required' });
 
     try {
-        await sendWhatsAppMessage(phone, message);
+        await sendWhatsAppWithCopy(req.businessId, phone, message);
         res.json({ success: true, messageSent: message });
     } catch (err) {
         res.status(500).json({ error: err.message });
