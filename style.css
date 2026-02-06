@@ -1198,7 +1198,9 @@ dialog::backdrop {
     justify-content: space-between !important;
     align-items: center !important;
     flex-wrap: nowrap !important;
-    padding: 0.8rem 5%;
+    padding: 0 5%;
+    /* Quitamos padding vertical para que min-height mande */
+    min-height: 75px;
     position: sticky;
     top: 0;
     background: #0f172a;
@@ -1211,22 +1213,22 @@ dialog::backdrop {
     display: flex;
     align-items: center;
     gap: 12px;
-    height: 100%;
-    /* Asegurar que use todo el alto del flex parent */
-    transform: translateY(1px);
-    /* Ajuste sutil para balance visual con el texto del menú */
 }
 
 .landing-navbar .logo img {
-    height: 40px;
+    height: 38px;
+    display: block;
+    margin: 0;
 }
 
 .landing-navbar .logo h2 {
     color: white !important;
-    font-size: 1.4rem;
+    font-size: 1.3rem;
     margin: 0;
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1;
+    display: flex;
+    align-items: center;
 }
 
 .landing-screen .btn-secondary {
@@ -1514,12 +1516,12 @@ footer.landing-footer {
         justify-content: flex-start;
         align-items: stretch;
         gap: 0;
-        z-index: 1000;
+        z-index: 1200;
         padding: 0.5rem;
         border-radius: 16px;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         border: 1px solid rgba(0, 0, 0, 0.05);
-        margin-top: 5px;
+        margin-top: 10px;
     }
 
     .landing-nav-links.active {
