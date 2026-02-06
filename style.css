@@ -1211,6 +1211,10 @@ dialog::backdrop {
     display: flex;
     align-items: center;
     gap: 12px;
+    height: 100%;
+    /* Asegurar que use todo el alto del flex parent */
+    transform: translateY(1px);
+    /* Ajuste sutil para balance visual con el texto del menú */
 }
 
 .landing-navbar .logo img {
@@ -1222,7 +1226,7 @@ dialog::backdrop {
     font-size: 1.4rem;
     margin: 0;
     font-weight: 700;
-    line-height: 1;
+    line-height: 1.2;
 }
 
 .landing-screen .btn-secondary {
@@ -1454,6 +1458,8 @@ footer.landing-footer {
     .landing-navbar {
         display: flex;
         justify-content: space-between;
+        align-items: center;
+        /* Centrado vertical explícito en móvil */
         padding: 0.8rem 4%;
     }
 
@@ -1465,6 +1471,8 @@ footer.landing-footer {
         font-size: 0.95rem;
         text-align: center;
         max-width: 150px;
+        line-height: 1.2;
+        margin: 0;
     }
 
     .hero-section h1 {
