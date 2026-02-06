@@ -1219,8 +1219,8 @@ dialog::backdrop {
     height: 70px;
     /* Logo más grande */
     display: block;
-    margin-top: 25px;
-    /* Margen arriba solicitado incrementado */
+    padding-top: 20px;
+    /* Padding solicitado */
 }
 
 .landing-navbar .logo h2 {
@@ -1489,9 +1489,9 @@ footer.landing-footer {
         justify-content: center;
         width: 44px;
         height: 44px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: white;
+        background: rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        color: #1e293b;
         border-radius: 10px;
         cursor: pointer;
         z-index: 1100;
@@ -1501,7 +1501,7 @@ footer.landing-footer {
     }
 
     .landing-mobile-toggle:active {
-        background: rgba(255, 255, 255, 0.2);
+        background: rgba(0, 0, 0, 0.1);
         transform: scale(0.95);
     }
 
