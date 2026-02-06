@@ -1211,6 +1211,7 @@ dialog::backdrop {
     display: flex;
     align-items: center;
     gap: 12px;
+    margin-top: 20px;
 }
 
 .landing-navbar .logo img {
