@@ -1248,7 +1248,7 @@ dialog::backdrop {
 }
 
 .landing-nav-links {
-    display: flex !important;
+    display: flex;
     gap: 2rem;
     align-items: center;
     margin-left: auto;
@@ -1510,7 +1510,7 @@ footer.landing-footer {
     }
 
     .landing-nav-links.active {
-        display: flex;
+        display: flex !important;
     }
 
     .landing-nav-links a {
