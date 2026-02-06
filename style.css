@@ -1172,11 +1172,11 @@ dialog::backdrop {
     display: none !important;
 }
 
-/* --- Landing Page Styles --- */
+/* --- Landing Page Styles (Light Theme) --- */
 .landing-screen {
     min-height: 100vh;
-    background: #0f172a;
-    color: white;
+    background: #ffffff;
+    color: #1e293b;
     overflow-x: hidden;
     scroll-behavior: smooth;
 }
@@ -1185,13 +1185,18 @@ dialog::backdrop {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem 5%;
+    padding: 1rem 5%;
     position: sticky;
     top: 0;
-    background: rgba(15, 23, 42, 0.9);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     z-index: 1000;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+
+.landing-navbar .logo h2 {
+    color: #1e293b !important;
 }
 
 
@@ -1202,7 +1207,7 @@ dialog::backdrop {
 }
 
 .landing-nav-links a {
-    color: var(--text-muted);
+    color: #64748b;
     text-decoration: none;
     font-weight: 500;
     transition: var(--transition);
@@ -1214,22 +1219,22 @@ dialog::backdrop {
 }
 
 .hero-section {
-    padding: 8rem 5% 5rem 5%;
+    padding: 6rem 5% 5rem 5%;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), transparent),
-        radial-gradient(circle at bottom left, rgba(236, 72, 153, 0.1), transparent);
+    background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent),
+        radial-gradient(circle at bottom left, rgba(236, 72, 153, 0.05), transparent);
 }
 
 .hero-section h1 {
-    font-size: 4rem;
+    font-size: 3.5rem;
     font-weight: 800;
     margin-bottom: 1.5rem;
     line-height: 1.1;
     max-width: 900px;
-    background: linear-gradient(to right, #ffffff, #94a3b8);
+    background: linear-gradient(to right, #1e293b, #475569);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -1269,17 +1274,19 @@ dialog::backdrop {
 }
 
 .feature-card {
-    background: rgba(30, 41, 59, 0.5);
+    background: white;
     padding: 2.5rem;
     border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
     transition: var(--transition);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .feature-card:hover {
-    background: rgba(30, 41, 59, 0.8);
-    transform: translateY(-10px);
+    background: white;
+    transform: translateY(-5px);
     border-color: var(--primary);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 .feature-icon {
@@ -1291,7 +1298,7 @@ dialog::backdrop {
 .feature-card h3 {
     font-size: 1.25rem;
     margin-bottom: 1rem;
-    color: white;
+    color: #1e293b;
 }
 
 .feature-card p {
@@ -1307,12 +1314,12 @@ dialog::backdrop {
 .pricing-card {
     max-width: 450px;
     margin: 0 auto;
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    background: white;
     padding: 3.5rem 2.5rem;
     border-radius: 32px;
-    border: 2px solid var(--primary);
+    border: 1px solid rgba(99, 102, 241, 0.2);
     position: relative;
-    box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.1);
 }
 
 .pricing-badge {
@@ -1333,7 +1340,7 @@ dialog::backdrop {
     font-size: 4rem;
     font-weight: 800;
     margin: 1.5rem 0;
-    color: white;
+    color: #1e293b;
 }
 
 .price span {
@@ -1373,7 +1380,7 @@ dialog::backdrop {
     margin: 0 auto;
     font-style: italic;
     font-size: 1.2rem;
-    color: var(--text-main);
+    color: #475569;
 }
 
 .testimonial-author {
@@ -1385,9 +1392,9 @@ dialog::backdrop {
 
 footer.landing-footer {
     padding: 4rem 5%;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
     text-align: center;
-    color: var(--text-muted);
+    color: #64748b;
 }
 
 @media (max-width: 992px) {
@@ -1418,8 +1425,8 @@ footer.landing-footer {
         justify-content: center;
         width: 44px;
         height: 44px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: #1e293b;
+        border: none;
         color: white;
         border-radius: 10px;
         cursor: pointer;
@@ -1427,6 +1434,7 @@ footer.landing-footer {
         flex-shrink: 0;
         transition: var(--transition);
         outline: none;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
 
     .landing-mobile-toggle:active {
@@ -1441,7 +1449,7 @@ footer.landing-footer {
         left: 0;
         width: 100%;
         height: 100vh;
-        background: #0f172a;
+        background: #ffffff;
         flex-direction: column;
         justify-content: center;
         align-items: center;
