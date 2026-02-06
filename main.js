@@ -2603,6 +2603,7 @@ const Views = {
                                 <th>Salida</th>
                                 <th>Horas</th>
                                 <th>CCSS</th>
+                                <th>Neto</th>
                                 <th>Horas Dobles</th>
                                 <th>Horas Almuerzo</th>
                                 <th style="width: 50px"></th>
@@ -2620,19 +2621,19 @@ const Views = {
                 </div>
 
                 <div id="calc-summary" style="margin-top: 3rem; padding: 2.5rem; background: rgba(99, 102, 241, 0.05); border-radius: 20px; border: 1px solid var(--primary); display: none;">
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; text-align: center;">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center;">
                         <div>
-                            <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem">Total de Horas</div>
-                            <div class="value calc-total-value" id="calc-total-hours" style="color: var(--primary)">0.00h</div>
-                            <div id="calc-overtime-info" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;"></div>
+                            <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem">Total Horas</div>
+                            <div class="value calc-total-value" id="calc-total-hours" style="color: var(--primary); font-size: clamp(1rem, 4vw, 1.8rem);">0.00h</div>
+                            <div id="calc-overtime-info" style="font-size: 0.65rem; color: var(--text-muted); margin-top: 5px;"></div>
                         </div>
                         <div>
-                            <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem">CCSS</div>
-                            <div class="value calc-total-value" id="calc-total-ccss" style="color: var(--danger)">₡0</div>
+                            <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem">Total CCSS</div>
+                            <div class="value calc-total-value" id="calc-total-ccss" style="color: var(--danger); font-size: clamp(1rem, 4vw, 1.8rem);">₡0</div>
                         </div>
                         <div>
-                            <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem">Monto Neto</div>
-                            <div class="value calc-total-value" id="calc-total-pay" style="color: var(--success)">₡0</div>
+                            <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem">Pago Neto</div>
+                            <div class="value calc-total-value" id="calc-total-pay" style="color: var(--success); font-size: clamp(1rem, 4vw, 1.8rem);">₡0</div>
                         </div>
                     </div>
                 </div>
@@ -2678,6 +2679,7 @@ const Views = {
                 <td><input type="time" class="calc-out" value="${nextOut}"></td>
                 <td class="calc-subtotal" style="font-weight: 600">0.00h</td>
                 <td class="calc-ccss" style="font-weight: 600; color: var(--danger)">₡0</td>
+                <td class="calc-row-net" style="font-weight: 600; color: var(--success)">₡0</td>
                 <td style="text-align:center"><input type="checkbox" class="calc-double" title="Marcar como Día Doble" style="width: 20px; height: 20px;"></td>
                 <td><input type="number" class="calc-deduction" value="0" step="0.5" style="width:100px" title="Horas de almuerzo o permisos"></td>
                 <td style="text-align: center;"><button class="btn" style="padding: 6px; color: var(--danger)" onclick="this.closest('tr').remove(); window.updateCalcTotal();">✕</button></td>
@@ -2719,8 +2721,13 @@ const Views = {
 
                     const grossLine = displayHours * rate;
                     const ccssLine = (emp && emp.apply_ccss) ? (grossLine * 0.1067) : 0;
+                    const netLine = grossLine - ccssLine;
+
                     const ccssCell = tr.querySelector('.calc-ccss');
                     if (ccssCell) ccssCell.textContent = '₡' + Math.round(ccssLine).toLocaleString();
+
+                    const netCell = tr.querySelector('.calc-row-net');
+                    if (netCell) netCell.textContent = '₡' + Math.round(netLine).toLocaleString();
 
                     totalH += displayHours;
                 }
