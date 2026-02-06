@@ -1316,11 +1316,12 @@ const Views = {
                     <img src="img/avantix_one_logo.png" alt="Logo" style="height: 40px;">
                     <h2 style="font-size: 1.4rem; margin: 0; color: white;">Planillas Avantix One</h2>
                 </div>
-                <div class="landing-nav-links">
+                <div class="landing-nav-links" id="landing-nav-menu">
                     <a href="#features">Funciones</a>
                     <a href="#pricing">Precios</a>
                     <a href="#" id="landing-login-btn" class="btn btn-secondary" style="padding: 10px 25px;">Iniciar Sesión</a>
                 </div>
+                <button class="landing-mobile-toggle" id="landing-mobile-toggle">☰</button>
             </div>
 
             <section class="hero-section">
@@ -1404,15 +1405,36 @@ const Views = {
             document.getElementById('landing-footer-login')
         ];
 
+        const mobileToggle = document.getElementById('landing-mobile-toggle');
+        const navMenu = document.getElementById('landing-nav-menu');
+
+        if (mobileToggle && navMenu) {
+            mobileToggle.onclick = () => {
+                navMenu.classList.toggle('active');
+                mobileToggle.textContent = navMenu.classList.contains('active') ? '✕' : '☰';
+            };
+
+            // Close menu when clicking a link
+            navMenu.querySelectorAll('a').forEach(link => {
+                link.onclick = (e) => {
+                    navMenu.classList.remove('active');
+                    mobileToggle.textContent = '☰';
+                    if (link.id === 'landing-login-btn') {
+                        e.preventDefault();
+                        Views.renderView('login');
+                    }
+                };
+            });
+        }
+
         loginBtns.forEach(btn => {
-            if (btn) {
+            if (btn && btn.id === 'landing-footer-login') {
                 btn.onclick = (e) => {
                     e.preventDefault();
-                    App.renderLogin();
+                    Views.renderView('login');
                 };
             }
         });
-
         // Smooth scroll for anchors
         document.querySelectorAll('.landing-nav-links a[href^="#"], .hero-btns a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
