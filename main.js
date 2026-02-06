@@ -1325,7 +1325,6 @@ const Views = {
             <div class="landing-navbar">
                 <div class="logo">
                     <img src="img/avantix_one_logo.png" alt="Logo">
-                    <h2>Planillas Avantix One</h2>
                 </div>
 
                 <div class="landing-nav-links" id="landing-nav-menu">
