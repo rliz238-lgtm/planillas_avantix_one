@@ -3240,6 +3240,7 @@ const Views = {
                 Storage.showLoader(true, 'Actualizando registro...');
                 await Storage.update('logs', logId, updates);
                 Storage.showLoader(false);
+                editLogModal.close();
 
                 // Marcar que se necesita refrescar el fondo y actualizar el modal actual
                 window._payrollNeedsRefresh = true;
