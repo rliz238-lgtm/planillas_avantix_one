@@ -1350,28 +1350,40 @@ const Views = {
             <section class="features-section" id="features">
                 <div class="section-title">
                     <h2>Todo lo que su empresa necesita</h2>
-                    <p style="color: var(--text-muted)">Gestione su personal de forma profesional y sin errores.</p>
+                    <p style="color: var(--text-muted)">Gestione su personal de forma profesional y sin errores con una interfaz intuitiva.</p>
                 </div>
                 <div class="features-grid">
                     <div class="feature-card">
-                        <span class="feature-icon">⏱️</span>
-                        <h3>Control de Asistencia</h3>
-                        <p>Portal intuitivo para que sus empleados registren entradas y salidas con un PIN de seguridad.</p>
+                        <div class="feature-mockup" style="background-image: url('img/mockup_attendance.jpg')"></div>
+                        <div class="feature-card-content">
+                            <span class="feature-icon">⏱️</span>
+                            <h3>Control de Asistencia</h3>
+                            <p>Portal intuitivo para que sus empleados registren entradas y salidas con un PIN de seguridad desde cualquier dispositivo.</p>
+                        </div>
                     </div>
                     <div class="feature-card">
-                        <span class="feature-icon">🇨🇷</span>
-                        <h3>Reportes CCSS</h3>
-                        <p>Cálculo automático del 10.67% y generación de reportes listos para la Caja.</p>
+                        <div class="feature-mockup" style="background-image: url('img/mockup_reports.jpg')"></div>
+                        <div class="feature-card-content">
+                            <span class="feature-icon">🇨🇷</span>
+                            <h3>Reportes CCSS</h3>
+                            <p>Cálculo automático del 10.67% y generación de reportes detallados listos para presentar ante la Caja.</p>
+                        </div>
                     </div>
                     <div class="feature-card">
-                        <span class="feature-icon">⚡</span>
-                        <h3>Cálculo de Extras</h3>
-                        <p>Algoritmo inteligente para horas extras, feriados y días dobles configurables.</p>
+                        <div class="feature-mockup" style="background-image: url('img/mockup_dashboard.jpg')"></div>
+                        <div class="feature-card-content">
+                            <span class="feature-icon">⚡</span>
+                            <h3>Cálculo de Extras</h3>
+                            <p>Algoritmo inteligente que procesa horas extras, feriados y días dobles de forma totalmente automática y configurable.</p>
+                        </div>
                     </div>
                     <div class="feature-card">
-                        <span class="feature-icon">📱</span>
-                        <h3>WhatsApp Directo</h3>
-                        <p>Envíe comprobantes de pago detallados directamente al WhatsApp de sus empleados.</p>
+                        <div class="feature-mockup" style="background-image: url('img/mockup_whatsapp.jpg')"></div>
+                        <div class="feature-card-content">
+                            <span class="feature-icon">📱</span>
+                            <h3>WhatsApp Directo</h3>
+                            <p>Automatice el envío de comprobantes de pago detallados directamente al celular de sus colaboradores en segundos.</p>
+                        </div>
                     </div>
                 </div>
             </section>
