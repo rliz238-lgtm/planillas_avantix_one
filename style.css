@@ -1172,13 +1172,20 @@ dialog::backdrop {
     display: none !important;
 }
 
-/* --- Landing Page Styles (Light Theme) --- */
 .landing-screen {
     min-height: 100vh;
     background: #ffffff;
     color: #1e293b;
     overflow-x: hidden;
     scroll-behavior: smooth;
+
+    /* Forzar variables de tema claro para la landing */
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --border: rgba(0, 0, 0, 0.1);
+    --hover-bg: #f1f5f9;
+    --input-bg: #f8fafc;
+    --input-color: #1e293b;
 }
 
 .landing-navbar {
