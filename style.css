@@ -1236,6 +1236,17 @@ dialog::backdrop {
     color: white;
 }
 
+/* Navbar specific button style (Header is Dark) */
+.landing-navbar .btn-secondary {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.landing-navbar .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: white;
+}
+
 .landing-nav-links {
     display: flex !important;
     gap: 2rem;
