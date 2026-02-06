@@ -1442,7 +1442,7 @@ const Views = {
             if (btn && btn.id === 'landing-footer-login') {
                 btn.onclick = (e) => {
                     e.preventDefault();
-                    Views.renderView('login');
+                    App.renderView('login');
                 };
             }
         });
