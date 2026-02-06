@@ -1219,8 +1219,8 @@ dialog::backdrop {
     height: 70px;
     /* Logo más grande */
     display: block;
-    margin-top: 5px;
-    /* Margen arriba solicitado */
+    margin-top: 25px;
+    /* Margen arriba solicitado incrementado */
 }
 
 .landing-navbar .logo h2 {
