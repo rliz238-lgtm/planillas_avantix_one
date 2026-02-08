@@ -1649,3 +1649,127 @@ footer.landing-footer {
         color: var(--primary) !important;
     }
 }
+
+/* Floating Support Button */
+.support-float {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.support-btn {
+    background: var(--primary);
+    color: white !important;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+    transition: var(--transition);
+    font-weight: 600;
+    pointer-events: auto;
+}
+
+.support-btn:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(99, 102, 241, 0.6);
+}
+
+.support-menu {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 8px;
+    margin-bottom: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 260px;
+    transform-origin: bottom right;
+    animation: scaleIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    pointer-events: auto;
+}
+
+.support-float.active .support-menu {
+    display: flex;
+}
+
+.support-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    text-decoration: none;
+    border-radius: 12px;
+    transition: var(--transition);
+    color: var(--text-main) !important;
+}
+
+.support-item:hover {
+    background: var(--hover-bg);
+}
+
+.support-icon {
+    font-size: 1.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+}
+
+.support-text {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.support-text strong {
+    font-size: 0.95rem;
+}
+
+.support-text span {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@media (max-width: 768px) {
+    .support-float {
+        bottom: 1.5rem;
+        right: 1.5rem;
+    }
+
+    .support-btn .btn-text {
+        display: none;
+    }
+
+    .support-btn {
+        padding: 15px;
+        width: 55px;
+        height: 55px;
+        border-radius: 50%;
+        justify-content: center;
+    }
+}
