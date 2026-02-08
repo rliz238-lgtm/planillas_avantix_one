@@ -1176,36 +1176,35 @@ app.post('/api/webhooks/hotmart', async (req, res) => {
         }
 
         try {
+            /* 
+            // Comentado: Ahora el usuario se registra manualmente vía register.html
             await db.query('BEGIN');
 
             const businessName = `Empresa de ${buyer.name || buyer.email}`;
             const username = buyer.email;
-            const password = Math.random().toString(36).slice(-8); // Contraseña aleatoria temporal
+            const password = Math.random().toString(36).slice(-8); 
 
-            // Hotmart: Acceso a un año y 7 dias de prueba gratuita
             const expiresAt = new Date();
             expiresAt.setDate(expiresAt.getDate() + 365 + 7);
 
-            // 1. Crear Empresa
             const busRes = await db.query(
                 'INSERT INTO businesses (name, status, expires_at) VALUES ($1, $2, $3) RETURNING id',
                 [businessName, 'Active', expiresAt]
             );
             const businessId = busRes.rows[0].id;
 
-            // 2. Crear Usuario Owner
             await db.query(
                 'INSERT INTO users (username, password, name, email, role, business_id) VALUES ($1, $2, $3, $4, $5, $6)',
                 [username, password, buyer.name || 'Propietario', username, 'owner', businessId]
             );
 
             await db.query('COMMIT');
+            */
 
-            console.log(`✅ Provisionamiento automático exitoso para: ${buyer.email}.Pass temporal: ${password}`);
-
-            // --- Envío de Notificación Automática vía Email ---
-            const subject = "¡Bienvenido a Avantix One! - Tus credenciales de acceso";
-            const welcomeMsgText = `Hola ${buyer.name || 'Propietario'},\n\nTu acceso a la plataforma de planillas ya está listo. Aquí tienes tus credenciales:\n\nURL: https://app.avantixone.com\nUsuario: ${username}\nContraseña: ${password}\n\nTe recomendamos cambiar tu contraseña una vez que ingreses.`;
+            // --- Envío de Notificación de Compra con Link de Registro ---
+            const registrationLink = `https://app.avantixone.com/register.html?email=${encodeURIComponent(buyer.email)}&name=${encodeURIComponent(buyer.name)}`;
+            const subject = "¡Gracias por tu compra en Avantix One! 🚀";
+            const welcomeMsgText = `Hola ${buyer.name || 'Propietario'},\n\nGracias por adquirir Avantix One. Para comenzar a usar el sistema, por favor completa el registro de tu empresa en el siguiente enlace:\n\n${registrationLink}\n\nUna vez completado, podrás acceder a todas las funciones.`;
 
             const welcomeMsgHtml = `
                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
@@ -1213,24 +1212,19 @@ app.post('/api/webhooks/hotmart', async (req, res) => {
                         <h2 style="color: #6366f1; margin: 0;">¡Bienvenido a Avantix One! 🚀</h2>
                     </div>
                     <p>Hola <strong>${buyer.name || 'Propietario'}</strong>,</p>
-                    <p>Tu acceso a la plataforma de gestión de planillas ya está listo. Aquí tienes tus credenciales para ingresar al sistema:</p>
+                    <p>¡Gracias por tu compra! Ya tienes acceso a la plataforma de gestión de planillas líder en la región.</p>
                     
-                    <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 25px 0; border: 1px solid #eee;">
-                        <p style="margin: 8px 0;"><strong>🌐 URL de Acceso:</strong> <a href="https://app.avantixone.com" style="color: #6366f1; font-weight: 600;">https://app.avantixone.com</a></p>
-                        <p style="margin: 8px 0;"><strong>👤 Usuario:</strong> <span style="color: #374151;">${username}</span></p>
-                        <p style="margin: 8px 0;"><strong>🔑 Contraseña Temporal:</strong> <code style="background: #edf2f7; padding: 4px 8px; border-radius: 4px; font-weight: bold; color: #1a202c;">${password}</code></p>
+                    <div style="background: #f9fafb; padding: 30px; border-radius: 8px; margin: 25px 0; border: 1px solid #eee; text-align: center;">
+                        <p style="margin-bottom: 20px; color: #374151; font-weight: 500;">Haz clic en el botón de abajo para configurar tu cuenta y los datos de tu empresa:</p>
+                        <a href="${registrationLink}" style="background: #6366f1; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">Completar mi Registro</a>
                     </div>
 
-                    <p style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px; font-size: 0.9rem; color: #92400e;">
-                        <strong>Nota importante:</strong> Por seguridad, te recomendamos cambiar tu contraseña inmediatamente después de ingresar por primera vez en la sección "Mi Perfil".
-                    </p>
-
                     <p style="margin-top: 30px; font-size: 0.9rem; color: #6b7280;">
-                        Si tienes alguna duda o problema con tu acceso, puedes contactarnos respondiendo a este correo.
+                        Este enlace te llevará directamente al asistente de configuración para que puedas empezar a cargar tus empleados de inmediato.
                     </p>
                     
                     <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-                    <p style="font-size: 0.8rem; color: #9ca3af; text-align: center;">Este es un mensaje automático generado por el sistema de Avantix One.</p>
+                    <p style="font-size: 0.8rem; color: #9ca3af; text-align: center;">Si tienes alguna duda, puedes contactarnos respondiendo a este correo.</p>
                 </div>
             `;
 

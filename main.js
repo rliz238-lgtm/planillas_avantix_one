@@ -1160,7 +1160,7 @@ const App = {
         if (registerLink) {
             registerLink.onclick = (e) => {
                 e.preventDefault();
-                window.location.href = 'https://pay.hotmart.com/L104170872R';
+                window.location.href = 'register.html';
             };
         }
 
@@ -1441,7 +1441,7 @@ const Views = {
                         <li>Actualizaciones de Ley automáticas</li>
                         <li>Módulo de Reportería Avanzada</li>
                     </ul>
-                    <a href="https://pay.hotmart.com/L104170872R" target="_blank" class="btn btn-primary" style="width: 100%; padding: 20px; font-size: 1.2rem; font-weight: 700;">ADQUIRIR AHORA</a>
+                    <a href="register.html" class="btn btn-primary" style="width: 100%; padding: 20px; font-size: 1.2rem; font-weight: 700;">REGISTRARME AHORA</a>
                     <p style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">Pago seguro procesado por Hotmart®</p>
                 </div>
             </section>

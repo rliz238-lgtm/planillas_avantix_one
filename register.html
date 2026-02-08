@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro - Avantix One</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=19.1">
+    <link rel="icon" type="image/png" href="img/favicon.png?v=3">
+    <style>
+        body {
+            background: #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .register-container {
+            width: 100%;
+            max-width: 800px;
+            padding: 2rem;
+        }
+
+        #app {
+            display: flex !important;
+        }
+
+        .onboarding-fullscreen #app {
+            height: auto;
+            min-height: 100vh;
+        }
+
+        #sidebar,
+        header {
+            display: none !important;
+        }
+
+        .content {
+            margin-left: 0 !important;
+            padding: 0 !important;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body class="onboarding-fullscreen">
+    <div class="register-container">
+        <div id="app">
+            <main class="content">
+                <div id="view-container">
+                    <!-- El formulario se inyectará aquí -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Loader Global -->
+    <div id="loader-overlay"
+        style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9); z-index: 10000; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
+        <div class="loader-spinner"></div>
+        <div id="loader-text" style="color: white; margin-top: 1.5rem; font-weight: 500; font-size: 1.1rem;">
+            Procesando...</div>
+    </div>
+
+    <!-- Notificaciones Toast -->
+    <div id="toast-container"></div>
+
+    <script src="main.js?v=19.1"></script>
+    <script>
+        // Forzar la vista de registro
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Reemplazamos el init normal por una versión simplificada para esta página
+            const originalInit = App.init;
+            App.init = async function () {
+                this.renderView('registration');
+            };
+            await App.init();
+        });
+    </script>
+    <!-- Floating Support -->
+    <div class="support-float" id="support-container">
+        <div class="support-menu" id="support-menu">
+            <a href="https://wa.me/50663602181" target="_blank" class="support-item">
+                <span class="support-icon">📱</span>
+                <div class="support-text">
+                    <strong>WhatsApp Soporte</strong>
+                    <span>+506 6360-2181</span>
+                </div>
+            </a>
+            <a href="mailto:info@avantixone.com" class="support-item">
+                <span class="support-icon">📧</span>
+                <div class="support-text">
+                    <strong>Correo Electrónico</strong>
+                    <span>info@avantixone.com</span>
+                </div>
+            </a>
+        </div>
+        <button class="support-btn" onclick="document.getElementById('support-container').classList.toggle('active')">
+            <span class="btn-icon">🎧</span>
+            <span class="btn-text">Soporte</span>
+        </button>
+    </div>
+</body>
+
+</html>
