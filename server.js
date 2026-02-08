@@ -939,6 +939,7 @@ app.post('/api/admin/businesses/:id/resend-access', checkAuth, async (req, res) 
 
         if (result.rows.length === 0) return res.status(404).json({ error: 'Dueño no encontrado' });
         const owner = result.rows[0];
+        const targetEmail = owner.email || owner.username;
 
         const subject = "Tus credenciales de acceso - Avantix One";
         const text = `Hola ${owner.name},\n\nAquí tienes tus credenciales de acceso a Avantix One:\n\nURL: https://app.avantixone.com\nUsuario: ${owner.username}\nContraseña: ${owner.password}`;
@@ -956,7 +957,7 @@ app.post('/api/admin/businesses/:id/resend-access', checkAuth, async (req, res) 
             </div>
         `;
 
-        await sendEmailMessage(owner.email, subject, text, html);
+        await sendEmailMessage(targetEmail, subject, text, html);
         res.json({ success: true, message: 'Accesos enviados correctamente' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -982,6 +983,7 @@ app.post('/api/admin/businesses/:id/reset-access', checkAuth, async (req, res) =
 
         if (result.rows.length === 0) return res.status(404).json({ error: 'Dueño no encontrado' });
         const owner = result.rows[0];
+        const targetEmail = owner.email || owner.username;
 
         const subject = "REINICIO de credenciales - Avantix One";
         const text = `Hola ${owner.name},\n\nTu contraseña ha sido reiniciada por un administrador.\n\nURL: https://app.avantixone.com\nUsuario: ${owner.username}\nNueva Contraseña: ${newPassword}`;
@@ -999,7 +1001,7 @@ app.post('/api/admin/businesses/:id/reset-access', checkAuth, async (req, res) =
             </div>
         `;
 
-        await sendEmailMessage(owner.email, subject, text, html);
+        await sendEmailMessage(targetEmail, subject, text, html);
         res.json({ success: true, message: 'Contraseña reiniciada y enviada' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -1193,8 +1195,8 @@ app.post('/api/webhooks/hotmart', async (req, res) => {
 
             // 2. Crear Usuario Owner
             await db.query(
-                'INSERT INTO users (username, password, name, role, business_id) VALUES ($1, $2, $3, $4, $5)',
-                [username, password, buyer.name || 'Propietario', 'owner', businessId]
+                'INSERT INTO users (username, password, name, email, role, business_id) VALUES ($1, $2, $3, $4, $5, $6)',
+                [username, password, buyer.name || 'Propietario', username, 'owner', businessId]
             );
 
             await db.query('COMMIT');
