@@ -1122,20 +1122,42 @@ app.post('/api/webhooks/hotmart', async (req, res) => {
 
             console.log(`✅ Provisionamiento automático exitoso para: ${buyer.email}.Pass temporal: ${password}`);
 
-            // --- Envío de Notificación Automática vía WhatsApp ---
-            const buyerPhone = buyer.phone || (payload.data && payload.data.buyer ? payload.data.buyer.checkout_phone : null);
+            // --- Envío de Notificación Automática vía Email ---
+            const subject = "¡Bienvenido a Avantix One! - Tus credenciales de acceso";
+            const welcomeMsgText = `Hola ${buyer.name || 'Propietario'},\n\nTu acceso a la plataforma de planillas ya está listo. Aquí tienes tus credenciales:\n\nURL: https://app.avantixone.com\nUsuario: ${username}\nContraseña: ${password}\n\nTe recomendamos cambiar tu contraseña una vez que ingreses.`;
 
-            if (buyerPhone) {
-                const welcomeMsg = `*¡Bienvenido a Avantix One! * 🚀\n\nHola ${buyer.name || 'Propietario'}, \n\nTu acceso a la plataforma de planillas ya está listo.Aquí tienes tus credenciales: \n\n *🌐 URL:* https://tu-dominio.com\n*👤 Usuario:* ${username}\n*🔑 Contraseña:* ${password}\n\nTe recomendamos cambiar tu contraseña una vez que ingreses.`;
+            const welcomeMsgHtml = `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h2 style="color: #6366f1; margin: 0;">¡Bienvenido a Avantix One! 🚀</h2>
+                    </div>
+                    <p>Hola <strong>${buyer.name || 'Propietario'}</strong>,</p>
+                    <p>Tu acceso a la plataforma de gestión de planillas ya está listo. Aquí tienes tus credenciales para ingresar al sistema:</p>
+                    
+                    <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 25px 0; border: 1px solid #eee;">
+                        <p style="margin: 8px 0;"><strong>🌐 URL de Acceso:</strong> <a href="https://app.avantixone.com" style="color: #6366f1; font-weight: 600;">https://app.avantixone.com</a></p>
+                        <p style="margin: 8px 0;"><strong>👤 Usuario:</strong> <span style="color: #374151;">${username}</span></p>
+                        <p style="margin: 8px 0;"><strong>🔑 Contraseña Temporal:</strong> <code style="background: #edf2f7; padding: 4px 8px; border-radius: 4px; font-weight: bold; color: #1a202c;">${password}</code></p>
+                    </div>
 
-                try {
-                    await sendWhatsAppMessage(buyerPhone, welcomeMsg);
-                    console.log(`📲 Credenciales enviadas por WhatsApp a ${buyerPhone}`);
-                } catch (wsErr) {
-                    console.error(`⚠️ No se pudo enviar el WhatsApp de bienvenida: ${wsErr.message}`);
-                }
-            } else {
-                console.warn(`📢 No se encontró teléfono para enviar credenciales a ${buyer.email}`);
+                    <p style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px; font-size: 0.9rem; color: #92400e;">
+                        <strong>Nota importante:</strong> Por seguridad, te recomendamos cambiar tu contraseña inmediatamente después de ingresar por primera vez en la sección "Mi Perfil".
+                    </p>
+
+                    <p style="margin-top: 30px; font-size: 0.9rem; color: #6b7280;">
+                        Si tienes alguna duda o problema con tu acceso, puedes contactarnos respondiendo a este correo.
+                    </p>
+                    
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                    <p style="font-size: 0.8rem; color: #9ca3af; text-align: center;">Este es un mensaje automático generado por el sistema de Avantix One.</p>
+                </div>
+            `;
+
+            try {
+                await sendEmailMessage(buyer.email, subject, welcomeMsgText, welcomeMsgHtml);
+                console.log(`📧 Credenciales enviadas por Email a ${buyer.email}`);
+            } catch (emailErr) {
+                console.error(`⚠️ No se pudo enviar el Email de bienvenida a ${buyer.email}: ${emailErr.message}`);
             }
 
             return res.json({ success: true, message: 'Provisioning complete' });
