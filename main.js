@@ -1696,7 +1696,13 @@ const Views = {
                                     <td>${b.expires_at ? new Date(b.expires_at).toLocaleDateString() : 'Ilimitado'}</td>
                                     <td>${b.cycle_type}</td>
                                     <td>
-                                        <button class="btn btn-secondary" onclick="window.editBusiness(${b.id})">✏️ Editar / Prorrogar</button>
+                                        <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                                            <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.85rem;" onclick="window.editBusiness(${b.id})" title="Editar / Prorrogar">✏️</button>
+                                            <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.85rem; background: rgba(99, 102, 241, 0.1); color: var(--primary);" 
+                                                onclick="window.resendAccess(${b.id})" title="Reenviar credenciales por email">📧 Enviar Acceso</button>
+                                            <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.85rem; background: rgba(239, 68, 68, 0.1); color: var(--danger);" 
+                                                onclick="window.resetAccess(${b.id})" title="Reiniciar contraseña y enviar">🔐 Reiniciar Pass</button>
+                                        </div>
                                     </td>
                                 </tr>
                             `).join('')}
@@ -2211,6 +2217,42 @@ const Views = {
             updateLabels(biz.country || 'Costa Rica');
             document.getElementById('business-modal-title').innerText = 'Editar Empresa / Prorrogar';
             modal.showModal();
+        };
+
+        window.resendAccess = async (id) => {
+            if (!confirm("¿Reenviar credenciales de acceso al cliente?")) return;
+            Storage.showLoader(true, 'Enviando accesos...');
+            try {
+                const res = await apiFetch(`/api/admin/businesses/${id}/resend-access`, { method: 'POST' });
+                const result = await res.json();
+                if (result.success) {
+                    alert("📧 Accesos enviados con éxito.");
+                } else {
+                    alert("Error: " + result.error);
+                }
+            } catch (e) {
+                alert("Error de conexión");
+            } finally {
+                Storage.showLoader(false);
+            }
+        };
+
+        window.resetAccess = async (id) => {
+            if (!confirm("⚠️ ¡PELIGRO!\n\nEsto cambiará la contraseña del dueño por una nueva aleatoria y se la enviará por correo.\n\n¿Desea continuar?")) return;
+            Storage.showLoader(true, 'Reiniciando contraseña...');
+            try {
+                const res = await apiFetch(`/api/admin/businesses/${id}/reset-access`, { method: 'POST' });
+                const result = await res.json();
+                if (result.success) {
+                    alert("🔐 Contraseña reiniciada y enviada al cliente.");
+                } else {
+                    alert("Error: " + result.error);
+                }
+            } catch (e) {
+                alert("Error de conexión");
+            } finally {
+                Storage.showLoader(false);
+            }
         };
 
         form.onsubmit = async (e) => {

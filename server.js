@@ -927,6 +927,85 @@ app.put('/api/admin/businesses/:id', checkAuth, async (req, res) => {
     }
 });
 
+app.post('/api/admin/businesses/:id/resend-access', checkAuth, async (req, res) => {
+    if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
+    try {
+        const result = await db.query(`
+            SELECT b.name as business_name, u.name, u.email, u.username, u.password 
+            FROM businesses b 
+            JOIN users u ON u.business_id = b.id AND u.role = 'owner'
+            WHERE b.id = $1
+        `, [req.params.id]);
+
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Dueño no encontrado' });
+        const owner = result.rows[0];
+
+        const subject = "Tus credenciales de acceso - Avantix One";
+        const text = `Hola ${owner.name},\n\nAquí tienes tus credenciales de acceso a Avantix One:\n\nURL: https://app.avantixone.com\nUsuario: ${owner.username}\nContraseña: ${owner.password}`;
+        const html = `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                <h2 style="color: #6366f1;">Credenciales de Acceso 🚀</h2>
+                <p>Hola <strong>${owner.name}</strong>,</p>
+                <p>Aquí tienes tus datos para ingresar a la plataforma de <strong>${owner.business_name}</strong>:</p>
+                <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid #eee;">
+                    <p><strong>🌐 URL:</strong> <a href="https://app.avantixone.com">https://app.avantixone.com</a></p>
+                    <p><strong>👤 Usuario:</strong> ${owner.username}</p>
+                    <p><strong>🔑 Contraseña:</strong> ${owner.password}</p>
+                </div>
+                <p style="margin-top: 20px; font-size: 0.9rem; color: #6b7280;">Si no recordabas tu contraseña, te recomendamos cambiarla al ingresar.</p>
+            </div>
+        `;
+
+        await sendEmailMessage(owner.email, subject, text, html);
+        res.json({ success: true, message: 'Accesos enviados correctamente' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/admin/businesses/:id/reset-access', checkAuth, async (req, res) => {
+    if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
+    try {
+        const newPassword = Math.random().toString(36).slice(-8).toUpperCase();
+
+        await db.query(`
+            UPDATE users SET password = $1 
+            WHERE business_id = $2 AND role = 'owner'
+        `, [newPassword, req.params.id]);
+
+        const result = await db.query(`
+            SELECT b.name as business_name, u.name, u.email, u.username 
+            FROM businesses b 
+            JOIN users u ON u.business_id = b.id AND u.role = 'owner'
+            WHERE b.id = $1
+        `, [req.params.id]);
+
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Dueño no encontrado' });
+        const owner = result.rows[0];
+
+        const subject = "REINICIO de credenciales - Avantix One";
+        const text = `Hola ${owner.name},\n\nTu contraseña ha sido reiniciada por un administrador.\n\nURL: https://app.avantixone.com\nUsuario: ${owner.username}\nNueva Contraseña: ${newPassword}`;
+        const html = `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                <h2 style="color: #ef4444;">Contraseña Reiniciada 🔐</h2>
+                <p>Hola <strong>${owner.name}</strong>,</p>
+                <p>Tu contraseña para la empresa <strong>${owner.business_name}</strong> ha sido reiniciada.</p>
+                <div style="background: #fffbeb; padding: 20px; border-radius: 8px; border: 1px solid #fef3c7;">
+                    <p><strong>🌐 URL de Acceso:</strong> <a href="https://app.avantixone.com">https://app.avantixone.com</a></p>
+                    <p><strong>👤 Usuario:</strong> ${owner.username}</p>
+                    <p><strong>🔑 Nueva Contraseña:</strong> <code style="font-weight: bold;">${newPassword}</code></p>
+                </div>
+                <p style="margin-top: 20px; font-size: 0.9rem; color: #b45309;"><strong>Recuerda cambiar esta contraseña temporal apenas ingreses.</strong></p>
+            </div>
+        `;
+
+        await sendEmailMessage(owner.email, subject, text, html);
+        res.json({ success: true, message: 'Contraseña reiniciada y enviada' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/admin/businesses', checkAuth, async (req, res) => {
     if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
     const {
