@@ -1215,7 +1215,7 @@ const App = {
                 const modalBody = document.getElementById('registration-modal-body');
                 if (modal && modalBody) {
                     modalBody.innerHTML = await Views.registration();
-                    App.init_registration();
+                    await Views.init_registration();
                     modal.showModal();
                 }
             };
