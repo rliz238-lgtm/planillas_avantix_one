@@ -777,6 +777,24 @@ const Auth = {
 const App = {
     currentView: 'dashboard',
 
+    getViewTitles() {
+        const user = Auth.getUser();
+        return {
+            dashboard: 'Dashboard',
+            adminStats: 'Métricas Globales',
+            employees: 'Gestión de Empleados',
+            users: 'Gestión de Usuarios',
+            employeeDetail: 'Detalle de Empleado',
+            calculator: `Calculadora de Pago ${user?.cycle_type === 'Weekly' ? 'Semanal' : user?.cycle_type === 'Biweekly' ? 'Quincenal' : 'Mensual'}`,
+            payroll: 'Cálculo de Planillas',
+            import: 'Importar Datos Excel',
+            profile: 'Configuración de Empresa',
+            adminBusinesses: 'Gestión de Empresas SaaS',
+            adminSuperUsers: 'Gestión de Super Usuarios',
+            registration: 'Registro de Nueva Empresa'
+        };
+    },
+
     async init() {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('action') === 'register') {
@@ -897,6 +915,7 @@ const App = {
                         // Owner/Editor no suelen tener restricciones de vista principales
                     }
 
+                    const titles = this.getViewTitles();
                     if (isAllowed && titles[view]) {
                         initialView = view;
                         initialArg = arg;
@@ -1276,20 +1295,7 @@ const App = {
             navItem.classList.add('active');
         }
 
-        const titles = {
-            dashboard: 'Dashboard',
-            adminStats: 'Métricas Globales',
-            employees: 'Gestión de Empleados',
-            users: 'Gestión de Usuarios',
-            employeeDetail: 'Detalle de Empleado',
-            calculator: `Calculadora de Pago ${Auth.getUser()?.cycle_type === 'Weekly' ? 'Semanal' : Auth.getUser()?.cycle_type === 'Biweekly' ? 'Quincenal' : 'Mensual'}`,
-            payroll: 'Cálculo de Planillas',
-            import: 'Importar Datos Excel',
-            profile: 'Configuración de Empresa',
-            adminBusinesses: 'Gestión de Empresas SaaS',
-            adminSuperUsers: 'Gestión de Super Usuarios',
-            registration: 'Registro de Nueva Empresa'
-        };
+        const titles = this.getViewTitles();
 
         const viewTitle = document.getElementById('view-title');
         if (viewTitle) viewTitle.textContent = titles[view] || 'Planillas Avantix';
