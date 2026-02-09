@@ -1209,12 +1209,12 @@ const App = {
         let loginMode = 'admin'; // 'admin' o 'employee'
 
         if (registerLink) {
-            registerLink.onclick = (e) => {
+            registerLink.onclick = async (e) => {
                 e.preventDefault();
                 const modal = document.getElementById('registration-modal');
                 const modalBody = document.getElementById('registration-modal-body');
                 if (modal && modalBody) {
-                    modalBody.innerHTML = Views.registration();
+                    modalBody.innerHTML = await Views.registration();
                     App.init_registration();
                     modal.showModal();
                 }
