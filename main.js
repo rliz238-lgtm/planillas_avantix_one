@@ -1211,7 +1211,13 @@ const App = {
         if (registerLink) {
             registerLink.onclick = (e) => {
                 e.preventDefault();
-                window.location.href = 'https://pay.hotmart.com/L104170872R';
+                const modal = document.getElementById('registration-modal');
+                const modalBody = document.getElementById('registration-modal-body');
+                if (modal && modalBody) {
+                    modalBody.innerHTML = Views.registration();
+                    App.init_registration();
+                    modal.showModal();
+                }
             };
         }
 

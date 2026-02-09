@@ -1005,6 +1005,20 @@ dialog::backdrop {
     padding: 2.5rem;
 }
 
+.modal-large::backdrop {
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(8px);
+}
+
+.modal-large {
+    border: none;
+    background: transparent;
+    padding: 0;
+    max-width: 90%;
+    width: 800px;
+    border-radius: 24px;
+}
+
 [data-theme="light"] .sidebar {
     background: #ffffff;
     border-right: 1px solid rgba(0, 0, 0, 0.05);
@@ -1041,14 +1055,13 @@ dialog::backdrop {
 
 /* Redesigned Onboarding Card */
 .onboarding-card {
-    max-width: 650px !important;
+    max-width: 800px !important;
     width: 100%;
-    margin: 2rem auto !important;
-    padding: 2.5rem !important;
-    background: rgba(30, 41, 59, 0.7) !important;
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    margin: 0 !important;
+    padding: 3rem !important;
+    background: var(--bg-card) !important;
+    border: none !important;
+    box-shadow: none !important;
     border-radius: 24px !important;
 }
 
