@@ -1711,7 +1711,7 @@ const Views = {
                 </form>
 
                 <div style="text-align: center; margin-top: 2rem;">
-                    <a href="#" onclick="location.reload()" style="color: var(--text-muted); font-size: 0.85rem; text-decoration: none;">¿Ya tienes cuenta? Regresar al Login</a>
+                    <a href="index.html" style="color: var(--text-muted); font-size: 0.85rem; text-decoration: none;">¿Ya tienes cuenta? Regresar al Login</a>
                 </div>
             </div>
         `;
