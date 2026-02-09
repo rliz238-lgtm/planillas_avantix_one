@@ -1209,15 +1209,9 @@ const App = {
         let loginMode = 'admin'; // 'admin' o 'employee'
 
         if (registerLink) {
-            registerLink.onclick = async (e) => {
+            registerLink.onclick = (e) => {
                 e.preventDefault();
-                const modal = document.getElementById('registration-modal');
-                const modalBody = document.getElementById('registration-modal-body');
-                if (modal && modalBody) {
-                    modalBody.innerHTML = await Views.registration();
-                    await Views.init_registration();
-                    modal.showModal();
-                }
+                window.location.href = 'https://pay.hotmart.com/L104170872R';
             };
         }
 
