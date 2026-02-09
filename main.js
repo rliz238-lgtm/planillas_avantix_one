@@ -878,7 +878,36 @@ const App = {
         const userNameDisplay = document.querySelector('.username');
         if (userNameDisplay) userNameDisplay.textContent = user.name + (user.role === 'employee' ? ' (Empleado)' : user.role === 'super_admin' ? ' (Super Admin)' : '');
 
-        // --- Role-based UI Adjustments ---
+        const savedViewData = localStorage.getItem('ttw_last_view');
+        let initialView = 'dashboard';
+        let initialArg = null;
+
+        if (savedViewData) {
+            try {
+                const { view, arg, role: savedRole } = JSON.parse(savedViewData);
+                // Solo restaurar si el rol coincide
+                if (savedRole === user.role) {
+                    // Validar si la vista es permitida para el rol
+                    let isAllowed = true;
+                    if (user.role === 'employee') {
+                        if (!['calculator', 'profile'].includes(view)) isAllowed = false;
+                    } else if (user.role === 'super_admin') {
+                        // Super admin puede ver todo, pero por defecto suele ir a adminStats
+                    } else {
+                        // Owner/Editor no suelen tener restricciones de vista principales
+                    }
+
+                    if (isAllowed && titles[view]) {
+                        initialView = view;
+                        initialArg = arg;
+                    }
+                }
+            } catch (e) {
+                console.error("Error parsing saved view", e);
+            }
+        }
+
+        // --- Role-based UI Adjustments & Initial View ---
         if (user.role === 'employee') {
             document.querySelectorAll('.nav-item').forEach(btn => {
                 const view = btn.dataset.view;
@@ -887,7 +916,9 @@ const App = {
                 }
             });
             this.setupNavigation();
-            await this.switchView('calculator');
+            // Si la vista guardada era válida para empleado, se usará, si no, 'calculator'
+            if (initialView === 'dashboard') initialView = 'calculator';
+            await this.switchView(initialView, initialArg);
         } else if (user.role === 'super_admin') {
             document.getElementById('nav-admin-businesses').style.display = 'flex';
             document.getElementById('nav-admin-super-users').style.display = 'flex';
@@ -898,11 +929,12 @@ const App = {
             if (label) label.style.display = 'block';
 
             this.setupNavigation();
-            await this.switchView('adminStats');
+            if (initialView === 'dashboard') initialView = 'adminStats';
+            await this.switchView(initialView, initialArg);
         } else {
             // Owner/Editor
             this.setupNavigation();
-            await this.switchView('dashboard');
+            await this.switchView(initialView, initialArg);
         }
 
         const logoutBtn = document.getElementById('logout-btn');
@@ -1261,6 +1293,16 @@ const App = {
 
         const viewTitle = document.getElementById('view-title');
         if (viewTitle) viewTitle.textContent = titles[view] || 'Planillas Avantix';
+
+        // Persistir vista
+        const user = Auth.getUser();
+        if (user) {
+            localStorage.setItem('ttw_last_view', JSON.stringify({
+                view,
+                arg,
+                role: user.role
+            }));
+        }
 
         await this.renderView(view, arg);
     },
