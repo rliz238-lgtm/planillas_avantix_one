@@ -1211,7 +1211,7 @@ const App = {
         if (registerLink) {
             registerLink.onclick = (e) => {
                 e.preventDefault();
-                window.location.href = 'register.html';
+                window.location.href = 'https://pay.hotmart.com/L104170872R';
             };
         }
 
