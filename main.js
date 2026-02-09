@@ -1495,6 +1495,119 @@ const Views = {
                 </div>
             </section>
 
+            <section class="workflow-section">
+                <div class="workflow-container">
+                    <!-- Step 1: Employee Portal -->
+                    <div class="workflow-item">
+                        <div class="workflow-content">
+                            <div class="workflow-number">01</div>
+                            <h3>Control de Asistencia sin Fallos</h3>
+                            <p>Sus colaboradores pueden registrar su jornada laboral desde cualquier dispositivo con un sencillo PIN personal de 4 dígitos. Olvídese de las hojas de Excel manuales.</p>
+                            <ul class="workflow-features-list">
+                                <li>Registro GPS opcional por ubicación</li>
+                                <li>Control exacto de horas de almuerzo</li>
+                                <li>Historial transparente para el empleado</li>
+                            </ul>
+                        </div>
+                        <div class="workflow-media">
+                            <div class="app-window-mockup">
+                                <div class="app-window-header">
+                                    <div class="window-dot"></div><div class="window-dot"></div><div class="window-dot"></div>
+                                </div>
+                                <div class="app-screen-content" style="display:flex; flex-direction:column; align-items:center; justify-content:center; background:#f1f5f9;">
+                                    <div style="background:white; padding:30px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.1); text-align:center; width:220px;">
+                                        <div style="font-size:1.5rem; font-weight:bold; margin-bottom:20px;">08:15 AM</div>
+                                        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:20px;">
+                                            <div style="width:40px; height:40px; background:#f1f5f9; border-radius:10px; display:flex; align-items:center; justify-content:center;">1</div>
+                                            <div style="width:40px; height:40px; background:#f1f5f9; border-radius:10px; display:flex; align-items:center; justify-content:center;">2</div>
+                                            <div style="width:40px; height:40px; background:#f1f5f9; border-radius:10px; display:flex; align-items:center; justify-content:center;">3</div>
+                                        </div>
+                                        <div style="background:var(--primary); color:white; padding:12px; border-radius:10px; font-weight:bold;">REGISTRAR ENTRADA</div>
+                                    </div>
+                                    <div style="margin-top:20px; font-size:0.8rem; color:var(--text-muted);">Bienvenido, Rogelio Li Zheng</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Admin Payroll Calculation -->
+                    <div class="workflow-item">
+                        <div class="workflow-content">
+                            <div class="workflow-number">02</div>
+                            <h3>Cálculo Automatizado de Planilla</h3>
+                            <p>El sistema toma todas las horas registradas y aplica automáticamente los rebajos de la CCSS (10.67%), calcula horas extras al 1.5x o 2.0x y descuenta vales de salario.</p>
+                            <ul class="workflow-features-list">
+                                <li>Integración inmediata con la legislación de CR</li>
+                                <li>Gestión de pagos semanales o quincenales</li>
+                                <li>Cero errores en cálculos matemáticos</li>
+                            </ul>
+                        </div>
+                        <div class="workflow-media">
+                            <div class="app-window-mockup">
+                                <div class="app-window-header">
+                                    <div class="window-dot"></div><div class="window-dot"></div><div class="window-dot"></div>
+                                </div>
+                                <div class="app-screen-content">
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-weight:bold;">
+                                        <span>Colaborador</span> <span>Neto</span> <span>Estado</span>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; padding:10px; background:#f8fafc; border-radius:8px; margin-bottom:8px;">
+                                        <span>Alison G.</span> <span>₡19.750</span> <span style="background:rgba(16,185,129,0.1); color:var(--success); padding:2px 8px; border-radius:4px; font-size:0.6rem;">PAGADO</span>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; padding:10px; background:#f8fafc; border-radius:8px; margin-bottom:8px;">
+                                        <span>Rogelio L.</span> <span>₡78.025</span> <span style="background:rgba(16,185,129,0.1); color:var(--success); padding:2px 8px; border-radius:4px; font-size:0.6rem;">PAGADO</span>
+                                    </div>
+                                    <div style="margin-top:20px; padding:15px; background:var(--primary); color:white; border-radius:10px; text-align:center;">
+                                        <div style="font-size:0.7rem; opacity:0.8;">TOTAL DISPERSADO</div>
+                                        <div style="font-size:1.2rem; font-weight:bold;">₡97.775</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Reporting & Exports -->
+                    <div class="workflow-item">
+                        <div class="workflow-content">
+                            <div class="workflow-number">03</div>
+                            <h3>Exportación en 1 Clic</h3>
+                            <p>Genere archivos Excel listos para subir a plataformas bancarias o reportar ante el Ministerio de Trabajo. Toda su información histórica siempre respaldada.</p>
+                            <ul class="workflow-features-list">
+                                <li>Reportería de CCSS lista en segundos</li>
+                                <li>Historial del último año siempre disponible</li>
+                                <li>Filtros avanzados por periodo y sucursal</li>
+                            </ul>
+                        </div>
+                        <div class="workflow-media">
+                            <div class="app-window-mockup">
+                                <div class="app-window-header">
+                                    <div class="window-dot"></div><div class="window-dot"></div><div class="window-dot"></div>
+                                </div>
+                                <div class="app-screen-content" style="padding:0;">
+                                    <div style="padding:20px; background:#1e293b; color:white;">
+                                        <div style="font-size:0.9rem; margin-bottom:10px;">Exportar Reportes</div>
+                                        <div style="display:flex; gap:10px;">
+                                            <div style="background:rgba(255,255,255,0.1); padding:8px 15px; border-radius:6px; font-size:0.7rem;">CSV Banco</div>
+                                            <div style="background:var(--primary); padding:8px 15px; border-radius:6px; font-size:0.7rem;">Excel Planilla</div>
+                                        </div>
+                                    </div>
+                                    <div style="padding:20px;">
+                                        <div style="height:100px; display:flex; align-items:flex-end; gap:8px;">
+                                            <div style="flex:1; background:#e2e8f0; height:30%; border-radius:4px 4px 0 0;"></div>
+                                            <div style="flex:1; background:#e2e8f0; height:45%; border-radius:4px 4px 0 0;"></div>
+                                            <div style="flex:1; background:#e2e8f0; height:25%; border-radius:4px 4px 0 0;"></div>
+                                            <div style="flex:1; background:var(--primary); height:85%; border-radius:4px 4px 0 0;"></div>
+                                            <div style="flex:1; background:#e2e8f0; height:40%; border-radius:4px 4px 0 0;"></div>
+                                        </div>
+                                        <div style="margin-top:10px; font-size:0.6rem; color:var(--text-muted); text-align:center;">Crecimiento de Nómina Mensual</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section class="sectors-section" id="sectors">
                 <div class="section-title">
                     <h2>Soluciones para cada sector</h2>

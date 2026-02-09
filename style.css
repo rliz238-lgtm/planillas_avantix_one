@@ -1510,6 +1510,145 @@ dialog::backdrop {
     flex-grow: 1;
 }
 
+/* Detailed Workflow Section */
+.workflow-section {
+    padding: 10rem 5%;
+    background: #ffffff;
+}
+
+.workflow-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.workflow-item {
+    display: flex;
+    align-items: center;
+    gap: 8rem;
+    margin-bottom: 12rem;
+}
+
+.workflow-item:nth-child(even) {
+    flex-direction: row-reverse;
+}
+
+.workflow-content {
+    flex: 1;
+}
+
+.workflow-media {
+    flex: 1.2;
+    position: relative;
+}
+
+.workflow-number {
+    font-size: 5rem;
+    font-weight: 900;
+    color: var(--primary);
+    opacity: 0.1;
+    line-height: 1;
+    margin-bottom: -1.5rem;
+    font-family: 'Outfit', sans-serif;
+}
+
+.workflow-content h3 {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+    color: #0f172a;
+    font-weight: 700;
+}
+
+.workflow-content p {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    line-height: 1.8;
+    margin-bottom: 2rem;
+}
+
+.workflow-features-list {
+    list-style: none;
+    padding: 0;
+}
+
+.workflow-features-list li {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    font-weight: 500;
+    color: #334155;
+}
+
+.workflow-features-list li::before {
+    content: "✓";
+    color: var(--success);
+    font-weight: 900;
+    background: rgba(16, 185, 129, 0.1);
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.75rem;
+}
+
+/* UI Mockup Details for Workflow */
+.app-window-mockup {
+    background: #f8fafc;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    width: 100%;
+    aspect-ratio: 16/10;
+    position: relative;
+    padding-top: 30px;
+    /* Window header space */
+}
+
+.app-window-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 30px;
+    background: #e2e8f0;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    gap: 6px;
+}
+
+.window-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #94a3b8;
+}
+
+.app-screen-content {
+    background: white;
+    height: 100%;
+    padding: 1.5rem;
+    overflow-y: hidden;
+}
+
+/* Responsive fixes */
+@media (max-width: 1024px) {
+
+    .workflow-item,
+    .workflow-item:nth-child(even) {
+        flex-direction: column;
+        gap: 3rem;
+        margin-bottom: 8rem;
+    }
+
+    .workflow-content h3 {
+        font-size: 2rem;
+    }
+}
+
 .feature-icon {
     font-size: 2.5rem;
     margin-bottom: 1.5rem;
