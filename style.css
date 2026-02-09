@@ -1375,46 +1375,86 @@ dialog::backdrop {
     gap: 2rem;
 }
 
+.badge-accent {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary);
+    padding: 0.6rem 1.2rem;
+    border-radius: 100px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.feature-tag {
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+}
+
 .feature-card {
     background: white;
     padding: 0;
-    /* Quitamos acolchado para que la imagen llegue al borde */
-    border-radius: 24px;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    transition: var(--transition);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border-radius: 32px;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
     overflow: hidden;
-    /* Importante para las imágenes con bordes redondeados */
+    position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
 .feature-card:hover {
-    background: white;
-    transform: translateY(-8px);
-    border-color: var(--primary);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    transform: translateY(-12px);
+    border-color: rgba(99, 102, 241, 0.3);
+    box-shadow: 0 30px 60px -15px rgba(99, 102, 241, 0.15);
 }
 
 .feature-mockup {
-    height: 180px;
+    height: 240px;
     background-size: cover;
-    background-position: center;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    background-position: top center;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+    transition: background-position 3s ease-in-out;
+}
+
+.feature-card:hover .feature-mockup {
+    background-position: bottom center;
 }
 
 .feature-card-content {
     padding: 2.5rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #ffffff 100%);
+    flex-grow: 1;
 }
 
 .feature-icon {
     font-size: 2.5rem;
     margin-bottom: 1.5rem;
     display: block;
+    transition: transform 0.3s ease;
+}
+
+.feature-card:hover .feature-icon {
+    transform: scale(1.1) rotate(5deg);
 }
 
 .feature-card h3 {
     font-size: 1.25rem;
     margin-bottom: 1rem;
     color: #1e293b;
+    transition: color 0.3s ease;
+}
+
+.feature-card:hover h3 {
+    color: var(--primary);
 }
 
 .feature-card p {

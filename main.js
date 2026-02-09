@@ -1397,40 +1397,54 @@ const Views = {
 
             <section class="features-section" id="features">
                 <div class="section-title">
-                    <h2>Todo lo que su empresa necesita</h2>
-                    <p style="color: var(--text-muted)">Gestione su personal de forma profesional y sin errores con una interfaz intuitiva.</p>
+                    <span class="badge-accent">Módulos Inteligentes</span>
+                    <h2>Eficiencia en cada rincón de su negocio</h2>
+                    <p style="color: var(--text-muted)">Herramientas diseñadas para automatizar procesos complejos, eliminando errores y devolviéndole su tiempo.</p>
                 </div>
-                <div class="features-grid">
+                <div class="features-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
                     <div class="feature-card">
-                        <div class="feature-mockup" style="background-image: url('img/mockup_attendance.jpg')"></div>
+                        <div class="feature-mockup" style="background-image: url('img/mockup_dashboard.png')"></div>
                         <div class="feature-card-content">
-                            <span class="feature-icon">⏱️</span>
-                            <h3>Control de Asistencia</h3>
-                            <p>Portal intuitivo para que sus empleados registren entradas y salidas con un PIN de seguridad desde cualquier dispositivo.</p>
+                            <span class="feature-icon">📊</span>
+                            <div class="feature-tag">Control Global</div>
+                            <h3>Visión 360 del Negocio</h3>
+                            <p>Monitoree métricas clave, acumulados de planilla y gráficos de tendencia salarial en tiempo real desde un dashboard intuitivo.</p>
                         </div>
                     </div>
                     <div class="feature-card">
-                        <div class="feature-mockup" style="background-image: url('img/mockup_reports.jpg')"></div>
+                        <div class="feature-mockup" style="background-image: url('img/mockup_payroll.png')"></div>
                         <div class="feature-card-content">
-                            <span class="feature-icon">🇨🇷</span>
-                            <h3>Reportes CCSS</h3>
-                            <p>Cálculo automático del 10.67% y generación de reportes detallados listos para presentar ante la Caja.</p>
+                            <span class="feature-icon">💰</span>
+                            <div class="feature-tag">Automatización</div>
+                            <h3>Planillas en Segundos</h3>
+                            <p>Procese pagos agrupados, gestione vales y calcule rebajos de CCSS automáticamente con una precisión del 100%.</p>
                         </div>
                     </div>
                     <div class="feature-card">
-                        <div class="feature-mockup" style="background-image: url('img/mockup_dashboard.jpg')"></div>
+                        <div class="feature-mockup" style="background-image: url('img/mockup_calculator.png')"></div>
                         <div class="feature-card-content">
-                            <span class="feature-icon">⚡</span>
-                            <h3>Cálculo de Extras</h3>
-                            <p>Algoritmo inteligente que procesa horas extras, feriados y días dobles de forma totalmente automática y configurable.</p>
+                            <span class="feature-icon">🖩</span>
+                            <div class="feature-tag">Precisión Jurídica</div>
+                            <h3>Calculadora Inteligente</h3>
+                            <p>Diga adiós a los cálculos manuales. Gestione horas ordinarias, extras, feriados y almuerzos de forma instantánea.</p>
                         </div>
                     </div>
                     <div class="feature-card">
-                        <div class="feature-mockup" style="background-image: url('img/mockup_whatsapp.jpg')"></div>
+                        <div class="feature-mockup" style="background-image: url('img/mockup_employees.png')"></div>
                         <div class="feature-card-content">
-                            <span class="feature-icon">📱</span>
-                            <h3>WhatsApp Directo</h3>
-                            <p>Automatice el envío de comprobantes de pago detallados directamente al celular de sus colaboradores en segundos.</p>
+                            <span class="feature-icon">👥</span>
+                            <div class="feature-tag">Capital Humano</div>
+                            <h3>Gestión de Colaboradores</h3>
+                            <p>Expediente digital completo con historial de pagos, cargos, salarios diferenciados y control de estados activos/inactivos.</p>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-mockup" style="background-image: url('img/mockup_users.png')"></div>
+                        <div class="feature-card-content">
+                            <span class="feature-icon">🛡️</span>
+                            <div class="feature-tag">Seguridad SaaS</div>
+                            <h3>Jerarquía de Usuarios</h3>
+                            <p>Proteja su información sensible con roles personalizados para Dueños, Editores y Administradores Globales.</p>
                         </div>
                     </div>
                 </div>
