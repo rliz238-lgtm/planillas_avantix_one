@@ -1403,7 +1403,20 @@ const Views = {
                 </div>
                 <div class="features-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
                     <div class="feature-card">
-                        <div class="feature-mockup" style="background-image: url('img/mockup_dashboard.png')"></div>
+                        <div class="feature-mockup">
+                            <div class="internal-mockup">
+                                <div class="mockup-header"><strong>Dashboard Global</strong> <span>Feb 2026</span></div>
+                                <div class="mockup-row"><div class="mockup-pill"></div> <div class="mockup-bar" style="width: 80%"></div></div>
+                                <div class="mockup-row"><div class="mockup-pill" style="background:var(--success)"></div> <div class="mockup-bar" style="width: 60%"></div></div>
+                                <div class="mockup-chart">
+                                    <div class="chart-column" style="height: 40%"></div>
+                                    <div class="chart-column" style="height: 70%"></div>
+                                    <div class="chart-column" style="height: 50%"></div>
+                                    <div class="chart-column" style="height: 90%"></div>
+                                    <div class="chart-column" style="height: 60%"></div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="feature-card-content">
                             <span class="feature-icon">📊</span>
                             <div class="feature-tag">Control Global</div>
@@ -1412,7 +1425,15 @@ const Views = {
                         </div>
                     </div>
                     <div class="feature-card">
-                        <div class="feature-mockup" style="background-image: url('img/mockup_payroll.png')"></div>
+                        <div class="feature-mockup">
+                            <div class="internal-mockup">
+                                <div class="mockup-header"><strong>Cálculo Quincenal</strong> <span style="color:var(--success)">₡1.250.400</span></div>
+                                <div class="mockup-row"><div class="mockup-circle"></div> <div class="mockup-bar"></div> <div class="mockup-pill"></div></div>
+                                <div class="mockup-row"><div class="mockup-circle"></div> <div class="mockup-bar"></div> <div class="mockup-pill"></div></div>
+                                <div class="mockup-row"><div class="mockup-circle"></div> <div class="mockup-bar"></div> <div class="mockup-pill"></div></div>
+                                <div class="mockup-row"><div class="mockup-circle"></div> <div class="mockup-bar"></div> <div class="mockup-pill"></div></div>
+                            </div>
+                        </div>
                         <div class="feature-card-content">
                             <span class="feature-icon">💰</span>
                             <div class="feature-tag">Automatización</div>
@@ -1421,7 +1442,16 @@ const Views = {
                         </div>
                     </div>
                     <div class="feature-card">
-                        <div class="feature-mockup" style="background-image: url('img/mockup_calculator.png')"></div>
+                        <div class="feature-mockup">
+                            <div class="internal-mockup">
+                                <div class="mockup-header"><strong>Calculadora de Horas</strong> <span>9.5h</span></div>
+                                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+                                    <div class="mockup-bar" style="height:20px;"></div> <div class="mockup-bar" style="height:20px;"></div>
+                                    <div class="mockup-bar" style="height:20px;"></div> <div class="mockup-bar" style="height:20px;"></div>
+                                </div>
+                                <div class="mockup-bar" style="height:40px; background:rgba(99,102,241,0.1); margin-top:10px;"></div>
+                            </div>
+                        </div>
                         <div class="feature-card-content">
                             <span class="feature-icon">🖩</span>
                             <div class="feature-tag">Precisión Jurídica</div>
@@ -1430,7 +1460,15 @@ const Views = {
                         </div>
                     </div>
                     <div class="feature-card">
-                        <div class="feature-mockup" style="background-image: url('img/mockup_employees.png')"></div>
+                        <div class="feature-mockup">
+                            <div class="internal-mockup">
+                                <div class="mockup-header"><strong>Nómina de Empleados</strong> <span>12 Activos</span></div>
+                                <div class="mockup-row"><div class="mockup-circle" style="background:var(--primary)"></div> <div class="mockup-bar"></div></div>
+                                <div class="mockup-row"><div class="mockup-circle"></div> <div class="mockup-bar"></div></div>
+                                <div class="mockup-row"><div class="mockup-circle"></div> <div class="mockup-bar"></div></div>
+                                <div class="mockup-row" style="margin-top:10px; justify-content:center;"><div class="mockup-pill" style="width:100%; height:25px; opacity:0.8; color:white; display:flex; align-items:center; justify-content:center; font-weight:bold; background:var(--primary)">+ Nuevo Colaborador</div></div>
+                            </div>
+                        </div>
                         <div class="feature-card-content">
                             <span class="feature-icon">👥</span>
                             <div class="feature-tag">Capital Humano</div>
@@ -1439,7 +1477,14 @@ const Views = {
                         </div>
                     </div>
                     <div class="feature-card">
-                        <div class="feature-mockup" style="background-image: url('img/mockup_users.png')"></div>
+                        <div class="feature-mockup">
+                            <div class="internal-mockup" style="background:#1e293b; color:white;">
+                                <div class="mockup-header" style="border-bottom-color: rgba(255,255,255,0.1)"><strong>Seguridad & Roles</strong> <span>SSL</span></div>
+                                <div class="mockup-row"><div class="mockup-pill" style="background:#6366f1; opacity:1"></div> <span style="font-size:0.6rem">Owner</span></div>
+                                <div class="mockup-row"><div class="mockup-pill" style="background:#10b981; opacity:1"></div> <span style="font-size:0.6rem">Editor</span></div>
+                                <div class="mockup-row"><div class="mockup-pill" style="background:#f59e0b; opacity:1"></div> <span style="font-size:0.6rem">Admin</span></div>
+                            </div>
+                        </div>
                         <div class="feature-card-content">
                             <span class="feature-icon">🛡️</span>
                             <div class="feature-tag">Seguridad SaaS</div>
