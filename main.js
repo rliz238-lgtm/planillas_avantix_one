@@ -791,6 +791,7 @@ const App = {
             profile: 'Configuración de Empresa',
             adminBusinesses: 'Gestión de Empresas SaaS',
             adminSuperUsers: 'Gestión de Super Usuarios',
+            adminEmailSettings: 'Configuración de Correos',
             registration: 'Registro de Nueva Empresa'
         };
     },
@@ -942,6 +943,7 @@ const App = {
             document.getElementById('nav-admin-businesses').style.display = 'flex';
             document.getElementById('nav-admin-super-users').style.display = 'flex';
             document.getElementById('nav-admin-stats').style.display = 'flex';
+            document.getElementById('nav-admin-email').style.display = 'flex';
             const divider = document.getElementById('super-admin-divider');
             const label = document.getElementById('super-admin-label');
             if (divider) divider.style.display = 'block';
@@ -4135,6 +4137,137 @@ const Views = {
         } catch (err) {
             return `<div class="card-container"><p style="color:var(--danger)">Error de conexión: ${err.message}</p></div>`;
         }
+    },
+
+    adminEmailSettings: async () => {
+        try {
+            const configs = await apiFetch('/api/admin/email-notifications').then(r => r.json());
+            return `
+                <div class="card-container">
+                    <div class="table-header">
+                        <div>
+                            <h3>Centro de Notificaciones Automáticas</h3>
+                            <p style="color: var(--text-muted); font-size: 0.9rem">Configure los correos que el sistema envía automáticamente ante eventos clave.</p>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-top: 2rem;">
+                        ${configs.map(c => `
+                            <div class="card-container" style="border: 1px solid ${c.is_active ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)'}; background: ${c.is_active ? 'rgba(99,102,241,0.02)' : 'transparent'}; position: relative;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem">
+                                    <div style="display: flex; gap: 15px; align-items: center;">
+                                        <div style="font-size: 2rem; background: rgba(255,255,255,0.05); width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
+                                            ${c.type === 'HOTMART_SALE' ? '💰' : c.type === 'NEW_REGISTRATION' ? '🏢' : '🧪'}
+                                        </div>
+                                        <div>
+                                            <h4 style="margin: 0; font-size: 1.1rem">${c.name}</h4>
+                                            <span class="tag ${c.is_active ? 'tag-success' : 'tag-inactive'}" style="font-size: 0.7rem; margin-top: 5px; display: inline-block;">
+                                                ${c.is_active ? 'ACTIVO' : 'DESACTIVADO'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-secondary" style="padding: 8px 12px;" onclick="window.editEmailConfig(${c.id})">✏️ Configurar</button>
+                                </div>
+                                <div style="font-size: 0.85rem; color: var(--text-muted);">
+                                    <p><strong>Asunto:</strong> ${c.subject}</p>
+                                    <p style="margin-top: 5px;"><strong>Destinatarios:</strong> ${c.recipients}</p>
+                                    <p style="margin-top: 10px; font-size: 0.75rem; border-top: 1px solid var(--border); padding-top: 10px;">
+                                        Último envío: ${c.last_sent_at ? new Date(c.last_sent_at).toLocaleString('es-ES') : 'Nunca'}
+                                    </p>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        } catch (err) {
+            return `<div class="card-container"><p style="color:var(--danger)">Error: ${err.message}</p></div>`;
+        }
+    },
+
+    init_adminEmailSettings: async () => {
+        const modal = document.getElementById('email-notification-modal');
+        const form = document.getElementById('email-notification-form');
+        const previewPane = document.getElementById('email-preview-pane');
+        const htmlInput = document.getElementById('email-html-input');
+        const testBtn = document.getElementById('btn-test-email');
+
+        // Función para actualizar vista previa
+        const updatePreview = () => {
+            if (previewPane && htmlInput) {
+                previewPane.innerHTML = htmlInput.value;
+            }
+        };
+
+        htmlInput.addEventListener('input', updatePreview);
+
+        window.editEmailConfig = async (id) => {
+            Storage.showLoader(true, 'Cargando configuración...');
+            try {
+                const configs = await apiFetch('/api/admin/email-notifications').then(r => r.json());
+                const c = configs.find(x => x.id == id);
+                if (c) {
+                    document.getElementById('email-config-id').value = c.id;
+                    document.getElementById('email-subject-input').value = c.subject;
+                    document.getElementById('email-recipients-input').value = c.recipients;
+                    htmlInput.value = c.html_template;
+                    document.getElementById('email-active-checkbox').checked = !!c.is_active;
+                    updatePreview();
+                    modal.showModal();
+                }
+            } finally {
+                Storage.showLoader(false);
+            }
+        };
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('email-config-id').value;
+            const data = {
+                subject: document.getElementById('email-subject-input').value,
+                recipients: document.getElementById('email-recipients-input').value,
+                html_template: htmlInput.value,
+                is_active: document.getElementById('email-active-checkbox').checked
+            };
+
+            Storage.showLoader(true, 'Guardando cambios...');
+            try {
+                const res = await apiFetch(`/api/admin/email-notifications/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    modal.close();
+                    App.renderView('adminEmailSettings');
+                } else {
+                    alert('Error al guardar');
+                }
+            } finally {
+                Storage.showLoader(false);
+            }
+        };
+
+        testBtn.onclick = async () => {
+            const id = document.getElementById('email-config-id').value;
+            const configs = await apiFetch('/api/admin/email-notifications').then(r => r.json());
+            const c = configs.find(x => x.id == id);
+            if (!c) return;
+
+            Storage.showLoader(true, 'Enviando correo de prueba...');
+            try {
+                const res = await apiFetch('/api/admin/email-notifications/test', {
+                    method: 'POST',
+                    body: JSON.stringify({ type: c.type })
+                });
+                if (res.ok) {
+                    alert(`Prueba enviada con éxito a: ${c.recipients}`);
+                } else {
+                    alert('Error enviando prueba');
+                }
+            } finally {
+                Storage.showLoader(false);
+            }
+        };
     },
 
     init_adminSuperUsers: async () => {

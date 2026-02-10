@@ -511,63 +511,58 @@ async function sendEmailMessage(to, subject, text, html) {
 
 // --- Admin Notification ---
 async function sendAdminNotification(type, data) {
-    const adminEmail = 'info@avantixone.com';
-    let subject = "";
-    let html = "";
-
-    if (type === 'HOTMART_SALE') {
-        subject = `💰 Nueva Venta Hotmart: ${data.buyer.name || data.buyer.email}`;
-        html = `
-            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 600px; color: #1e293b;">
-                <h2 style="color: #6366f1; margin-top: 0;">🚀 ¡Nueva Venta Detectada!</h2>
-                <p>Se ha procesado una nueva compra desde Hotmart.</p>
-                <div style="background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #cbd5e1; margin: 20px 0;">
-                    <p style="margin: 5px 0;"><strong>Comprador:</strong> ${data.buyer.name || 'Cliente Avantix'}</p>
-                    <p style="margin: 5px 0;"><strong>Email:</strong> ${data.buyer.email}</p>
-                    <p style="margin: 5px 0;"><strong>Evento:</strong> <span style="background: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem;">${data.event}</span></p>
-                </div>
-                <p style="font-size: 0.9rem; color: #64748b; font-style: italic;">
-                    Nota: El sistema ya envió el correo de bienvenida al cliente con su enlace de registro.
-                </p>
-            </div>
-        `;
-    } else if (type === 'NEW_REGISTRATION') {
-        subject = `🏢 Nuevo Registro: ${data.businessName}`;
-        html = `
-            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 600px; color: #1e293b;">
-                <h2 style="color: #10b981; margin-top: 0;">✅ ¡Nueva Empresa Registrada!</h2>
-                <p>Un usuario ha completado exitosamente su registro en la plataforma.</p>
-                <div style="background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #cbd5e1; margin: 20px 0;">
-                    <p style="margin: 5px 0;"><strong>Empresa:</strong> ${data.businessName}</p>
-                    <p style="margin: 5px 0;"><strong>Propietario:</strong> ${data.ownerName} ${data.ownerLastName}</p>
-                    <p style="margin: 5px 0;"><strong>Email:</strong> ${data.ownerEmail}</p>
-                    <p style="margin: 5px 0;"><strong>Teléfono:</strong> ${data.ownerPhone}</p>
-                    <p style="margin: 5px 0;"><strong>Ciclo de Pago:</strong> ${data.cycle_type}</p>
-                </div>
-                <p style="font-size: 0.9rem; color: #64748b;">
-                    La empresa ya está activa y el usuario ha iniciado su primera sesión.
-                </p>
-            </div>
-        `;
-    } else if (type === 'TEST') {
-        subject = `🧪 Prueba de Notificación - Avantix One`;
-        html = `
-            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 600px; text-align: center;">
-                <h2 style="color: #6366f1;">¡Funciona Correctamente!</h2>
-                <p>Este es un correo de prueba enviado por el sistema de notificaciones.</p>
-                <div style="background: #f0fdf4; color: #166534; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                    Las notificaciones para <strong>Hotmart</strong> y <strong>Nuevos Registros</strong> están listas.
-                </div>
-                <p style="font-size: 0.85rem; color: #94a3b8;">Enviado el: ${new Date().toLocaleString()}</p>
-            </div>
-        `;
-    }
-
     try {
-        await sendEmailMessage(adminEmail, subject, subject, html);
-        console.log(` Notificación de Admin enviada: ${type}`);
+        const configRes = await db.query('SELECT * FROM email_notifications WHERE type = $1 AND is_active = TRUE', [type]);
+        if (configRes.rows.length === 0) {
+            console.warn(`⚠️ Notificación omitida: No existe configuración activa para ${type}`);
+            return;
+        }
+
+        const config = configRes.rows[0];
+        let subject = config.subject;
+        let html = config.html_template;
+
+        // Aplanar el objeto data para facilitar la interpolación (ej: data.buyer.name -> buyer_name)
+        const flatData = {};
+        const flatten = (obj, prefix = '') => {
+            for (let key in obj) {
+                if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
+                    flatten(obj[key], `${prefix}${key}_`);
+                } else {
+                    flatData[`${prefix}${key}`] = obj[key];
+                }
+            }
+        };
+        flatten(data);
+
+        // Agregar algunas variables globales útiles
+        flatData['date'] = new Date().toLocaleString('es-ES');
+        flatData['year'] = new Date().getFullYear();
+
+        // Interpolación de variables {{var}}
+        const interpolate = (str, params) => {
+            return str.replace(/\{\{(.*?)\}\}/g, (match, p1) => {
+                const key = p1.trim();
+                return params[key] !== undefined ? params[key] : match;
+            });
+        };
+
+        subject = interpolate(subject, flatData);
+        html = interpolate(html, flatData);
+
+        const recipients = config.recipients.split(',').map(r => r.trim());
+
+        for (const email of recipients) {
+            if (email) {
+                await sendEmailMessage(email, subject, subject, html);
+            }
+        }
+
+        await db.query('UPDATE email_notifications SET last_sent_at = NOW() WHERE id = $1', [config.id]);
+        console.log(`✅ Notificación enviada (${type}) a: ${config.recipients}`);
+
     } catch (err) {
-        console.error("❌ Error enviando notificación al admin:", err.message);
+        console.error("❌ Error en sendAdminNotification:", err.message);
     }
 }
 
@@ -1154,7 +1149,48 @@ app.get('/api/admin/stats', checkAuth, async (req, res) => {
     }
 });
 
-// --- Onboarding Flow ---
+// --- Email Notification Settings (Super Admin) ---
+app.get('/api/admin/email-notifications', checkAuth, async (req, res) => {
+    if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
+    try {
+        const result = await db.query('SELECT * FROM email_notifications ORDER BY id ASC');
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/admin/email-notifications/:id', checkAuth, async (req, res) => {
+    if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
+    const { id } = req.params;
+    const { subject, html_template, recipients, is_active } = req.body;
+    try {
+        const result = await db.query(
+            'UPDATE email_notifications SET subject = $1, html_template = $2, recipients = $3, is_active = $4 WHERE id = $5 RETURNING *',
+            [subject, html_template, recipients, is_active, id]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/admin/email-notifications/test', checkAuth, async (req, res) => {
+    if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
+    const { type } = req.body;
+    try {
+        let mockData = {};
+        if (type === 'HOTMART_SALE') {
+            mockData = { buyer: { name: 'Juan Prueba', email: 'prueba@test.com' }, event: 'MOCK_EVENT' };
+        } else if (type === 'NEW_REGISTRATION') {
+            mockData = { businessName: 'Empresa Test S.A.', ownerName: 'Admin', ownerEmail: 'admin@test.com', ownerPhone: '12345678', cycle_type: 'Weekly' };
+        }
+        await sendAdminNotification(type, mockData);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 app.post('/api/onboarding/register', upload.single('logo'), async (req, res) => {
     const {
         businessName, legal_type, legal_name, cedulaJuridica, country, state, city, district, address, email: bizEmail, phone: bizPhone,

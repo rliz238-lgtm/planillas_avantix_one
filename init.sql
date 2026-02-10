@@ -113,6 +113,58 @@ CREATE TABLE IF NOT EXISTS settings (
     PRIMARY KEY (business_id, key)
 );
 
+-- Tabla para Plantillas de Correo (Configuración Global / Super Admin)
+CREATE TABLE IF NOT EXISTS email_notifications (
+    id SERIAL PRIMARY KEY,
+    type VARCHAR(50) UNIQUE NOT NULL, -- Ej: HOTMART_SALE, NEW_REGISTRATION
+    name VARCHAR(100) NOT NULL,       -- Nombre descriptivo para la UI
+    subject VARCHAR(255) NOT NULL,
+    html_template TEXT NOT NULL,
+    recipients TEXT DEFAULT 'info@avantixone.com', -- Lista separada por comas
+    is_active BOOLEAN DEFAULT TRUE,
+    last_sent_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insertar configuraciones iniciales basadas en el código hardcoded actual
+INSERT INTO email_notifications (type, name, subject, html_template) 
+VALUES 
+('HOTMART_SALE', 'Nueva Venta Hotmart', '💰 Nueva Venta Hotmart: {{buyer_name}}', 
+'<div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 600px; color: #1e293b;">
+    <h2 style="color: #6366f1; margin-top: 0;">🚀 ¡Nueva Venta Detectada!</h2>
+    <p>Se ha procesado una nueva compra desde Hotmart.</p>
+    <div style="background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #cbd5e1; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Comprador:</strong> {{buyer_name}}</p>
+        <p style="margin: 5px 0;"><strong>Email:</strong> {{buyer_email}}</p>
+        <p style="margin: 5px 0;"><strong>Evento:</strong> <span style="background: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem;">{{event}}</span></p>
+    </div>
+    <p style="font-size: 0.9rem; color: #64748b; font-style: italic;">
+        Nota: El sistema ya envió el correo de bienvenida al cliente con su enlace de registro.
+    </p>
+</div>'),
+('NEW_REGISTRATION', 'Registro de Empresa', '🏢 Nuevo Registro: {{business_name}}', 
+'<div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 600px; color: #1e293b;">
+    <h2 style="color: #10b981; margin-top: 0;">✅ ¡Nueva Empresa Registrada!</h2>
+    <p>Un usuario ha completado exitosamente su registro en la plataforma.</p>
+    <div style="background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #cbd5e1; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Empresa:</strong> {{business_name}}</p>
+        <p style="margin: 5px 0;"><strong>Propietario:</strong> {{owner_name}}</p>
+        <p style="margin: 5px 0;"><strong>Email:</strong> {{owner_email}}</p>
+        <p style="margin: 5px 0;"><strong>Teléfono:</strong> {{owner_phone}}</p>
+        <p style="margin: 5px 0;"><strong>Ciclo de Pago:</strong> {{cycle_type}}</p>
+    </div>
+</div>'),
+('TEST', 'Prueba de Sistema', '🧪 Prueba de Notificación - Avantix One', 
+'<div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 600px; text-align: center;">
+    <h2 style="color: #6366f1;">¡Funciona Correctamente!</h2>
+    <p>Este es un correo de prueba enviado por el sistema de notificaciones.</p>
+    <div style="background: #f0fdf4; color: #166534; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        Las notificaciones dinámicas están listas para usarse.
+    </div>
+    <p style="font-size: 0.85rem; color: #94a3b8;">Enviado el: {{date}}</p>
+</div>')
+ON CONFLICT (type) DO NOTHING;
+
 -- MIGRACIONES DE COLUMNAS (Para bases de datos existentes)
 DO $$ 
 BEGIN
