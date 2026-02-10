@@ -1322,11 +1322,27 @@ app.post('/api/webhooks/hotmart', async (req, res) => {
     res.json({ received: true });
 });
 
-// --- Ruta Temporal para Probar Notificaciones ---
+// --- Rutas Temporales para Probar Notificaciones ---
 app.get('/api/test/notify-admin', async (req, res) => {
     try {
         await sendAdminNotification('TEST', {});
-        res.json({ success: true, message: 'Correo de prueba enviado a nochi38@hotmail.com' });
+        res.json({ success: true, message: 'Correo de prueba enviado a info@avantixone.com' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/test/notify-sale', async (req, res) => {
+    try {
+        const mockData = {
+            buyer: {
+                name: 'Juan Pérez (Prueba)',
+                email: 'juan.perez.test@example.com'
+            },
+            event: 'PURCHASE_APPROVED'
+        };
+        await sendAdminNotification('HOTMART_SALE', mockData);
+        res.json({ success: true, message: 'Simulación de venta Hotmart enviada a info@avantixone.com' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
