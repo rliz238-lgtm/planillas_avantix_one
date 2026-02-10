@@ -509,8 +509,8 @@ async function sendEmailMessage(to, subject, text, html) {
     return info;
 }
 
-// --- Admin Notification ---
-async function sendAdminNotification(type, data) {
+// --- Configurable Email System ---
+async function sendConfigurableEmail(type, data, customRecipient = null) {
     try {
         const configRes = await db.query('SELECT * FROM email_notifications WHERE type = $1 AND is_active = TRUE', [type]);
         if (configRes.rows.length === 0) {
@@ -522,7 +522,7 @@ async function sendAdminNotification(type, data) {
         let subject = config.subject;
         let html = config.html_template;
 
-        // Aplanar el objeto data para facilitar la interpolación (ej: data.buyer.name -> buyer_name)
+        // Aplanar el objeto data para facilitar la interpolación
         const flatData = {};
         const flatten = (obj, prefix = '') => {
             for (let key in obj) {
@@ -530,16 +530,18 @@ async function sendAdminNotification(type, data) {
                     flatten(obj[key], `${prefix}${key}_`);
                 } else {
                     flatData[`${prefix}${key}`] = obj[key];
+                    // También guardar sin prefijo si es posible para compatibilidad (ej: data.password -> password)
+                    if (prefix === '') flatData[key] = obj[key];
                 }
             }
         };
         flatten(data);
 
-        // Agregar algunas variables globales útiles
+        // Global variables
         flatData['date'] = new Date().toLocaleString('es-ES');
         flatData['year'] = new Date().getFullYear();
 
-        // Interpolación de variables {{var}}
+        // Interpolación {{var}}
         const interpolate = (str, params) => {
             return str.replace(/\{\{(.*?)\}\}/g, (match, p1) => {
                 const key = p1.trim();
@@ -550,7 +552,11 @@ async function sendAdminNotification(type, data) {
         subject = interpolate(subject, flatData);
         html = interpolate(html, flatData);
 
-        const recipients = config.recipients.split(',').map(r => r.trim());
+        // Si se provee customRecipient, se usa ese (para correos a clientes)
+        // si no, se usa la lista de recipients de la DB (para notificaciones a admin)
+        const recipients = customRecipient
+            ? [customRecipient]
+            : config.recipients.split(',').map(r => r.trim());
 
         for (const email of recipients) {
             if (email) {
@@ -559,10 +565,10 @@ async function sendAdminNotification(type, data) {
         }
 
         await db.query('UPDATE email_notifications SET last_sent_at = NOW() WHERE id = $1', [config.id]);
-        console.log(`✅ Notificación enviada (${type}) a: ${config.recipients}`);
+        console.log(`✅ Correo configurado enviado (${type}) a: ${customRecipient || config.recipients}`);
 
     } catch (err) {
-        console.error("❌ Error en sendAdminNotification:", err.message);
+        console.error("❌ Error en sendConfigurableEmail:", err.message);
     }
 }
 
@@ -998,23 +1004,7 @@ app.post('/api/admin/businesses/:id/resend-access', checkAuth, async (req, res) 
         const owner = result.rows[0];
         const targetEmail = owner.email || owner.username;
 
-        const subject = "Tus credenciales de acceso - Avantix One";
-        const text = `Hola ${owner.name},\n\nAquí tienes tus credenciales de acceso a Avantix One:\n\nURL: https://app.avantixone.com\nUsuario: ${owner.username}\nContraseña: ${owner.password}`;
-        const html = `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-                <h2 style="color: #6366f1;">Credenciales de Acceso 🚀</h2>
-                <p>Hola <strong>${owner.name}</strong>,</p>
-                <p>Aquí tienes tus datos para ingresar a la plataforma de <strong>${owner.business_name}</strong>:</p>
-                <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid #eee;">
-                    <p><strong>🌐 URL:</strong> <a href="https://app.avantixone.com">https://app.avantixone.com</a></p>
-                    <p><strong>👤 Usuario:</strong> ${owner.username}</p>
-                    <p><strong>🔑 Contraseña:</strong> ${owner.password}</p>
-                </div>
-                <p style="margin-top: 20px; font-size: 0.9rem; color: #6b7280;">Si no recordabas tu contraseña, te recomendamos cambiarla al ingresar.</p>
-            </div>
-        `;
-
-        await sendEmailMessage(targetEmail, subject, text, html);
+        await sendConfigurableEmail('RESEND_ACCESS', owner, targetEmail);
         res.json({ success: true, message: 'Accesos enviados correctamente' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -1040,25 +1030,10 @@ app.post('/api/admin/businesses/:id/reset-access', checkAuth, async (req, res) =
 
         if (result.rows.length === 0) return res.status(404).json({ error: 'Dueño no encontrado' });
         const owner = result.rows[0];
+        owner.password = newPassword; // Para que el template use la nueva
         const targetEmail = owner.email || owner.username;
 
-        const subject = "REINICIO de credenciales - Avantix One";
-        const text = `Hola ${owner.name},\n\nTu contraseña ha sido reiniciada por un administrador.\n\nURL: https://app.avantixone.com\nUsuario: ${owner.username}\nNueva Contraseña: ${newPassword}`;
-        const html = `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-                <h2 style="color: #ef4444;">Contraseña Reiniciada 🔐</h2>
-                <p>Hola <strong>${owner.name}</strong>,</p>
-                <p>Tu contraseña para la empresa <strong>${owner.business_name}</strong> ha sido reiniciada.</p>
-                <div style="background: #fffbeb; padding: 20px; border-radius: 8px; border: 1px solid #fef3c7;">
-                    <p><strong>🌐 URL de Acceso:</strong> <a href="https://app.avantixone.com">https://app.avantixone.com</a></p>
-                    <p><strong>👤 Usuario:</strong> ${owner.username}</p>
-                    <p><strong>🔑 Nueva Contraseña:</strong> <code style="font-weight: bold;">${newPassword}</code></p>
-                </div>
-                <p style="margin-top: 20px; font-size: 0.9rem; color: #b45309;"><strong>Recuerda cambiar esta contraseña temporal apenas ingreses.</strong></p>
-            </div>
-        `;
-
-        await sendEmailMessage(targetEmail, subject, text, html);
+        await sendConfigurableEmail('RESET_PASSWORD', owner, targetEmail);
         res.json({ success: true, message: 'Contraseña reiniciada y enviada' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -1182,10 +1157,12 @@ app.post('/api/admin/email-notifications/test', checkAuth, async (req, res) => {
         let mockData = {};
         if (type === 'HOTMART_SALE') {
             mockData = { buyer: { name: 'Juan Prueba', email: 'prueba@test.com' }, event: 'MOCK_EVENT' };
-        } else if (type === 'NEW_REGISTRATION') {
-            mockData = { businessName: 'Empresa Test S.A.', ownerName: 'Admin', ownerEmail: 'admin@test.com', ownerPhone: '12345678', cycle_type: 'Weekly' };
+        } else if (type === 'HOTMART_WELCOME') {
+            mockData = { buyer_name: 'Cliente Prueba', registration_link: 'https://app.avantixone.com/register.html?test=1' };
+        } else if (type === 'RESEND_ACCESS' || type === 'RESET_PASSWORD') {
+            mockData = { name: 'Admin de Prueba', business_name: 'Empresa Test', username: 'admin@test.com', password: 'PASSWORD123' };
         }
-        await sendAdminNotification(type, mockData);
+        await sendConfigurableEmail(type, mockData);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -1226,7 +1203,7 @@ app.post('/api/onboarding/register', upload.single('logo'), async (req, res) => 
         await db.query('COMMIT');
 
         // --- Notificar al Administrador ---
-        sendAdminNotification('NEW_REGISTRATION', {
+        sendConfigurableEmail('NEW_REGISTRATION', {
             businessName: finalBusinessName,
             ownerName,
             ownerLastName,
@@ -1311,40 +1288,14 @@ app.post('/api/webhooks/hotmart', async (req, res) => {
 
             // --- Envío de Notificación de Compra con Link de Registro ---
             const registrationLink = `https://app.avantixone.com/register.html?email=${encodeURIComponent(buyer.email)}&name=${encodeURIComponent(buyer.name)}`;
-            const subject = "¡Gracias por tu compra en Avantix One! 🚀";
-            const welcomeMsgText = `Hola ${buyer.name || 'Propietario'},\n\nGracias por adquirir Avantix One. Para comenzar a usar el sistema, por favor completa el registro de tu empresa en el siguiente enlace:\n\n${registrationLink}\n\nUna vez completado, podrás acceder a todas las funciones.`;
 
-            const welcomeMsgHtml = `
-                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <h2 style="color: #6366f1; margin: 0;">¡Bienvenido a Avantix One! 🚀</h2>
-                    </div>
-                    <p>Hola <strong>${buyer.name || 'Propietario'}</strong>,</p>
-                    <p>¡Gracias por tu compra! Ya tienes acceso a la plataforma de gestión de planillas líder en la región.</p>
-                    
-                    <div style="background: #f9fafb; padding: 30px; border-radius: 8px; margin: 25px 0; border: 1px solid #eee; text-align: center;">
-                        <p style="margin-bottom: 20px; color: #374151; font-weight: 500;">Haz clic en el botón de abajo para configurar tu cuenta y los datos de tu empresa:</p>
-                        <a href="${registrationLink}" style="background: #6366f1; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">Completar mi Registro</a>
-                    </div>
-
-                    <p style="margin-top: 30px; font-size: 0.9rem; color: #6b7280;">
-                        Este enlace te llevará directamente al asistente de configuración para que puedas empezar a cargar tus empleados de inmediato.
-                    </p>
-                    
-                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-                    <p style="font-size: 0.8rem; color: #9ca3af; text-align: center;">Si tienes alguna duda, puedes contactarnos respondiendo a este correo.</p>
-                </div>
-            `;
-
-            try {
-                await sendEmailMessage(buyer.email, subject, welcomeMsgText, welcomeMsgHtml);
-                console.log(`📧 Credenciales enviadas por Email a ${buyer.email}`);
-            } catch (emailErr) {
-                console.error(`⚠️ No se pudo enviar el Email de bienvenida a ${buyer.email}: ${emailErr.message}`);
-            }
+            await sendConfigurableEmail('HOTMART_WELCOME', {
+                buyer_name: buyer.name || 'Propietario',
+                registration_link: registrationLink
+            }, buyer.email);
 
             // --- Notificar al Administrador de la venta ---
-            sendAdminNotification('HOTMART_SALE', { buyer, event });
+            sendConfigurableEmail('HOTMART_SALE', { buyer, event });
 
             return res.json({ success: true, message: 'Provisioning complete' });
         } catch (err) {
@@ -1361,7 +1312,7 @@ app.post('/api/webhooks/hotmart', async (req, res) => {
 // --- Rutas Temporales para Probar Notificaciones ---
 app.get('/api/test/notify-admin', async (req, res) => {
     try {
-        await sendAdminNotification('TEST', {});
+        await sendConfigurableEmail('TEST', {});
         res.json({ success: true, message: 'Correo de prueba enviado a info@avantixone.com' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -1377,7 +1328,7 @@ app.get('/api/test/notify-sale', async (req, res) => {
             },
             event: 'PURCHASE_APPROVED'
         };
-        await sendAdminNotification('HOTMART_SALE', mockData);
+        await sendConfigurableEmail('HOTMART_SALE', mockData);
         res.json({ success: true, message: 'Simulación de venta Hotmart enviada a info@avantixone.com' });
     } catch (err) {
         res.status(500).json({ error: err.message });

@@ -162,8 +162,48 @@ VALUES
         Las notificaciones dinámicas están listas para usarse.
     </div>
     <p style="font-size: 0.85rem; color: #94a3b8;">Enviado el: {{date}}</p>
+</div>'),
+('HOTMART_WELCOME', 'Bienvenida Cliente (Hotmart)', '¡Gracias por tu compra en Avantix One! 🚀', 
+'<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+    <div style="text-align: center; margin-bottom: 20px;">
+        <h2 style="color: #6366f1; margin: 0;">¡Bienvenido a Avantix One! 🚀</h2>
+    </div>
+    <p>Hola <strong>{{buyer_name}}</strong>,</p>
+    <p>¡Gracias por tu compra! Ya tienes acceso a la plataforma de gestión de planillas líder en la región.</p>
+    <div style="background: #f9fafb; padding: 30px; border-radius: 8px; margin: 25px 0; border: 1px solid #eee; text-align: center;">
+        <p style="margin-bottom: 20px; color: #374151; font-weight: 500;">Haz clic en el botón de abajo para configurar tu cuenta y los datos de tu empresa:</p>
+        <a href="{{registration_link}}" style="background: #6366f1; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">Completar mi Registro</a>
+    </div>
+    <p style="font-size: 0.9rem; color: #6b7280;">Este enlace te llevará directamente al asistente de configuración.</p>
+</div>'),
+('RESEND_ACCESS', 'Reenvío de Credenciales', 'Tus credenciales de acceso - Avantix One', 
+'<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+    <h2 style="color: #6366f1;">Credenciales de Acceso 🚀</h2>
+    <p>Hola <strong>{{name}}</strong>,</p>
+    <p>Aquí tienes tus datos para ingresar a la plataforma de <strong>{{business_name}}</strong>:</p>
+    <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid #eee;">
+        <p><strong>🌐 URL:</strong> <a href="https://app.avantixone.com">https://app.avantixone.com</a></p>
+        <p><strong>👤 Usuario:</strong> {{username}}</p>
+        <p><strong>🔑 Contraseña:</strong> {{password}}</p>
+    </div>
+    <p style="margin-top: 20px; font-size: 0.9rem; color: #6b7280;">Si no recordabas tu contraseña, te recomendamos cambiarla al ingresar.</p>
+</div>'),
+('RESET_PASSWORD', 'Reinicio de Contraseña', 'REINICIO de credenciales - Avantix One', 
+'<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+    <h2 style="color: #ef4444;">Contraseña Reiniciada 🔐</h2>
+    <p>Hola <strong>{{name}}</strong>,</p>
+    <p>Tu contraseña para la empresa <strong>{{business_name}}</strong> ha sido reiniciada.</p>
+    <div style="background: #fffbeb; padding: 20px; border-radius: 8px; border: 1px solid #fef3c7;">
+        <p><strong>🌐 URL de Acceso:</strong> <a href="https://app.avantixone.com">https://app.avantixone.com</a></p>
+        <p><strong>👤 Usuario:</strong> {{username}}</p>
+        <p><strong>🔑 Nueva Contraseña:</strong> <code style="font-weight: bold;">{{password}}</code></p>
+    </div>
+    <p style="margin-top: 20px; font-size: 0.9rem; color: #b45309;">Recuerda cambiar esta contraseña temporal apenas ingreses.</p>
 </div>')
-ON CONFLICT (type) DO NOTHING;
+ON CONFLICT (type) DO UPDATE 
+SET name = EXCLUDED.name, 
+    subject = EXCLUDED.subject, 
+    html_template = EXCLUDED.html_template;
 
 -- MIGRACIONES DE COLUMNAS (Para bases de datos existentes)
 DO $$ 
