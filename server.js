@@ -509,6 +509,68 @@ async function sendEmailMessage(to, subject, text, html) {
     return info;
 }
 
+// --- Admin Notification ---
+async function sendAdminNotification(type, data) {
+    const adminEmail = 'info@avantixone.com';
+    let subject = "";
+    let html = "";
+
+    if (type === 'HOTMART_SALE') {
+        subject = `💰 Nueva Venta Hotmart: ${data.buyer.name || data.buyer.email}`;
+        html = `
+            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 600px; color: #1e293b;">
+                <h2 style="color: #6366f1; margin-top: 0;">🚀 ¡Nueva Venta Detectada!</h2>
+                <p>Se ha procesado una nueva compra desde Hotmart.</p>
+                <div style="background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #cbd5e1; margin: 20px 0;">
+                    <p style="margin: 5px 0;"><strong>Comprador:</strong> ${data.buyer.name || 'Cliente Avantix'}</p>
+                    <p style="margin: 5px 0;"><strong>Email:</strong> ${data.buyer.email}</p>
+                    <p style="margin: 5px 0;"><strong>Evento:</strong> <span style="background: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem;">${data.event}</span></p>
+                </div>
+                <p style="font-size: 0.9rem; color: #64748b; font-style: italic;">
+                    Nota: El sistema ya envió el correo de bienvenida al cliente con su enlace de registro.
+                </p>
+            </div>
+        `;
+    } else if (type === 'NEW_REGISTRATION') {
+        subject = `🏢 Nuevo Registro: ${data.businessName}`;
+        html = `
+            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 600px; color: #1e293b;">
+                <h2 style="color: #10b981; margin-top: 0;">✅ ¡Nueva Empresa Registrada!</h2>
+                <p>Un usuario ha completado exitosamente su registro en la plataforma.</p>
+                <div style="background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #cbd5e1; margin: 20px 0;">
+                    <p style="margin: 5px 0;"><strong>Empresa:</strong> ${data.businessName}</p>
+                    <p style="margin: 5px 0;"><strong>Propietario:</strong> ${data.ownerName} ${data.ownerLastName}</p>
+                    <p style="margin: 5px 0;"><strong>Email:</strong> ${data.ownerEmail}</p>
+                    <p style="margin: 5px 0;"><strong>Teléfono:</strong> ${data.ownerPhone}</p>
+                    <p style="margin: 5px 0;"><strong>Ciclo de Pago:</strong> ${data.cycle_type}</p>
+                </div>
+                <p style="font-size: 0.9rem; color: #64748b;">
+                    La empresa ya está activa y el usuario ha iniciado su primera sesión.
+                </p>
+            </div>
+        `;
+    } else if (type === 'TEST') {
+        subject = `🧪 Prueba de Notificación - Avantix One`;
+        html = `
+            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 600px; text-align: center;">
+                <h2 style="color: #6366f1;">¡Funciona Correctamente!</h2>
+                <p>Este es un correo de prueba enviado por el sistema de notificaciones.</p>
+                <div style="background: #f0fdf4; color: #166534; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    Las notificaciones para <strong>Hotmart</strong> y <strong>Nuevos Registros</strong> están listas.
+                </div>
+                <p style="font-size: 0.85rem; color: #94a3b8;">Enviado el: ${new Date().toLocaleString()}</p>
+            </div>
+        `;
+    }
+
+    try {
+        await sendEmailMessage(adminEmail, subject, subject, html);
+        console.log(` Notificación de Admin enviada: ${type}`);
+    } catch (err) {
+        console.error("❌ Error enviando notificación al admin:", err.message);
+    }
+}
+
 app.post('/api/logs/batch', checkAuth, async (req, res) => {
     const { employeeId, logs } = req.body;
 
@@ -1127,6 +1189,16 @@ app.post('/api/onboarding/register', upload.single('logo'), async (req, res) => 
 
         await db.query('COMMIT');
 
+        // --- Notificar al Administrador ---
+        sendAdminNotification('NEW_REGISTRATION', {
+            businessName: finalBusinessName,
+            ownerName,
+            ownerLastName,
+            ownerEmail,
+            ownerPhone,
+            cycle_type: req.body.cycle_type || 'Weekly'
+        });
+
         // Retornar datos de sesión para auto-login inmediato
         res.json({
             success: true,
@@ -1235,6 +1307,9 @@ app.post('/api/webhooks/hotmart', async (req, res) => {
                 console.error(`⚠️ No se pudo enviar el Email de bienvenida a ${buyer.email}: ${emailErr.message}`);
             }
 
+            // --- Notificar al Administrador de la venta ---
+            sendAdminNotification('HOTMART_SALE', { buyer, event });
+
             return res.json({ success: true, message: 'Provisioning complete' });
         } catch (err) {
             await db.query('ROLLBACK');
@@ -1245,6 +1320,16 @@ app.post('/api/webhooks/hotmart', async (req, res) => {
 
     // Responder 200 para otros eventos para que Hotmart no reintente
     res.json({ received: true });
+});
+
+// --- Ruta Temporal para Probar Notificaciones ---
+app.get('/api/test/notify-admin', async (req, res) => {
+    try {
+        await sendAdminNotification('TEST', {});
+        res.json({ success: true, message: 'Correo de prueba enviado a nochi38@hotmail.com' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // --- Reportes CCSS ---
