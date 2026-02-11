@@ -822,7 +822,7 @@ dialog[open] {
     .menu-toggle,
     .menu-close {
         display: block;
-        color: var(--primary);
+        color: var(--text-main) !important;
         background: var(--hover-bg);
         border-color: var(--border);
     }
