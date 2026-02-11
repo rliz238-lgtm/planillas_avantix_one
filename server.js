@@ -1202,7 +1202,6 @@ app.post('/api/onboarding/register', upload.single('logo'), async (req, res) => 
 
         await db.query('COMMIT');
 
-        // --- Notificar al Administrador ---
         sendConfigurableEmail('NEW_REGISTRATION', {
             businessName: finalBusinessName,
             ownerName,
@@ -1211,6 +1210,13 @@ app.post('/api/onboarding/register', upload.single('logo'), async (req, res) => 
             ownerPhone,
             cycle_type: req.body.cycle_type || 'Weekly'
         });
+
+        // --- Notificar al Cliente que su cuenta está lista ---
+        sendConfigurableEmail('REGISTRATION_SUCCESS', {
+            name: ownerName,
+            username: username,
+            business_name: finalBusinessName
+        }, ownerEmail);
 
         // Retornar datos de sesión para auto-login inmediato
         res.json({

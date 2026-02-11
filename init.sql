@@ -199,6 +199,20 @@ VALUES
         <p><strong>🔑 Nueva Contraseña:</strong> <code style="font-weight: bold;">{{password}}</code></p>
     </div>
     <p style="margin-top: 20px; font-size: 0.9rem; color: #b45309;">Recuerda cambiar esta contraseña temporal apenas ingreses.</p>
+</div>'),
+('REGISTRATION_SUCCESS', 'Confirmación de Registro (Cliente)', '✅ Tu cuenta en Avantix One está lista', 
+'<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+    <div style="text-align: center; margin-bottom: 20px;">
+        <h2 style="color: #10b981; margin: 0;">¡Registro Completado! ✅</h2>
+    </div>
+    <p>Hola <strong>{{name}}</strong>,</p>
+    <p>Tu empresa <strong>{{business_name}}</strong> ha sido configurada correctamente en Avantix One.</p>
+    <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #bbf7d0; text-align: center;">
+        <p style="margin-bottom: 15px; color: #166534; font-weight: 500;">Ya puedes ingresar a tu panel de control:</p>
+        <a href="https://app.avantixone.com" style="background: #10b981; color: white; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Ingresar al Sistema</a>
+    </div>
+    <p style="font-size: 0.9rem; color: #64748b;">Tu usuario es: <strong>{{username}}</strong></p>
+    <p style="margin-top: 20px; font-size: 0.8rem; color: #94a3b8; text-align: center;">Gracias por confiar en Avantix One para la gestión de tus planillas.</p>
 </div>')
 ON CONFLICT (type) DO UPDATE 
 SET name = EXCLUDED.name, 
