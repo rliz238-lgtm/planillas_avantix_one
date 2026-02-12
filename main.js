@@ -2986,11 +2986,13 @@ const Views = {
             let nextDateStr = Storage.getLocalDate();
             let nextIn = "08:00";
             let nextOut = "17:00";
+            let nextDeduction = "0";
 
             if (lastRow) {
                 const lastDateVal = lastRow.querySelector('.calc-date').value;
                 const lastInVal = lastRow.querySelector('.calc-in').value;
                 const lastOutVal = lastRow.querySelector('.calc-out').value;
+                const lastDeductionVal = lastRow.querySelector('.calc-deduction').value;
 
                 if (lastDateVal) {
                     const [y, m, d] = lastDateVal.split('-').map(Number);
@@ -3000,6 +3002,7 @@ const Views = {
                 }
                 nextIn = lastInVal;
                 nextOut = lastOutVal;
+                nextDeduction = lastDeductionVal;
             }
 
             const tr = document.createElement('tr');
@@ -3011,7 +3014,7 @@ const Views = {
                 <td class="calc-ccss" style="font-weight: 600; color: var(--danger)">₡0</td>
                 <td class="calc-row-net" style="font-weight: 600; color: var(--success)">₡0</td>
                 <td style="text-align:center"><input type="checkbox" class="calc-double" title="Marcar como Día Doble" style="width: 20px; height: 20px;"></td>
-                <td><input type="number" class="calc-deduction" value="0" step="0.5" style="width:100px" title="Horas de almuerzo o permisos"></td>
+                <td><input type="number" class="calc-deduction" value="${nextDeduction}" step="0.5" style="width:100px" title="Horas de almuerzo o permisos"></td>
                 <td style="text-align: center;"><button class="btn" style="padding: 6px; color: var(--danger)" onclick="this.closest('tr').remove(); window.updateCalcTotal();">✕</button></td>
             `;
             tbody.appendChild(tr);
