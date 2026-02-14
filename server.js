@@ -1079,6 +1079,16 @@ app.post('/api/admin/businesses', checkAuth, async (req, res) => {
     }
 });
 
+app.delete('/api/admin/businesses/:id', checkAuth, async (req, res) => {
+    if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
+    try {
+        await db.query('DELETE FROM businesses WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/admin/stats', checkAuth, async (req, res) => {
     if (req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
     try {

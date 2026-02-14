@@ -1924,6 +1924,8 @@ const Views = {
                                                 onclick="window.resendAccess(${b.id})" title="Reenviar credenciales por email">📧 Enviar Acceso</button>
                                             <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.85rem; background: rgba(239, 68, 68, 0.1); color: var(--danger);" 
                                                 onclick="window.resetAccess(${b.id})" title="Reiniciar contraseña y enviar">🔐 Reiniciar Pass</button>
+                                            <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.85rem; background: rgba(239, 68, 68, 0.1); color: var(--danger);" 
+                                                onclick="window.deleteBusiness(${b.id})" title="Eliminar Empresa">🗑️</button>
                                         </div>
                                     </td>
                                 </tr>
@@ -2467,6 +2469,26 @@ const Views = {
                 const result = await res.json();
                 if (result.success) {
                     alert("🔐 Contraseña reiniciada y enviada al cliente.");
+                } else {
+                    alert("Error: " + result.error);
+                }
+            } catch (e) {
+                alert("Error de conexión");
+            } finally {
+                Storage.showLoader(false);
+            }
+        };
+
+        window.deleteBusiness = async (id) => {
+            if (!confirm("⚠️ ¡ADVERTENCIA!\n\n¿Está seguro de que desea eliminar esta empresa permanentemente? Esto borrará TODOS los datos asociados (empleados, pagos, configuraciones).\n\nEsta acción no se puede deshacer.")) return;
+
+            Storage.showLoader(true, 'Eliminando empresa...');
+            try {
+                const res = await apiFetch(`/api/admin/businesses/${id}`, { method: 'DELETE' });
+                const result = await res.json();
+                if (result.success) {
+                    alert("🏢 Empresa eliminada correctamente.");
+                    App.renderView('adminBusinesses');
                 } else {
                     alert("Error: " + result.error);
                 }
