@@ -3363,7 +3363,7 @@ const Views = {
                         const blob = await (await fetch(capturedPhoto)).blob();
                         const formData = new FormData();
                         formData.append('photo', blob, 'marker.jpg');
-                        const uploadRes = await apiFetch('/api/settings/upload-attendance-photo', {
+                        const uploadRes = await apiFetch('/api/logs/upload-photo', {
                             method: 'POST',
                             body: formData
                         }).then(r => r.json());
