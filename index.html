@@ -12,6 +12,13 @@
     <link rel="stylesheet" href="style.css?v=22.0">
     <link rel="stylesheet" href="calculator.css?v=22.0">
     <link rel="icon" type="image/png" href="img/favicon.png?v=3">
+
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="img/icons/icon-192x192.png">
 </head>
 
 <body>
@@ -748,6 +755,15 @@
             <span class="btn-text">Soporte</span>
         </button>
     </div>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('PWA Service Worker registrado'))
+                    .catch(err => console.log('PWA Service Worker falló', err));
+            });
+        }
+    </script>
 </body>
 
 </html>
