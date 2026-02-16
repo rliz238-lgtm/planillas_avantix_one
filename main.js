@@ -817,16 +817,6 @@ const App = {
     },
 
     async init() {
-        // --- Core Static Listeners First (Fast) ---
-        const logoutBtn = document.getElementById('logout-btn');
-        if (logoutBtn) {
-            logoutBtn.onclick = () => Auth.logout();
-        }
-
-        this.setupMobileMenu();
-        this.setupThemeToggle();
-        this.setupEmployeeModal();
-
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('action') === 'register') {
             document.body.classList.add('onboarding-fullscreen');
@@ -857,6 +847,15 @@ const App = {
             this.renderLanding();
             return;
         }
+
+        // --- Core Static Listeners (Fast) ---
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.onclick = () => Auth.logout();
+        }
+        this.setupMobileMenu();
+        this.setupThemeToggle();
+        this.setupEmployeeModal();
 
         let user = Auth.getUser();
 
