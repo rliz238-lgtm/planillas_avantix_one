@@ -457,7 +457,13 @@ const EmployeePortal = {
                 // 2. Subir Foto (si hay)
                 let photoUrl = null;
                 if (capturedPhoto) {
-                    const blob = await (await fetch(capturedPhoto)).blob();
+                    const parts = capturedPhoto.split(',');
+                    const byteString = atob(parts[1]);
+                    const mimeString = parts[0].split(':')[1].split(';')[0];
+                    const ab = new ArrayBuffer(byteString.length);
+                    const ia = new Uint8Array(ab);
+                    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+                    const blob = new Blob([ab], { type: mimeString });
                     const formData = new FormData();
                     formData.append('photo', blob, 'marker.jpg');
                     const uploadRes = await fetch('/api/logs/upload-photo', {
