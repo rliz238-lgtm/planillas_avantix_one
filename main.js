@@ -752,6 +752,14 @@ const Auth = {
                     name: emp.name,
                     role: 'employee',
                     business_id: emp.business_id,
+                    business_name: emp.business_name,
+                    attendance_marker_enabled: !!emp.attendance_marker_enabled,
+                    gps_latitude: emp.gps_latitude,
+                    gps_longitude: emp.gps_longitude,
+                    gps_radius_meters: emp.gps_radius_meters,
+                    attendance_photo_required: !!emp.attendance_photo_required,
+                    hourlyRate: emp.hourly_rate,
+                    position: emp.position,
                     loginTime: Date.now()
                 }));
                 return true;
@@ -835,12 +843,12 @@ const App = {
 
         let user = Auth.getUser();
 
-        // --- Refresh Session from Server (Admin/Owner only) ---
-        if (user.role !== 'employee') {
-            try {
-                const res = await apiFetch('/api/settings/business');
-                const freshBiz = await res.json();
-                if (freshBiz && !freshBiz.error) {
+        // --- Refresh Session from Server ---
+        try {
+            const res = await apiFetch('/api/settings/business');
+            const freshBiz = await res.json();
+            if (freshBiz && !freshBiz.error) {
+                if (user.role !== 'employee') {
                     user = {
                         ...user,
                         business_name: freshBiz.name,
@@ -849,11 +857,22 @@ const App = {
                         cycle_type: freshBiz.cycle_type,
                         default_overtime_multiplier: freshBiz.default_overtime_multiplier
                     };
-                    localStorage.setItem(Auth.SCHEMA, JSON.stringify(user));
+                } else {
+                    // Update marker settings for employee
+                    user = {
+                        ...user,
+                        business_name: freshBiz.name,
+                        attendance_marker_enabled: !!freshBiz.attendance_marker_enabled,
+                        gps_latitude: freshBiz.gps_latitude,
+                        gps_longitude: freshBiz.gps_longitude,
+                        gps_radius_meters: freshBiz.gps_radius_meters,
+                        attendance_photo_required: !!freshBiz.attendance_photo_required
+                    };
                 }
-            } catch (err) {
-                console.warn("No se pudo refrescar la sesión desde el servidor:", err);
+                localStorage.setItem(Auth.SCHEMA, JSON.stringify(user));
             }
+        } catch (err) {
+            console.warn("No se pudo refrescar la sesión desde el servidor:", err);
         }
 
         // --- Apply Theme Preference ---
