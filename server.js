@@ -394,6 +394,34 @@ app.post('/api/logs', checkAuth, async (req, res) => {
             }
         }
 
+        // Lógica de Emparejamiento para el Marcador
+        if (source === 'Marker' && timeOut && !timeIn) {
+            // Buscar una entrada "abierta" para hoy (Check-in sin Check-out)
+            const openLog = await db.query(
+                'SELECT * FROM logs WHERE employee_id = $1 AND business_id = $2 AND date = $3 AND time_in IS NOT NULL AND time_out IS NULL ORDER BY id DESC LIMIT 1',
+                [employeeId, req.businessId, date]
+            );
+
+            if (openLog.rows.length > 0) {
+                const existingLog = openLog.rows[0];
+                const startTime = existingLog.time_in;
+                const endTime = timeOut;
+
+                // Calcular horas
+                const [h1, m1] = startTime.split(':').map(Number);
+                const [h2, m2] = endTime.split(':').map(Number);
+                let diffMin = (h2 * 60 + m2) - (h1 * 60 + m1);
+                if (diffMin < 0) diffMin += 24 * 60; // Turno nocturno
+                const finalHours = (diffMin / 60).toFixed(2);
+
+                const updated = await db.query(
+                    'UPDATE logs SET time_out = $1, hours = $2, photo_url = COALESCE($3, photo_url), location_metadata = $4 WHERE id = $5 RETURNING *',
+                    [endTime, finalHours, photoUrl || null, JSON.stringify(locationMetadata || {}), existingLog.id]
+                );
+                return res.json(updated.rows[0]);
+            }
+        }
+
         const result = await db.query(
             'INSERT INTO logs (employee_id, date, hours, time_in, time_out, is_imported, is_double_day, deduction_hours, source, photo_url, location_metadata, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *',
             [employeeId, date, hours, timeIn || null, timeOut || null, isImported || false, isDoubleDay || false, deductionHours || 0, source || 'Manual', photoUrl || null, JSON.stringify(locationMetadata || {}), req.businessId]
