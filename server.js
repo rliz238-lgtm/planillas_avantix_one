@@ -39,6 +39,25 @@ const upload = multer({
     }
 });
 
+// --- CONFIGURACIÓN DE MULTER (Fotos de Marcador) ---
+const attendanceStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, 'img', 'attendance');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        const empId = req.headers['x-employee-id'] || 'unknown';
+        cb(null, `att_${empId}_${Date.now()}${ext}`);
+    }
+});
+
+const uploadAttendance = multer({
+    storage: attendanceStorage,
+    limits: { fileSize: 1 * 1024 * 1024 } // 1MB Limit for attendance selfies
+});
+
 // --- DIAGNÓSTICO Y AUTO-INICIALIZACIÓN ---
 async function startApp() {
     try {
@@ -275,9 +294,11 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/employee-auth', async (req, res) => {
     const { pin } = req.body;
     try {
-        const result = await db.query('SELECT * FROM employees WHERE pin = $1 AND status = $2', [pin, 'Active']);
+        const result = await db.query('SELECT e.*, b.status as biz_status, b.attendance_marker_enabled, b.gps_latitude, b.gps_longitude, b.gps_radius_meters, b.attendance_photo_required FROM employees e JOIN businesses b ON e.business_id = b.id WHERE e.pin = $1 AND e.status = $2', [pin, 'Active']);
         if (result.rows.length > 0) {
-            res.json(result.rows[0]);
+            const emp = result.rows[0];
+            if (emp.biz_status === 'Suspended') return res.status(403).json({ error: 'Empresa suspendida' });
+            res.json(emp);
         } else {
             res.status(401).json({ error: 'PIN incorrecto o empleado inactivo' });
         }
@@ -349,25 +370,45 @@ app.get('/api/logs', checkAuth, async (req, res) => {
 });
 
 app.post('/api/logs', checkAuth, async (req, res) => {
-    const { employeeId, date, hours, timeIn, timeOut, isImported, isDoubleDay, deductionHours } = req.body;
+    const { employeeId, date, hours, timeIn, timeOut, isImported, isDoubleDay, deductionHours, source, photoUrl, locationMetadata } = req.body;
 
     if (!employeeId || isNaN(employeeId)) {
         return res.status(400).json({ error: 'ID de empleado inválido o faltante' });
     }
-    if (!date || !hours && hours !== 0) {
+    if (!date || (!hours && hours !== 0)) {
         return res.status(400).json({ error: 'Faltan campos obligatorios: date o hours' });
     }
 
     try {
+        // Validación de Proximidad si viene del Marcador
+        if (source === 'Marker' && locationMetadata && locationMetadata.latitude) {
+            const bizRes = await db.query('SELECT attendance_marker_enabled, gps_latitude, gps_longitude, gps_radius_meters FROM businesses WHERE id = $1', [req.businessId]);
+            if (bizRes.rows.length > 0) {
+                const biz = bizRes.rows[0];
+                if (biz.attendance_marker_enabled && biz.gps_latitude && biz.gps_longitude) {
+                    const dist = getDistance(biz.gps_latitude, biz.gps_longitude, locationMetadata.latitude, locationMetadata.longitude);
+                    if (dist > biz.gps_radius_meters) {
+                        return res.status(403).json({ error: `Fuera de rango (${Math.round(dist)}m). Debe estar a menos de ${biz.gps_radius_meters}m.` });
+                    }
+                }
+            }
+        }
+
         const result = await db.query(
-            'INSERT INTO logs (employee_id, date, hours, time_in, time_out, is_imported, is_double_day, deduction_hours, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-            [employeeId, date, hours, timeIn || null, timeOut || null, isImported || false, isDoubleDay || false, deductionHours || 0, req.businessId]
+            'INSERT INTO logs (employee_id, date, hours, time_in, time_out, is_imported, is_double_day, deduction_hours, source, photo_url, location_metadata, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *',
+            [employeeId, date, hours, timeIn || null, timeOut || null, isImported || false, isDoubleDay || false, deductionHours || 0, source || 'Manual', photoUrl || null, JSON.stringify(locationMetadata || {}), req.businessId]
         );
         res.json(result.rows[0]);
     } catch (err) {
         console.error("POST /api/logs error:", err.message);
         res.status(500).json({ error: "No se pudo registrar la hora: " + err.message });
     }
+});
+
+app.post('/api/logs/upload-photo', uploadAttendance.single('photo'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No se subió ninguna foto' });
+    const photoUrl = `/img/attendance/${req.file.filename}`;
+    res.json({ success: true, photo_url: photoUrl });
 });
 
 app.delete('/api/logs/:id', checkAuth, async (req, res) => {
@@ -460,6 +501,22 @@ async function sendWhatsAppMessage(number, text) {
             reject(err);
         }
     });
+}
+
+// --- GPS Distance Helper (Haversine Formula) ---
+function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // metres
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) *
+        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // in metres
 }
 
 // --- Helper: Send WhatsApp with Copy to Owner ---
@@ -899,11 +956,24 @@ app.get('/api/settings/business', checkAuth, async (req, res) => {
 
 app.put('/api/settings/business', checkAuth, async (req, res) => {
     if (req.userRole !== 'owner' && req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
-    const { name, cedula_juridica, logo_url, default_overtime_multiplier, cycle_type, theme_preference } = req.body;
+    const {
+        name, cedula_juridica, logo_url, default_overtime_multiplier, cycle_type, theme_preference,
+        attendance_marker_enabled, gps_latitude, gps_longitude, gps_radius_meters, attendance_photo_required
+    } = req.body;
     try {
         const result = await db.query(
-            'UPDATE businesses SET name=$1, cedula_juridica=$2, logo_url=$3, default_overtime_multiplier=$4, cycle_type=$5, theme_preference=$6 WHERE id=$7 RETURNING *',
-            [name, cedula_juridica, logo_url, default_overtime_multiplier, cycle_type, theme_preference || 'dark', req.businessId]
+            `UPDATE businesses SET 
+                name=$1, cedula_juridica=$2, logo_url=$3, default_overtime_multiplier=$4, 
+                cycle_type=$5, theme_preference=$6, attendance_marker_enabled=$7, 
+                gps_latitude=$8, gps_longitude=$9, gps_radius_meters=$10, 
+                attendance_photo_required=$11 
+            WHERE id=$12 RETURNING *`,
+            [
+                name, cedula_juridica, logo_url, default_overtime_multiplier,
+                cycle_type, theme_preference || 'dark', attendance_marker_enabled || false,
+                gps_latitude, gps_longitude, gps_radius_meters || 100, attendance_photo_required || false,
+                req.businessId
+            ]
         );
         res.json(result.rows[0]);
     } catch (err) {

@@ -166,6 +166,9 @@ const PayrollHelpers = {
             const emp = employees.find(e => e.id == l.employee_id);
             const rate = emp ? parseFloat(emp.hourly_rate) : 0;
             const logNet = l.net || (parseFloat(l.hours) * rate);
+            const sourceIcon = l.source === 'Marker' ? '📍' : '⌨️';
+            const photoHtml = l.photo_url ? `<a href="${l.photo_url}" target="_blank" title="Ver Selfie"><img src="${l.photo_url}" style="width: 30px; height: 30px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border);"></a>` : '—';
+
             return `
             <tr>
                 <td style="white-space:nowrap">${l.date.split('T')[0]}</td>
@@ -180,6 +183,8 @@ const PayrollHelpers = {
                         value="${Math.round(l.deduction || 0)}"
                         oninput="PayrollHelpers.updatePayrollDetailTotal(${empId})">
                 </td>
+                <td style="text-align:center; font-size: 1.2rem;" title="${l.source || 'Manual'}">${sourceIcon}</td>
+                <td style="text-align:center">${photoHtml}</td>
                 <td style="display:flex; gap:5px; align-items:center;">
                     <span style="color:var(--success); font-weight:600;">₡${Math.round(logNet).toLocaleString()}</span>
                     <button class="btn btn-primary" style="padding:4px 8px; font-size:0.75rem;" onclick="PayrollHelpers.payLine(${l.id},${l.employee_id},'${l.date.split('T')[0]}',${logNet},${l.hours}, parseFloat(this.closest('tr').querySelector('.calc-ccss-input').value || 0))" title="Pagar este día únicamente">💰</button>
@@ -3174,7 +3179,8 @@ const Views = {
                     timeOut: tOut,
                     hours: finalHours.toFixed(2),
                     isDoubleDay: isDouble,
-                    deductionHours: deduction
+                    deductionHours: deduction,
+                    source: 'Manual'
                 });
             }
 
@@ -3312,6 +3318,7 @@ const Views = {
                                 <th>Vales</th>
                                 <th>Monto Neto</th>
                                 <th>Horas</th>
+                                <th>Fuente</th>
                                 <th>Almuerzo</th>
                                 <th>Acción</th>
                             </tr>
@@ -3341,6 +3348,7 @@ const Views = {
                                     <td style="color: var(--warning); font-size: 0.85rem">${ps.voucherTotal > 0 ? '₡' + Math.round(ps.voucherTotal).toLocaleString() : '—'}</td>
                                     <td style="color: var(--success); font-weight: 700;">₡${Math.round(ps.net).toLocaleString()}</td>
                                     <td style="font-weight: 600">${ps.hours.toFixed(1)}h</td>
+                                    <td style="text-align:center">${ps.logs.some(l => l.source === 'Marker') ? '📍' : '⌨️'}</td>
                                     <td style="font-size: 0.85rem; color: var(--text-muted)">${ps.lunchHours.toFixed(1)}h</td>
                                     <td style="display: flex; gap: 5px">
                                         <button class="btn btn-primary" title="Ver Detalle" style="padding: 5px 10px" onclick="PayrollHelpers.showPayrollDetail(${ps.empId})">${PayrollHelpers.EYE_ICON}</button>
@@ -4414,6 +4422,35 @@ const Views = {
                         </select>
                     </div>
 
+                    <div style="grid-column: span 2; margin-top: 2rem; margin-bottom: 1rem;">
+                        <h4 style="color: var(--primary); border-bottom: 1px solid rgba(99,102,241,0.2); padding-bottom: 5px;">📍 Marcador de Asistencia (GPS/Foto)</h4>
+                    </div>
+                    <div class="form-group" style="grid-column: span 2; display: flex; gap: 20px; align-items: center; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" name="attendance_marker_enabled" id="marker-enabled" ${biz.attendance_marker_enabled ? 'checked' : ''} style="width: 20px; height: 20px;">
+                            <label for="marker-enabled" style="margin: 0; cursor: pointer;">Habilitar Marcador (Portal Empleados)</label>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" name="attendance_photo_required" id="photo-required" ${biz.attendance_photo_required ? 'checked' : ''} style="width: 20px; height: 20px;">
+                            <label for="photo-required" style="margin: 0; cursor: pointer;">Requerir Selfie al marcar</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Latitud GPS</label>
+                        <input type="text" name="gps_latitude" id="gps-lat" value="${biz.gps_latitude || ''}" placeholder="Ej: 9.9333">
+                    </div>
+                    <div class="form-group">
+                        <label>Longitud GPS</label>
+                        <input type="text" name="gps_longitude" id="gps-lon" value="${biz.gps_longitude || ''}" placeholder="Ej: -84.0833">
+                    </div>
+                    <div class="form-group">
+                        <label>Radio de Tolerancia (Metros)</label>
+                        <input type="number" name="gps_radius_meters" value="${biz.gps_radius_meters || 100}">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <button type="button" class="btn btn-secondary" onclick="window.getCurrentPositionForMarker()" style="width: 100%;">📍 Obtener Mi Ubicación</button>
+                    </div>
+
                     <div style="grid-column: span 2; margin-top: 30px; display: flex; justify-content: center;">
                         <button type="submit" class="btn btn-primary" style="padding: 10px 30px; font-weight: 600;">Guardar Todos los Cambios</button>
                     </div>
@@ -4633,6 +4670,10 @@ const Views = {
                 const formData = new FormData(bizForm);
                 const data = Object.fromEntries(formData.entries());
 
+                // Tratar checkboxes adecuadamente (FormData no los incluye si están unchecked)
+                data.attendance_marker_enabled = !!bizForm.querySelector('[name="attendance_marker_enabled"]').checked;
+                data.attendance_photo_required = !!bizForm.querySelector('[name="attendance_photo_required"]').checked;
+
                 Storage.showLoader(true, 'Actualizando configuración...');
                 try {
                     const res = await apiFetch('/api/settings/business', {
@@ -4665,6 +4706,23 @@ const Views = {
                 } finally {
                     Storage.showLoader(false);
                 }
+            };
+
+            window.getCurrentPositionForMarker = () => {
+                if (!navigator.geolocation) return alert("Geolocalización no soportada");
+                Storage.showLoader(true, 'Obteniendo ubicación...');
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        document.getElementById('gps-lat').value = pos.coords.latitude.toFixed(6);
+                        document.getElementById('gps-lon').value = pos.coords.longitude.toFixed(6);
+                        Storage.showLoader(false);
+                    },
+                    (err) => {
+                        alert("Error al obtener ubicación: " + err.message);
+                        Storage.showLoader(false);
+                    },
+                    { enableHighAccuracy: true }
+                );
             };
         }
     }

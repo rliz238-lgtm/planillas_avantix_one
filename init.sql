@@ -20,6 +20,11 @@ CREATE TABLE IF NOT EXISTS businesses (
     cycle_type VARCHAR(20) DEFAULT 'Weekly',
     expires_at TIMESTAMP NULL,
     theme_preference VARCHAR(20) DEFAULT 'dark', -- dark, light
+    attendance_marker_enabled BOOLEAN DEFAULT FALSE,
+    gps_latitude DOUBLE PRECISION,
+    gps_longitude DOUBLE PRECISION,
+    gps_radius_meters INTEGER DEFAULT 100,
+    attendance_photo_required BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -72,6 +77,9 @@ CREATE TABLE IF NOT EXISTS logs (
     is_paid BOOLEAN DEFAULT FALSE,
     is_double_day BOOLEAN DEFAULT FALSE,
     deduction_hours DECIMAL(10, 2) DEFAULT 0,
+    source VARCHAR(20) DEFAULT 'Manual', -- Manual, Marker
+    photo_url TEXT,
+    location_metadata JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -297,6 +305,22 @@ BEGIN
         ALTER TABLE payments ADD COLUMN voucher_details JSONB DEFAULT '[]'::jsonb;
         ALTER TABLE payments ADD COLUMN gross_amount DECIMAL(12, 2) DEFAULT 0;
         ALTER TABLE payments ADD COLUMN lunch_hours DECIMAL(10, 2) DEFAULT 0;
+    END IF;
+
+    -- Marcador de Asistencia (Businesses)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='businesses' AND column_name='attendance_marker_enabled') THEN
+        ALTER TABLE businesses ADD COLUMN attendance_marker_enabled BOOLEAN DEFAULT FALSE;
+        ALTER TABLE businesses ADD COLUMN gps_latitude DOUBLE PRECISION;
+        ALTER TABLE businesses ADD COLUMN gps_longitude DOUBLE PRECISION;
+        ALTER TABLE businesses ADD COLUMN gps_radius_meters INTEGER DEFAULT 100;
+        ALTER TABLE businesses ADD COLUMN attendance_photo_required BOOLEAN DEFAULT FALSE;
+    END IF;
+
+    -- Marcador de Asistencia (Logs)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='logs' AND column_name='source') THEN
+        ALTER TABLE logs ADD COLUMN source VARCHAR(20) DEFAULT 'Manual';
+        ALTER TABLE logs ADD COLUMN photo_url TEXT;
+        ALTER TABLE logs ADD COLUMN location_metadata JSONB DEFAULT '{}'::jsonb;
     END IF;
 END $$;
 
