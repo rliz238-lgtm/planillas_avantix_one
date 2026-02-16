@@ -488,6 +488,10 @@ const PayrollHelpers = {
 
         body.innerHTML = (p.logs_detail || []).map((l, index) => {
             const logNet = l.net || (parseFloat(l.hours) * (emp ? parseFloat(emp.hourly_rate) : 0));
+            const sourceIcon = l.source === 'Marker' ? '📍' : '⌨️';
+            const photoHtml = l.photo_url ? `<a href="${l.photo_url}" target="_blank" title="Ver Selfie"><img src="${l.photo_url}" style="width: 30px; height: 30px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border);"></a>` : '—';
+            const ccssValue = l.deduction || 0;
+
             return `
             <tr>
                 <td style="white-space:nowrap">${l.date.split('T')[0]}</td>
@@ -495,6 +499,9 @@ const PayrollHelpers = {
                 <td><div style="font-weight:600">${parseFloat(l.hours).toFixed(1)}h</div></td>
                 <td style="text-align:center">${l.is_double_day ? '✅' : '--'}</td>
                 <td style="text-align:center">${(l.deduction_hours || 0) > 0 ? l.deduction_hours + 'h' : '--'}</td>
+                <td style="text-align:center; color: var(--danger)">₡${Math.round(ccssValue).toLocaleString()}</td>
+                <td style="text-align:center; font-size: 1.2rem;" title="${l.source || 'Manual'}">${sourceIcon}</td>
+                <td style="text-align:center">${photoHtml}</td>
                 <td style="display:flex; gap:5px; align-items:center;">
                     <span style="font-weight:600">₡${Math.round(logNet).toLocaleString()}</span>
                     <button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="PayrollHelpers.editPaidLogLine(${p.id}, ${index})" title="Editar este día pagado">✏️</button>

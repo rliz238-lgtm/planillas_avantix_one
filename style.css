@@ -619,7 +619,7 @@ dialog {
     background: var(--bg-card);
     padding: 0;
     max-width: 95vw;
-    width: 900px;
+    width: 1200px;
     max-height: 90vh;
     margin: auto;
     color: var(--text-main);
@@ -917,7 +917,7 @@ dialog[open] {
     }
 
     .table-container table {
-        min-width: 700px;
+        min-width: 900px;
     }
 
     /* Dashboard mobile scroll fix */
