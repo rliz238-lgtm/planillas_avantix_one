@@ -844,7 +844,7 @@ const App = {
         }
 
         if (!Auth.isAuthenticated()) {
-            this.renderLanding();
+            this.renderLogin();
             return;
         }
 
