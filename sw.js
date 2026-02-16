@@ -1,4 +1,4 @@
-const CACHE_NAME = 'avantix-v1';
+const CACHE_NAME = 'avantix-v24';
 const ASSETS = [
     '/',
     '/index.html',
