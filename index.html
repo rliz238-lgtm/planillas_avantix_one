@@ -85,6 +85,14 @@
                     rel="noopener" style="color: var(--primary); text-decoration: none; font-weight: 600;">Regístrate
                     aquí</a>
             </p>
+
+            <!-- Botón de Instalación PWA -->
+            <div id="pwa-install-section" class="pwa-install-container">
+                <button id="btn-pwa-install" class="pwa-install-btn">
+                    <span style="font-size: 1.2rem;">📲</span> Instalar Aplicación Avantix One
+                </button>
+            </div>
+
             <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-muted)">
                 © 2026 Planillas Avantix One
             </p>
@@ -755,7 +763,89 @@
             <span class="btn-text">Soporte</span>
         </button>
     </div>
+    <!-- Modal Guía de Instalación iOS -->
+    <dialog id="ios-install-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px; padding: 2.5rem;">
+            <button class="modal-close-btn" onclick="document.getElementById('ios-install-modal').close()">✕</button>
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🍎</div>
+                <h3 style="color: var(--primary); margin: 0;">Instalar en iPhone</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Siga estos pasos para
+                    añadir la app a su inicio:</p>
+            </div>
+
+            <div class="ios-guide-step">
+                <div class="ios-guide-icon">📤</div>
+                <div class="ios-guide-text">
+                    Pulsa el icono de <strong>Compartir</strong> en la barra inferior de Safari.
+                </div>
+            </div>
+
+            <div class="ios-guide-step">
+                <div class="ios-guide-icon">➕</div>
+                <div class="ios-guide-text">
+                    Desliza hacia abajo y selecciona <strong>"Añadir a la pantalla de inicio"</strong>.
+                </div>
+            </div>
+
+            <div class="ios-guide-step" style="margin-bottom: 0;">
+                <div class="ios-guide-icon">✅</div>
+                <div class="ios-guide-text">
+                    Pulsa <strong>"Añadir"</strong> en la esquina superior derecha.
+                </div>
+            </div>
+        </div>
+    </dialog>
+
     <script>
+        // PWA Installation Logic
+        let deferredPrompt;
+        const pwaSection = document.getElementById('pwa-install-section');
+        const installBtn = document.getElementById('btn-pwa-install');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevenir que el navegador lo muestre automáticamente
+            e.preventDefault();
+            deferredPrompt = e;
+            // Mostrar nuestro botón personalizado
+            if (pwaSection) pwaSection.style.display = 'block';
+        });
+
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                // Detectar si es iOS
+                const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+
+                if (isiOS) {
+                    // Mostrar guía de iOS
+                    document.getElementById('ios-install-modal').showModal();
+                } else if (deferredPrompt) {
+                    // Mostrar el prompt nativo (Android/Desktop)
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log(`PWA: Usuario eligió ${outcome}`);
+                    deferredPrompt = null;
+                    pwaSection.style.display = 'none';
+                }
+            });
+        }
+
+        // Mostrar botón en iOS si no está instalado
+        window.addEventListener('load', () => {
+            const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+            if (isiOS && !isStandalone && pwaSection) {
+                pwaSection.style.display = 'block';
+                installBtn.innerHTML = '<span style="font-size: 1.2rem;">🍎</span> Instalar en iPhone / iPad';
+            }
+        });
+
+        // Ocultar sección si ya está instalado
+        if (window.matchMedia('(display-mode: standalone)').matches && pwaSection) {
+            pwaSection.style.display = 'none';
+        }
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
