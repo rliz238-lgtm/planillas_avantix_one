@@ -1059,10 +1059,28 @@ const App = {
     takeMarkerPhoto: (video) => {
         const canvas = document.getElementById('marker-canvas');
         if (!canvas) return null;
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+
+        // Redimensionar para reducir tamaño (evita error Failed to Fetch por payload grande)
+        const MAX_DIM = 640;
+        let w = video.videoWidth;
+        let h = video.videoHeight;
+
+        if (w > h) {
+            if (w > MAX_DIM) {
+                h *= MAX_DIM / w;
+                w = MAX_DIM;
+            }
+        } else {
+            if (h > MAX_DIM) {
+                w *= MAX_DIM / h;
+                h = MAX_DIM;
+            }
+        }
+
+        canvas.width = w;
+        canvas.height = h;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0);
+        ctx.drawImage(video, 0, 0, w, h);
         return canvas.toDataURL('image/jpeg', 0.8);
     },
 
