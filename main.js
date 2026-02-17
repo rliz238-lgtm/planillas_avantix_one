@@ -2343,6 +2343,73 @@ const Views = {
         `;
     },
 
+    init_dashboard: async () => {
+        const payments = await Storage.get('payments');
+        if (!payments || payments.length === 0) return;
+
+        // Group payments by Month (Year-Month)
+        const last12Months = {};
+        const now = new Date();
+
+        // Initialize last 12 months with 0
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const key = d.toISOString().slice(0, 7); // YYYY-MM
+            last12Months[key] = {
+                label: d.toLocaleString('es-ES', { month: 'short' }).toUpperCase(),
+                amount: 0
+            };
+        }
+
+        // Aggregate payments
+        payments.forEach(p => {
+            const dateKey = p.date.slice(0, 7);
+            if (last12Months[dateKey]) {
+                last12Months[dateKey].amount += parseFloat(p.net_amount || p.amount);
+            }
+        });
+
+        const ctx = document.getElementById('salaryChart');
+        if (!ctx) return;
+
+        new Chart(ctx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: Object.values(last12Months).map(m => m.label),
+                datasets: [{
+                    label: 'Total Pagado (₡)',
+                    data: Object.values(last12Months).map(m => m.amount),
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: {
+                            callback: function (value) {
+                                return '₡' + value.toLocaleString();
+                            }
+                        }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    },
+
     init_registration: async () => {
         const form = document.getElementById('registration-form');
         if (!form) return;
