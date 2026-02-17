@@ -1102,7 +1102,23 @@ const App = {
 
             form.name.value = emp.name;
             form.cedula.value = emp.cedula || '';
-            form.phone.value = emp.phone || '';
+
+            // Split phone and prefix if possible
+            const rawPhone = emp.phone || '';
+            const commonPrefixes = ['506', '507', '505', '504', '502', '503', '52', '57', '54', '56', '51', '34', '1'];
+            let foundPrefix = '506';
+            let phoneValue = rawPhone;
+
+            for (const p of commonPrefixes) {
+                if (rawPhone.startsWith(p)) {
+                    foundPrefix = p;
+                    phoneValue = rawPhone.substring(p.length);
+                    break;
+                }
+            }
+            if (form.phone_prefix) form.phone_prefix.value = foundPrefix;
+            form.phone.value = phoneValue;
+
             form.email.value = emp.email || '';
             form.pin.value = emp.pin || '';
             form.position.value = emp.position;
@@ -1189,10 +1205,14 @@ const App = {
             e.preventDefault();
             const formData = new FormData(form);
             const id = editIdInput.value;
+            const prefix = formData.get('phone_prefix') || '';
+            const rawPhone = formData.get('phone') || '';
+            const combinedPhone = prefix + rawPhone.replace(/\D/g, '');
+
             const empData = {
                 name: formData.get('name'),
                 cedula: formData.get('cedula'),
-                phone: formData.get('phone'),
+                phone: combinedPhone,
                 email: formData.get('email'),
                 pin: formData.get('pin'),
                 position: formData.get('position'),
@@ -1842,9 +1862,26 @@ const Views = {
 
                         <div class="grid-2">
                             <div class="form-group">
-                                <label>Teléfono *</label>
+                            <label>Teléfono *</label>
+                            <div class="phone-input-group">
+                                <select class="country-code-select" name="ownerPhonePrefix">
+                                    <option value="506" selected>🇨🇷 +506</option>
+                                    <option value="507">🇵🇦 +507</option>
+                                    <option value="505">🇳🇮 +505</option>
+                                    <option value="504">🇭🇳 +504</option>
+                                    <option value="502">🇬🇹 +502</option>
+                                    <option value="503">🇸🇻 +503</option>
+                                    <option value="1">🇺🇸 +1</option>
+                                    <option value="52">🇲🇽 +52</option>
+                                    <option value="57">🇨🇴 +57</option>
+                                    <option value="54">🇦🇷 +54</option>
+                                    <option value="56">🇨🇱 +56</option>
+                                    <option value="51">🇵🇪 +51</option>
+                                    <option value="34">🇪🇸 +34</option>
+                                </select>
                                 <input type="tel" name="ownerPhone" placeholder="Ej: 8888-8888" required>
                             </div>
+                        </div>
                             <div class="form-group">
                                 <label>Contraseña *</label>
                                 <input type="password" name="password" placeholder="••••••••" required>
@@ -2337,7 +2374,10 @@ const Views = {
             // Sync business email/phone with owner
             if (!data.businessName) finalData.set('businessName', 'Empresa de ' + data.ownerName);
             finalData.append('email', data.ownerEmail);
-            finalData.append('phone', data.ownerPhone);
+
+            const pref = data.ownerPhonePrefix || '';
+            const rawPh = data.ownerPhone || '';
+            finalData.append('phone', pref + rawPh.replace(/\D/g, ''));
 
             Storage.showLoader(true, 'Creando su empresa...');
             try {
@@ -2484,7 +2524,23 @@ const Views = {
             document.getElementById('owner-name').value = biz.owner_name || '';
             document.getElementById('owner-lastname').value = biz.owner_last_name || '';
             document.getElementById('owner-email').value = biz.owner_email || '';
-            document.getElementById('owner-phone').value = biz.owner_phone || '';
+
+            // Split phone and prefix if possible
+            const rawPhone = biz.owner_phone || '';
+            const commonPrefixes = ['506', '507', '505', '504', '502', '503', '52', '57', '54', '56', '51', '34', '1'];
+            let foundPrefix = '506';
+            let phoneValue = rawPhone;
+
+            for (const p of commonPrefixes) {
+                if (rawPhone.startsWith(p)) {
+                    foundPrefix = p;
+                    phoneValue = rawPhone.substring(p.length);
+                    break;
+                }
+            }
+            const phonePrefixSelect = document.querySelector('[name="ownerPhonePrefix"]');
+            if (phonePrefixSelect) phonePrefixSelect.value = foundPrefix;
+            document.getElementById('owner-phone').value = phoneValue;
             document.getElementById('owner-username').value = biz.owner_username || '';
 
             document.getElementById('business-status').value = biz.status;
@@ -2576,6 +2632,12 @@ const Views = {
 
             const method = id ? 'PUT' : 'POST';
             const url = id ? `/api/admin/businesses/${id}` : '/api/admin/businesses';
+
+            const pref = data.ownerPhonePrefix || '';
+            const rawPh = data.ownerPhone || '';
+            data.owner_phone = pref + rawPh.replace(/\D/g, '');
+            delete data.ownerPhonePrefix;
+            delete data.ownerPhone;
 
             Storage.showLoader(true, 'Guardando...');
             try {
@@ -4507,6 +4569,27 @@ const Views = {
         const user = Auth.getUser();
         const biz = await apiFetch('/api/settings/business').then(r => r.json()).catch(() => ({}));
 
+        // Split phone and prefix if possible
+        const rawPhone = user.phone || '';
+        const commonPrefixes = ['506', '507', '505', '504', '502', '503', '52', '57', '54', '56', '51', '34', '1'];
+        let foundPrefix = '506';
+        let phoneValue = rawPhone;
+
+        for (const p of commonPrefixes) {
+            if (rawPhone.startsWith(p)) {
+                foundPrefix = p;
+                phoneValue = rawPhone.substring(p.length);
+                break;
+            }
+        }
+
+        const prefixOptions = [
+            { v: '506', l: '🇨🇷 +506' }, { v: '507', l: '🇵🇦 +507' }, { v: '505', l: '🇳🇮 +505' },
+            { v: '504', l: '🇭🇳 +504' }, { v: '502', l: '🇬🇹 +502' }, { v: '503', l: '🇸🇻 +503' },
+            { v: '1', l: '🇺🇸 +1' }, { v: '52', l: '🇲🇽 +52' }, { v: '57', l: '🇨🇴 +57' },
+            { v: '54', l: '🇦🇷 +54' }, { v: '56', l: '🇨🇱 +56' }, { v: '51', l: '🇵🇪 +51' }, { v: '34', l: '🇪🇸 +34' }
+        ].map(opt => `<option value="${opt.v}" ${foundPrefix === opt.v ? 'selected' : ''}>${opt.l}</option>`).join('');
+
         return `
             <div class="card-container">
                 <h3>👤 Mi Cuenta</h3>
@@ -4520,9 +4603,14 @@ const Views = {
                         <input type="text" name="username" value="${user.username || ''}" readonly style="opacity: 0.7; border: none; background: transparent;">
                     </div>
                     <div class="form-group">
-                        <label>Teléfono (Para copia de resumen WhatsApp)</label>
-                        <input type="text" name="phone" value="${user.phone || ''}" placeholder="Ej: 50688887777">
+                    <label>Teléfono (Para copia de resumen WhatsApp)</label>
+                    <div class="phone-input-group">
+                        <select class="country-code-select" name="phone_prefix">
+                            ${prefixOptions}
+                        </select>
+                        <input type="text" name="phone" value="${phoneValue}" placeholder="Ej: 88887777">
                     </div>
+                </div>
                     <div class="form-group">
                         <label>Nueva Contraseña (opcional)</label>
                         <input type="password" name="password" placeholder="Mín. 6 caracteres">
@@ -4704,7 +4792,23 @@ const Views = {
                 if (u) {
                     form.name.value = u.name;
                     form.username.value = u.username;
-                    form.phone.value = u.phone || '';
+
+                    // Split phone and prefix if possible
+                    const rawPhone = u.phone || '';
+                    const commonPrefixes = ['506', '507', '505', '504', '502', '503', '52', '57', '54', '56', '51', '34', '1'];
+                    let foundPrefix = '506';
+                    let phoneValue = rawPhone;
+
+                    for (const p of commonPrefixes) {
+                        if (rawPhone.startsWith(p)) {
+                            foundPrefix = p;
+                            phoneValue = rawPhone.substring(p.length);
+                            break;
+                        }
+                    }
+                    if (form.phone_prefix) form.phone_prefix.value = foundPrefix;
+                    form.phone.value = phoneValue;
+
                     if (roleSelect) roleSelect.value = u.role || 'editor';
                 }
             }
@@ -4723,10 +4827,14 @@ const Views = {
             form.onsubmit = async (e) => {
                 e.preventDefault();
                 const id = document.getElementById('user-id-input').value;
+                const prefix = form.phone_prefix ? form.phone_prefix.value : '';
+                const rawPhone = form.phone.value || '';
+                const combinedPhone = prefix + rawPhone.replace(/\D/g, '');
+
                 const data = {
                     name: form.name.value,
                     username: form.username.value,
-                    phone: form.phone.value,
+                    phone: combinedPhone,
                     role: roleSelect ? roleSelect.value : (form.role ? form.role.value : 'editor')
                 };
                 if (form.password.value) {
@@ -4768,8 +4876,14 @@ const Views = {
             personalForm.onsubmit = async (e) => {
                 e.preventDefault();
                 const formData = new FormData(personalForm);
-                const data = Object.fromEntries(formData.entries());
+                const rawData = Object.fromEntries(formData.entries());
                 const user = Auth.getUser();
+
+                const data = { ...rawData };
+                if (rawData.phone_prefix !== undefined && rawData.phone !== undefined) {
+                    data.phone = rawData.phone_prefix + rawData.phone.replace(/\D/g, '');
+                    delete data.phone_prefix;
+                }
 
                 Storage.showLoader(true, 'Actualizando datos personales...');
                 try {
