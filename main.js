@@ -2149,73 +2149,86 @@ const Views = {
     },
 
     init_adminStats: async () => {
-        const stats = window._latestAdminStats;
-        if (!stats) return;
-
-        const { growth, volume } = stats;
-
-        // Growth Chart
-        const ctxGrowth = document.getElementById('adminGrowthChart').getContext('2d');
-        new Chart(ctxGrowth, {
-            type: 'line',
-            data: {
-                labels: growth.map(g => g.month),
-                datasets: [{
-                    label: 'Nuevas Empresas',
-                    data: growth.map(g => g.count),
-                    borderColor: '#6366f1',
-                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    x: { grid: { display: false } }
-                }
+        try {
+            const stats = window._latestAdminStats;
+            if (!stats) {
+                console.warn("init_adminStats: No hay stats de admin disponibles.");
+                return;
             }
-        });
 
-        // Volume Chart
-        const ctxVolume = document.getElementById('adminVolumeChart').getContext('2d');
-        new Chart(ctxVolume, {
-            type: 'bar',
-            data: {
-                labels: volume.map(v => v.month),
-                datasets: [{
-                    label: 'Volumen (₡)',
-                    data: volume.map(v => v.amount),
-                    backgroundColor: '#10b981',
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
+            const { growth, volume } = stats;
+            const ctxGrowthEl = document.getElementById('adminGrowthChart');
+            const ctxVolumeEl = document.getElementById('adminVolumeChart');
+
+            if (!ctxGrowthEl || !ctxVolumeEl) {
+                console.warn("init_adminStats: No se encontraron los elementos canvas.");
+                return;
+            }
+
+            // Growth Chart
+            new Chart(ctxGrowthEl.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: growth.map(g => g.month),
+                    datasets: [{
+                        label: 'Nuevas Empresas',
+                        data: growth.map(g => g.count),
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: {
-                            callback: function (value) {
-                                return '₡' + value.toLocaleString();
-                            }
-                        }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
                     },
-                    x: { grid: { display: false } }
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        x: { grid: { display: false } }
+                    }
                 }
-            }
-        });
+            });
+
+            // Volume Chart
+            new Chart(ctxVolumeEl.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: volume.map(v => v.month),
+                    datasets: [{
+                        label: 'Volumen (₡)',
+                        data: volume.map(v => v.amount),
+                        backgroundColor: '#10b981',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: {
+                                callback: function (value) {
+                                    return '₡' + value.toLocaleString();
+                                }
+                            }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+            console.log("init_adminStats: Gráficos de admin inicializados correctamente.");
+        } catch (err) {
+            console.error("Error en init_adminStats:", err);
+        }
     },
 
     dashboard: async () => {
@@ -2344,70 +2357,82 @@ const Views = {
     },
 
     init_dashboard: async () => {
-        const payments = await Storage.get('payments');
-        if (!payments || payments.length === 0) return;
-
-        // Group payments by Month (Year-Month)
-        const last12Months = {};
-        const now = new Date();
-
-        // Initialize last 12 months with 0
-        for (let i = 11; i >= 0; i--) {
-            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const key = d.toISOString().slice(0, 7); // YYYY-MM
-            last12Months[key] = {
-                label: d.toLocaleString('es-ES', { month: 'short' }).toUpperCase(),
-                amount: 0
-            };
-        }
-
-        // Aggregate payments
-        payments.forEach(p => {
-            const dateKey = p.date.slice(0, 7);
-            if (last12Months[dateKey]) {
-                last12Months[dateKey].amount += parseFloat(p.net_amount || p.amount);
+        try {
+            const payments = await Storage.get('payments');
+            if (!payments || payments.length === 0) {
+                console.log("init_dashboard: No hay pagos para mostrar en el gráfico.");
+                return;
             }
-        });
 
-        const ctx = document.getElementById('salaryChart');
-        if (!ctx) return;
+            // Group payments by Month (Year-Month)
+            const last12Months = {};
+            const now = new Date();
 
-        new Chart(ctx.getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: Object.values(last12Months).map(m => m.label),
-                datasets: [{
-                    label: 'Total Pagado (₡)',
-                    data: Object.values(last12Months).map(m => m.amount),
-                    borderColor: '#6366f1',
-                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
+            // Initialize last 12 months with 0
+            for (let i = 11; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const key = d.toISOString().slice(0, 7); // YYYY-MM
+                last12Months[key] = {
+                    label: d.toLocaleString('es-ES', { month: 'short' }).toUpperCase(),
+                    amount: 0
+                };
+            }
+
+            // Aggregate payments
+            payments.forEach(p => {
+                if (!p.date) return;
+                const dateKey = p.date.toString().slice(0, 7);
+                if (last12Months[dateKey]) {
+                    last12Months[dateKey].amount += parseFloat(p.net_amount || p.amount || 0);
+                }
+            });
+
+            const ctx = document.getElementById('salaryChart');
+            if (!ctx) {
+                console.warn("init_dashboard: No se encontró el canvas #salaryChart.");
+                return;
+            }
+
+            new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: Object.values(last12Months).map(m => m.label),
+                    datasets: [{
+                        label: 'Total Pagado (₡)',
+                        data: Object.values(last12Months).map(m => m.amount),
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: {
-                            callback: function (value) {
-                                return '₡' + value.toLocaleString();
-                            }
-                        }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
                     },
-                    x: {
-                        grid: { display: false }
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: {
+                                callback: function (value) {
+                                    return '₡' + value.toLocaleString();
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
                     }
                 }
-            }
-        });
+            });
+            console.log("init_dashboard: Gráfico de salarios inicializado correctamente.");
+        } catch (err) {
+            console.error("Error en init_dashboard:", err);
+        }
     },
 
     init_registration: async () => {
