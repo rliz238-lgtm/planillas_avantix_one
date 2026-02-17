@@ -1294,27 +1294,54 @@ app.post('/api/onboarding/register', upload.single('logo'), async (req, res) => 
 
     const finalBusinessName = businessName || `Empresa de ${ownerName}`;
 
+    let businessId, userId;
+
     try {
         await db.query('BEGIN');
 
-        // 1. Crear Empresa
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 372); // 365 + 7 días de prueba
+        // Buscar si ya existe un usuario con este email (creado por Hotmart)
+        const existingUser = await db.query('SELECT u.id as user_id, u.business_id FROM users u WHERE u.email = $1 AND u.role = \'owner\'', [ownerEmail]);
 
-        const busRes = await db.query(
-            `INSERT INTO businesses(
-                name, legal_type, legal_name, cedula_juridica, country, state, city, district, address, email, phone, logo_url, cycle_type, expires_at
-            ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
-            [finalBusinessName, legal_type || 'Persona Jurídica', legal_name || null, cedulaJuridica || null, country || 'Costa Rica', state || null, city || null, district || null, address || null, bizEmail, bizPhone, logo_url, req.body.cycle_type || 'Weekly', expiresAt]
-        );
-        const businessId = busRes.rows[0].id;
+        if (existingUser.rows.length > 0) {
+            // --- MODO ACTUALIZACIÓN (Cuenta Hotmart Previa) ---
+            userId = existingUser.rows[0].user_id;
+            businessId = existingUser.rows[0].business_id;
 
-        // 2. Crear Usuario Owner
-        const userRes = await db.query(
-            'INSERT INTO users (username, password, name, last_name, email, phone, role, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
-            [username, password, ownerName, ownerLastName, ownerEmail, ownerPhone, 'owner', businessId]
-        );
-        const userId = userRes.rows[0].id;
+            // Actualizar Empresa
+            await db.query(
+                `UPDATE businesses SET 
+                    name = $1, legal_type = $2, legal_name = $3, cedula_juridica = $4, country = $5, state = $6, city = $7, 
+                    district = $8, address = $9, email = $10, phone = $11, logo_url = $12, cycle_type = $13
+                WHERE id = $14`,
+                [finalBusinessName, legal_type || 'Persona Jurídica', legal_name || null, cedula_juridica || null, country || 'Costa Rica', state || null, city || null, district || null, address || null, bizEmail, bizPhone, logo_url, req.body.cycle_type || 'Weekly', businessId]
+            );
+
+            // Actualizar Usuario
+            await db.query(
+                'UPDATE users SET username = $1, password = $2, name = $3, last_name = $4, phone = $5 WHERE id = $6',
+                [username, password, ownerName, ownerLastName, ownerPhone, userId]
+            );
+        } else {
+            // --- MODO INSERCIÓN (Registro Manual / Venta Directa) ---
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + 372); // 365 + 7 días de prueba
+
+            // 1. Crear Empresa
+            const busRes = await db.query(
+                `INSERT INTO businesses(
+                    name, legal_type, legal_name, cedula_juridica, country, state, city, district, address, email, phone, logo_url, cycle_type, expires_at
+                ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
+                [finalBusinessName, legal_type || 'Persona Jurídica', legal_name || null, cedula_juridica || null, country || 'Costa Rica', state || null, city || null, district || null, address || null, bizEmail, bizPhone, logo_url, req.body.cycle_type || 'Weekly', expiresAt]
+            );
+            businessId = busRes.rows[0].id;
+
+            // 2. Crear Usuario Owner
+            const userRes = await db.query(
+                'INSERT INTO users (username, password, name, last_name, email, phone, role, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
+                [username, password, ownerName, ownerLastName, ownerEmail, ownerPhone, 'owner', businessId]
+            );
+            userId = userRes.rows[0].id;
+        }
 
         await db.query('COMMIT');
 
@@ -1383,30 +1410,30 @@ app.post('/api/webhooks/hotmart', async (req, res) => {
         }
 
         try {
-            /* 
-            // Comentado: Ahora el usuario se registra manualmente vía register.html
+            // --- Aprovisionamiento Automático Instantáneo ---
             await db.query('BEGIN');
 
             const businessName = `Empresa de ${buyer.name || buyer.email}`;
             const username = buyer.email;
-            const password = Math.random().toString(36).slice(-8); 
+            const tempPassword = `PENDING_${Math.random().toString(36).slice(-8)}`;
 
             const expiresAt = new Date();
-            expiresAt.setDate(expiresAt.getDate() + 365 + 7);
+            expiresAt.setDate(expiresAt.getDate() + 372);
 
+            // Crear Empresa (Vigencia empieza YA)
             const busRes = await db.query(
-                'INSERT INTO businesses (name, status, expires_at) VALUES ($1, $2, $3) RETURNING id',
-                [businessName, 'Active', expiresAt]
+                'INSERT INTO businesses (name, status, expires_at, email) VALUES ($1, $2, $3, $4) ON CONFLICT (name) DO UPDATE SET status = \'Active\', expires_at = $3 RETURNING id',
+                [businessName, 'Active', expiresAt, buyer.email]
             );
             const businessId = busRes.rows[0].id;
 
+            // Crear Usuario (Sin clave final, pero ya existe el registro)
             await db.query(
-                'INSERT INTO users (username, password, name, email, role, business_id) VALUES ($1, $2, $3, $4, $5, $6)',
-                [username, password, buyer.name || 'Propietario', username, 'owner', businessId]
+                'INSERT INTO users (username, password, name, email, role, business_id) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (username) DO NOTHING',
+                [username, tempPassword, buyer.name || 'Propietario', buyer.email, 'owner', businessId]
             );
 
             await db.query('COMMIT');
-            */
 
             // --- Envío de Notificación de Compra con Link de Registro ---
             const registrationLink = `https://app.avantixone.com/register.html?email=${encodeURIComponent(buyer.email)}&name=${encodeURIComponent(buyer.name)}`;
