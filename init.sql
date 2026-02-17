@@ -208,19 +208,36 @@ VALUES
     </div>
     <p style="margin-top: 20px; font-size: 0.9rem; color: #b45309;">Recuerda cambiar esta contraseña temporal apenas ingreses.</p>
 </div>'),
-('REGISTRATION_SUCCESS', 'Confirmación de Registro (Cliente)', '✅ Tu cuenta en Avantix One está lista', 
+('REGISTRATION_SUCCESS', 'Confirmación de Registro (Cliente)', '✅ Tu cuenta en Avantix One está lista - Pasos a seguir', 
 '<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
     <div style="text-align: center; margin-bottom: 20px;">
-        <h2 style="color: #10b981; margin: 0;">¡Registro Completado! ✅</h2>
+        <h2 style="color: #10b981; margin: 0;">¡Bienvenido a Avantix One! 🚀</h2>
     </div>
     <p>Hola <strong>{{name}}</strong>,</p>
-    <p>Tu empresa <strong>{{business_name}}</strong> ha sido configurada correctamente en Avantix One.</p>
-    <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #bbf7d0; text-align: center;">
-        <p style="margin-bottom: 15px; color: #166534; font-weight: 500;">Ya puedes ingresar a tu panel de control:</p>
-        <a href="https://app.avantixone.com" style="background: #10b981; color: white; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Ingresar al Sistema</a>
+    <p>Tu empresa <strong>{{business_name}}</strong> ha sido configurada exitosamente.</p>
+    
+    <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #bbf7d0;">
+        <h3 style="margin-top: 0; color: #166534;">Tus Credenciales de Acceso:</h3>
+        <p><strong>🌐 URL:</strong> <a href="https://app.avantixone.com">https://app.avantixone.com</a></p>
+        <p><strong>👤 Usuario:</strong> {{username}}</p>
+        <p><strong>🔑 Contraseña:</strong> (La que definiste en el registro)</p>
     </div>
-    <p style="font-size: 0.9rem; color: #64748b;">Tu usuario es: <strong>{{username}}</strong></p>
-    <p style="margin-top: 20px; font-size: 0.8rem; color: #94a3b8; text-align: center;">Gracias por confiar en Avantix One para la gestión de tus planillas.</p>
+
+    <h3 style="color: #6366f1;">Pasos sugeridos para comenzar:</h3>
+    <ol style="line-height: 1.6; color: #374151;">
+        <li>Ingresa al sistema con tu usuario y contraseña.</li>
+        <li>Ve a la sección <strong>"Empleados"</strong> para agregar a tus colaboradores.</li>
+        <li>Configura los <strong>Horarios</strong> y el valor de la hora.</li>
+        <li>Comparte el acceso del <strong>Portal de Empleados</strong> con tu equipo.</li>
+    </ol>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="https://app.avantixone.com" style="background: #6366f1; color: white; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Ingresar Ahora</a>
+    </div>
+
+    <p style="margin-top: 30px; font-size: 0.8rem; color: #94a3b8; text-align: center; border-top: 1px solid #eee; padding-top: 10px;">
+        Si necesitas ayuda, contáctanos a soporte@avantixone.com
+    </p>
 </div>')
 ON CONFLICT (type) DO UPDATE 
 SET name = EXCLUDED.name, 
