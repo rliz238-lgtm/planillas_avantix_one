@@ -662,6 +662,21 @@ async function sendConfigurableEmail(type, data, customRecipient = null) {
     }
 }
 
+
+// --- Attendance Photo Upload ---
+app.post('/api/logs/upload-photo', checkAuth, uploadAttendance.single('photo'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No se subió ninguna imagen' });
+    }
+    const businessId = req.headers['x-business-id'];
+    const empId = req.headers['x-employee-id'];
+
+    // Construct public URL
+    // filename form: att_EMPID_TIMESTAMP.jpg
+    const publicUrl = `img/attendance/${req.file.filename}`;
+    res.json({ success: true, photo_url: publicUrl });
+});
+
 app.post('/api/logs/batch', checkAuth, async (req, res) => {
     const { employeeId, logs } = req.body;
 

@@ -2148,6 +2148,76 @@ const Views = {
         `;
     },
 
+    init_adminStats: async () => {
+        const stats = window._latestAdminStats;
+        if (!stats) return;
+
+        const { growth, volume } = stats;
+
+        // Growth Chart
+        const ctxGrowth = document.getElementById('adminGrowthChart').getContext('2d');
+        new Chart(ctxGrowth, {
+            type: 'line',
+            data: {
+                labels: growth.map(g => g.month),
+                datasets: [{
+                    label: 'Nuevas Empresas',
+                    data: growth.map(g => g.count),
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // Volume Chart
+        const ctxVolume = document.getElementById('adminVolumeChart').getContext('2d');
+        new Chart(ctxVolume, {
+            type: 'bar',
+            data: {
+                labels: volume.map(v => v.month),
+                datasets: [{
+                    label: 'Volumen (₡)',
+                    data: volume.map(v => v.amount),
+                    backgroundColor: '#10b981',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: {
+                            callback: function (value) {
+                                return '₡' + value.toLocaleString();
+                            }
+                        }
+                    },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    },
+
     dashboard: async () => {
         const employees = await Storage.get('employees');
         const activeEmployees = employees.filter(e => e.status === 'Active');
