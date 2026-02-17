@@ -1361,11 +1361,10 @@ app.post('/api/onboarding/register', upload.single('logo'), async (req, res) => 
         await db.query('COMMIT');
 
         sendConfigurableEmail('NEW_REGISTRATION', {
-            businessName: finalBusinessName,
-            ownerName,
-            ownerLastName,
-            ownerEmail,
-            ownerPhone,
+            business_name: finalBusinessName,
+            owner_name: `${ownerName} ${ownerLastName || ''}`.trim(),
+            owner_email: ownerEmail,
+            owner_phone: ownerPhone,
             cycle_type: req.body.cycle_type || 'Weekly'
         });
 
