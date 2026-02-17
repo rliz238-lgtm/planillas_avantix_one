@@ -1298,11 +1298,14 @@ app.post('/api/onboarding/register', upload.single('logo'), async (req, res) => 
         await db.query('BEGIN');
 
         // 1. Crear Empresa
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 372); // 365 + 7 días de prueba
+
         const busRes = await db.query(
             `INSERT INTO businesses(
-                name, legal_type, legal_name, cedula_juridica, country, state, city, district, address, email, phone, logo_url, cycle_type
-            ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
-            [finalBusinessName, legal_type || 'Persona Jurídica', legal_name || null, cedulaJuridica || null, country || 'Costa Rica', state || null, city || null, district || null, address || null, bizEmail, bizPhone, logo_url, req.body.cycle_type || 'Weekly']
+                name, legal_type, legal_name, cedula_juridica, country, state, city, district, address, email, phone, logo_url, cycle_type, expires_at
+            ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
+            [finalBusinessName, legal_type || 'Persona Jurídica', legal_name || null, cedulaJuridica || null, country || 'Costa Rica', state || null, city || null, district || null, address || null, bizEmail, bizPhone, logo_url, req.body.cycle_type || 'Weekly', expiresAt]
         );
         const businessId = busRes.rows[0].id;
 
@@ -1421,6 +1424,25 @@ app.post('/api/webhooks/hotmart', async (req, res) => {
             await db.query('ROLLBACK');
             console.error('❌ Error en el provisionamiento de Hotmart:', err.message);
             return res.status(500).json({ error: 'Internal Server Error' });
+        }
+    }
+
+    // 3. Manejar Cancelaciones / Reembolsos
+    const cancellationEvents = ['PURCHASE_REFUNDED', 'PURCHASE_CANCELED', 'SUBSCRIPTION_CANCELLATION', 'REFUNDED_BY_BUYER'];
+    if (cancellationEvents.includes(event)) {
+        const buyer = payload.data ? payload.data.buyer : payload.buyer;
+        if (buyer && buyer.email) {
+            try {
+                // Buscar la empresa asociada a ese email (Owner)
+                const userRes = await db.query('SELECT business_id FROM users WHERE email = $1 AND role = \'owner\'', [buyer.email]);
+                if (userRes.rows.length > 0) {
+                    const busId = userRes.rows[0].business_id;
+                    await db.query('UPDATE businesses SET status = \'Suspended\' WHERE id = $1', [busId]);
+                    console.log(`🚫 Cuenta suspendida por cancelación en Hotmart: ${buyer.email} (Empresa ID: ${busId})`);
+                }
+            } catch (err) {
+                console.error('❌ Error procesando cancelación de Hotmart:', err.message);
+            }
         }
     }
 
