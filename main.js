@@ -736,7 +736,7 @@ const Auth = {
                     theme_preference: user.theme_preference || 'dark',
                     cycle_type: user.cycle_type || 'Weekly',
                     default_overtime_multiplier: user.default_overtime_multiplier || 1.5,
-                    ccss_percentage: user.ccss_percentage || 10.67,
+                    ccss_percentage: user.ccss_percentage || 10.83,
                     loginTime: Date.now()
                 }));
                 return true;
@@ -996,9 +996,12 @@ const App = {
             this.setupNavigation();
             if (initialView === 'dashboard') initialView = 'adminStats';
             await this.switchView(initialView, initialArg);
+        } else {
+            // Owner / Editor
+            this.setupNavigation();
+            await this.switchView(initialView, initialArg);
         }
 
-        this.setupNavigation();
         this.refreshIcons();
     },
 
@@ -1648,7 +1651,7 @@ const Views = {
                         <div class="workflow-content">
                             <div class="workflow-number">02</div>
                             <h3>Cálculo Automatizado de Planilla</h3>
-                            <p>El sistema toma todas las horas registradas y aplica automáticamente los rebajos de la CCSS (${Auth.getUser()?.ccss_percentage || 10.67}%), calcula horas extras al 1.5x o 2.0x y descuenta vales de salario.</p>
+                            <p>El sistema toma todas las horas registradas y aplica automáticamente los rebajos de la CCSS (${Auth.getUser()?.ccss_percentage || 10.83}%), calcula horas extras al 1.5x o 2.0x y descuenta vales de salario.</p>
                             <ul class="workflow-features-list">
                                 <li>Integración inmediata con la legislación de CR</li>
                                 <li>Gestión de pagos semanales o quincenales</li>
@@ -2280,7 +2283,7 @@ const Views = {
             let amount = periodLogs.reduce((s, l) => {
                 const emp = employees.find(e => e.id == l.employee_id);
                 const gross = parseFloat(l.hours || 0) * (emp ? parseFloat(emp.hourly_rate) : 0);
-                const percentage = (Auth.getUser()?.ccss_percentage || 10.67) / 100;
+                const percentage = (Auth.getUser()?.ccss_percentage || 10.83) / 100;
                 const deduction = (emp && emp.apply_ccss) ? (gross * percentage) : 0;
                 return s + (gross - deduction);
             }, 0);
@@ -2300,7 +2303,7 @@ const Views = {
                         } else {
                             const emp = employees.find(e => e.id == p.employee_id);
                             const gross = h * (emp ? parseFloat(emp.hourly_rate) : 0);
-                            const percentage = (Auth.getUser()?.ccss_percentage || 10.67) / 100;
+                            const percentage = (Auth.getUser()?.ccss_percentage || 10.83) / 100;
                             const deduction = (emp && emp.apply_ccss) ? (gross * percentage) : 0;
                             amount += (gross - deduction);
                         }
@@ -3192,7 +3195,7 @@ const Views = {
                         <div style="padding: 1rem; background: var(--bg-body); border-radius: 8px;">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem">
                                 <span>Aplicar CCSS:</span>
-                                <b>${emp.apply_ccss ? 'SÍ (' + (Auth.getUser()?.ccss_percentage || 10.67) + '%)' : 'NO'}</b>
+                                <b>${emp.apply_ccss ? 'SÍ (' + (Auth.getUser()?.ccss_percentage || 10.83) + '%)' : 'NO'}</b>
                             </div>
                             <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem">
                                 <span>Salario Bruto (Ej. 48h):</span>
@@ -3200,7 +3203,7 @@ const Views = {
                             </div>
                             <div style="display: flex; justify-content: space-between; font-weight: 600; color: var(--danger)">
                                 <span>Deducción estimada:</span>
-                                <span>₡${emp.apply_ccss ? (48 * emp.hourly_rate * (Auth.getUser()?.ccss_percentage || 10.67) / 100).toLocaleString() : '0'}</span>
+                                <span>₡${emp.apply_ccss ? (48 * emp.hourly_rate * (Auth.getUser()?.ccss_percentage || 10.83) / 100).toLocaleString() : '0'}</span>
                             </div>
                         </div>
                     </div>
@@ -3440,7 +3443,7 @@ const Views = {
                     tr.querySelector('.calc-subtotal').textContent = displayHours.toFixed(2) + 'h';
 
                     const grossLine = displayHours * rate;
-                    const percentage = (Auth.getUser()?.ccss_percentage || 10.67) / 100;
+                    const percentage = (Auth.getUser()?.ccss_percentage || 10.83) / 100;
                     const ccssLine = (emp && emp.apply_ccss) ? (grossLine * percentage) : 0;
                     const netLine = grossLine - ccssLine;
 
@@ -3483,7 +3486,7 @@ const Views = {
                 }
             }
 
-            const percentage = (Auth.getUser()?.ccss_percentage || 10.67) / 100;
+            const percentage = (Auth.getUser()?.ccss_percentage || 10.83) / 100;
             const totalCCSS = (emp && emp.apply_ccss) ? (finalPay * percentage) : 0;
             const netPay = finalPay - totalCCSS;
 
@@ -3743,7 +3746,7 @@ const Views = {
             }
 
             const gross = hours * parseFloat(emp.hourly_rate);
-            const percentage = (Auth.getUser()?.ccss_percentage || 10.67) / 100;
+            const percentage = (Auth.getUser()?.ccss_percentage || 10.83) / 100;
             const deduction = emp.apply_ccss ? (gross * percentage) : 0;
 
             empData.hours += hours;
@@ -4895,8 +4898,8 @@ const Views = {
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Porcentaje CCSS (Ej: 10.67)</label>
-                        <input type="number" name="ccss_percentage" step="0.01" value="${biz.ccss_percentage || 10.67}">
+                        <label>Porcentaje CCSS (Ej: 10.83)</label>
+                        <input type="number" name="ccss_percentage" step="0.01" value="${biz.ccss_percentage || 10.83}">
                     </div>
                     <div class="form-group" style="grid-column: span 2;">
                         <label>Logo de la Empresa</label>
