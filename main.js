@@ -993,12 +993,10 @@ const App = {
             this.setupNavigation();
             if (initialView === 'dashboard') initialView = 'adminStats';
             await this.switchView(initialView, initialArg);
-        } else {
-            // Owner/Editor
-            await this.switchView(initialView, initialArg);
         }
 
-        if (typeof lucide !== 'undefined') lucide.createIcons();
+        this.setupNavigation();
+        this.refreshIcons();
     },
 
     setupThemeToggle() {
@@ -1418,7 +1416,18 @@ const App = {
             await Views[`init_${view}`](arg);
         }
 
-        if (typeof lucide !== 'undefined') lucide.createIcons();
+        this.refreshIcons();
+    },
+
+    refreshIcons() {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        } else {
+            // Re-intento corto por si el script sigue cargando
+            setTimeout(() => {
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }, 500);
+        }
     }
 };
 
@@ -1793,7 +1802,7 @@ const Views = {
                 mobileToggle.innerHTML = isOpen
                     ? `<i data-lucide="x" style="width:24px; height:24px"></i>`
                     : `<i data-lucide="menu" style="width:24px; height:24px"></i>`;
-                if (typeof lucide !== 'undefined') lucide.createIcons();
+                if (typeof App !== 'undefined') App.refreshIcons();
             };
 
             // Close menu when clicking a link
@@ -1801,7 +1810,7 @@ const Views = {
                 link.onclick = (e) => {
                     navMenu.classList.remove('active');
                     mobileToggle.innerHTML = `<i data-lucide="menu" style="width:24px; height:24px"></i>`;
-                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                    if (typeof App !== 'undefined') App.refreshIcons();
                     if (link.id === 'landing-login-btn') {
                         e.preventDefault();
                         App.renderLogin();

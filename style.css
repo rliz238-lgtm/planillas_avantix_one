@@ -134,6 +134,27 @@ body {
     box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 }
 
+/* Lucide Icons Base */
+.nav-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+}
+
+[data-lucide],
+.lucide {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2;
+    vertical-align: middle;
+}
+
+.sidebar .nav-icon [data-lucide] {
+    width: 20px;
+    height: 20px;
+}
+
 .ios-guide-step {
     display: flex;
     align-items: center;
