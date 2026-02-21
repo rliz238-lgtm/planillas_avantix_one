@@ -87,7 +87,7 @@ app.use((req, res, next) => {
     res.setHeader(
         "Content-Security-Policy",
         "default-src 'self'; " +
-        "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+        "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
         "font-src 'self' https://fonts.gstatic.com; " +
         "img-src 'self' data: https:; " +
@@ -489,6 +489,13 @@ async function sendWhatsAppMessage(number, text) {
     }
 
     const cleanNumber = number.replace(/\D/g, '');
+
+    // Validación: Si el número es demasiado corto (ej: solo el prefijo '506' o vacío)
+    // La mayoría de los números internacionales tienen al menos 8-11 dígitos.
+    if (!cleanNumber || cleanNumber.length <= 4) {
+        console.warn(`⚠️ Intento de enviar WhatsApp a un número inválido o incompleto: "${number}" (Limpio: "${cleanNumber}")`);
+        return { success: false, error: 'Número de teléfono inválido o incompleto' };
+    }
     const data = JSON.stringify({
         number: cleanNumber,
         text: text

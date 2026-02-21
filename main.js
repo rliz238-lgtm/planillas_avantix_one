@@ -469,7 +469,7 @@ const PayrollHelpers = {
     },
 
     showPaymentHistoryDetail: async (paymentId) => {
-        const payments = await Storage.get('payments'), employees = await Storage.get('employees');
+        const [payments, employees] = await Promise.all([Storage.get('payments'), Storage.get('employees')]);
         const p = payments.find(x => x.id == paymentId); if (!p) return;
         const emp = employees.find(e => e.id == p.employee_id);
         const modal = document.getElementById('payroll-detail-modal'), body = document.getElementById('payroll-detail-body');
@@ -2252,10 +2252,12 @@ const Views = {
     },
 
     dashboard: async () => {
-        const employees = await Storage.get('employees');
+        const [employees, rawLogs, payments] = await Promise.all([
+            Storage.get('employees'),
+            Storage.get('logs'),
+            Storage.get('payments')
+        ]);
         const activeEmployees = employees.filter(e => e.status === 'Active');
-        const rawLogs = await Storage.get('logs');
-        const payments = await Storage.get('payments');
 
         // Deduplicate logs
         const uniqueLogKeys = new Set();
@@ -3123,14 +3125,15 @@ const Views = {
     },
 
     employeeDetail: async (id) => {
-        const employees = await Storage.get('employees');
+        const [employees, rawLogs, payments] = await Promise.all([
+            Storage.get('employees'),
+            Storage.get('logs'),
+            Storage.get('payments')
+        ]);
         const emp = employees.find(e => e.id == id);
         if (!emp) return 'Empleado no encontrado';
 
-        const rawLogs = await Storage.get('logs');
         const logs = rawLogs.filter(l => l.employee_id == id);
-
-        const payments = await Storage.get('payments');
         const empPayments = payments.filter(p => p.employee_id == id);
 
         const history = emp.salary_history || [{ date: emp.start_date ? emp.start_date.split('T')[0] : '', rate: emp.hourly_rate, reason: 'Salario Inicial' }];
@@ -3680,10 +3683,12 @@ const Views = {
     },
 
     payroll: async () => {
-        const employees = await Storage.get('employees');
-        const logs = await Storage.get('logs');
-        const payments = await Storage.get('payments');
-        const pendingVouchers = await apiFetch('/api/vouchers?isApplied=false').then(r => r.json());
+        const [employees, logs, payments, pendingVouchers] = await Promise.all([
+            Storage.get('employees'),
+            Storage.get('logs'),
+            Storage.get('payments'),
+            apiFetch('/api/vouchers?isApplied=false').then(r => r.json())
+        ]);
 
         // --- RESUMEN DE PENDIENTES (Agrupado por Empleado) ---
         const pendingByEmployee = {};
@@ -4131,7 +4136,7 @@ const Views = {
     },
 
     shareWhatsApp: async (id) => {
-        const pms = await Storage.get('payments'), ems = await Storage.get('employees');
+        const [pms, ems] = await Promise.all([Storage.get('payments'), Storage.get('employees')]);
         const p = pms.find(x => x.id == id), e = ems.find(x => x.id == p.employee_id);
         if (!p || !e) return;
 
@@ -4149,7 +4154,7 @@ const Views = {
     },
 
     exportPayments: async () => {
-        const pms = await Storage.get('payments'), ems = await Storage.get('employees');
+        const [pms, ems] = await Promise.all([Storage.get('payments'), Storage.get('employees')]);
         const data = pms.map(p => {
             const e = ems.find(x => x.id == p.employee_id);
             return { Fecha: p.date.split('T')[0], Empleado: e ? e.name : '--', Horas: p.hours, Monto: p.amount };
