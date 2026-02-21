@@ -668,6 +668,53 @@ select option {
     color: var(--danger);
 }
 
+/* Vacation Styles */
+.vacation-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.vacation-badge.pending {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning);
+}
+
+.vacation-badge.approved {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+}
+
+.vacation-badge.rejected {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
+}
+
+.vacation-badge.cancelled {
+    background: rgba(148, 163, 184, 0.15);
+    color: var(--text-muted);
+}
+
+.vacation-progress {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+[data-theme="light"] .vacation-progress {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.vacation-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--primary);
+    transition: width 0.4s ease;
+}
+
 /* Import Styles */
 .import-zone {
     border: 2px dashed var(--border);

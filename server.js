@@ -269,7 +269,7 @@ app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
         const result = await db.query(
-            'SELECT u.*, b.name as business_name, b.logo_url, b.cycle_type, b.default_overtime_multiplier, b.theme_preference, b.ccss_percentage FROM users u LEFT JOIN businesses b ON u.business_id = b.id WHERE u.username = $1 AND u.password = $2',
+            'SELECT u.*, b.name as business_name, b.logo_url, b.cycle_type, b.default_overtime_multiplier, b.theme_preference, b.ccss_percentage, b.rent_brackets FROM users u LEFT JOIN businesses b ON u.business_id = b.id WHERE u.username = $1 AND u.password = $2',
             [username, password]
         );
         if (result.rows.length > 0) {
@@ -285,7 +285,8 @@ app.post('/api/login', async (req, res) => {
                 logo_url: user.logo_url,
                 cycle_type: user.cycle_type,
                 default_overtime_multiplier: user.default_overtime_multiplier,
-                ccss_percentage: user.ccss_percentage || 10.67,
+                ccss_percentage: user.ccss_percentage || 10.83,
+                rent_brackets: user.rent_brackets || null,
                 theme_preference: user.theme_preference || 'dark'
             });
         } else {
@@ -784,11 +785,11 @@ app.get('/api/payments', checkAuth, async (req, res) => {
 });
 
 app.post('/api/payments', checkAuth, async (req, res) => {
-    const { employeeId, amount, hours, deductionCCSS, netAmount, date, isImported, logsDetail, startDate, endDate, voucherAmount, voucherDetails, grossAmount, lunchHours } = req.body;
+    const { employeeId, amount, hours, deductionCCSS, netAmount, date, isImported, logsDetail, startDate, endDate, voucherAmount, voucherDetails, grossAmount, lunchHours, deductionRenta, extraHours, doubleHours, extraAmount, doubleAmount } = req.body;
     try {
         const result = await db.query(
-            'INSERT INTO payments (employee_id, amount, hours, deduction_ccss, net_amount, date, is_imported, logs_detail, start_date, end_date, voucher_amount, voucher_details, gross_amount, lunch_hours, business_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *',
-            [employeeId, amount, hours || 0, deductionCCSS || 0, netAmount || amount, date, isImported || false, JSON.stringify(logsDetail || []), startDate || null, endDate || null, voucherAmount || 0, JSON.stringify(voucherDetails || []), grossAmount || 0, lunchHours || 0, req.businessId]
+            'INSERT INTO payments (employee_id, amount, hours, deduction_ccss, net_amount, date, is_imported, logs_detail, start_date, end_date, voucher_amount, voucher_details, gross_amount, lunch_hours, business_id, deduction_renta, extra_hours, double_hours, extra_amount, double_amount) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *',
+            [employeeId, amount, hours || 0, deductionCCSS || 0, netAmount || amount, date, isImported || false, JSON.stringify(logsDetail || []), startDate || null, endDate || null, voucherAmount || 0, JSON.stringify(voucherDetails || []), grossAmount || 0, lunchHours || 0, req.businessId, deductionRenta || 0, extraHours || 0, doubleHours || 0, extraAmount || 0, doubleAmount || 0]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -798,11 +799,11 @@ app.post('/api/payments', checkAuth, async (req, res) => {
 
 app.put('/api/payments/:id', checkAuth, async (req, res) => {
     const { id } = req.params;
-    const { employeeId, amount, hours, deductionCCSS, netAmount, date, isImported, logsDetail, startDate, endDate, voucherAmount, voucherDetails, grossAmount, lunchHours } = req.body;
+    const { employeeId, amount, hours, deductionCCSS, netAmount, date, isImported, logsDetail, startDate, endDate, voucherAmount, voucherDetails, grossAmount, lunchHours, deductionRenta, extraHours, doubleHours, extraAmount, doubleAmount } = req.body;
     try {
         const result = await db.query(
-            'UPDATE payments SET employee_id=$1, amount=$2, hours=$3, deduction_ccss=$4, net_amount=$5, date=$6, is_imported=$7, logs_detail=$8, start_date=$9, end_date=$10, voucher_amount=$11, voucher_details=$12, gross_amount=$13, lunch_hours=$14 WHERE id=$15 AND business_id=$16 RETURNING *',
-            [employeeId, amount, hours, deductionCCSS, netAmount, date, isImported, JSON.stringify(logsDetail || []), startDate, endDate, voucherAmount, JSON.stringify(voucherDetails || []), grossAmount, lunchHours, id, req.businessId]
+            'UPDATE payments SET employee_id=$1, amount=$2, hours=$3, deduction_ccss=$4, net_amount=$5, date=$6, is_imported=$7, logs_detail=$8, start_date=$9, end_date=$10, voucher_amount=$11, voucher_details=$12, gross_amount=$13, lunch_hours=$14, deduction_renta=$15, extra_hours=$16, double_hours=$17, extra_amount=$18, double_amount=$19 WHERE id=$20 AND business_id=$21 RETURNING *',
+            [employeeId, amount, hours, deductionCCSS, netAmount, date, isImported, JSON.stringify(logsDetail || []), startDate, endDate, voucherAmount, JSON.stringify(voucherDetails || []), grossAmount, lunchHours, deductionRenta || 0, extraHours || 0, doubleHours || 0, extraAmount || 0, doubleAmount || 0, id, req.businessId]
         );
         if (result.rows.length === 0) return res.status(404).json({ error: 'Pago no encontrado o no pertenece a su empresa' });
         res.json(result.rows[0]);
@@ -961,6 +962,181 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
     }
 });
 
+// --- Vacaciones ---
+app.get('/api/vacations', checkAuth, async (req, res) => {
+    const { employee_id, status } = req.query;
+    try {
+        let query = 'SELECT v.*, e.name as employee_name FROM vacations v JOIN employees e ON v.employee_id = e.id WHERE v.business_id = $1';
+        let params = [req.businessId];
+        let idx = 2;
+        if (employee_id) {
+            query += ` AND v.employee_id = $${idx++}`;
+            params.push(employee_id);
+        }
+        if (status) {
+            query += ` AND v.status = $${idx++}`;
+            params.push(status);
+        }
+        query += ' ORDER BY v.created_at DESC';
+        const result = await db.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/vacations/summary/:employeeId', checkAuth, async (req, res) => {
+    try {
+        const { employeeId } = req.params;
+        const empResult = await db.query('SELECT start_date FROM employees WHERE id = $1 AND business_id = $2', [employeeId, req.businessId]);
+        if (empResult.rows.length === 0) return res.status(404).json({ error: 'Empleado no encontrado' });
+
+        const bizResult = await db.query('SELECT vacation_days_per_year FROM businesses WHERE id = $1', [req.businessId]);
+        const daysPerYear = bizResult.rows[0]?.vacation_days_per_year || 14;
+
+        const startDate = new Date(empResult.rows[0].start_date);
+        const now = new Date();
+        const msWorked = now - startDate;
+        const yearsWorked = msWorked / (365.25 * 24 * 60 * 60 * 1000);
+        const fullYears = Math.floor(yearsWorked);
+        const daysEntitled = fullYears * daysPerYear;
+
+        const takenResult = await db.query(
+            "SELECT COALESCE(SUM(days), 0) as total FROM vacations WHERE employee_id = $1 AND business_id = $2 AND status = 'Approved'",
+            [employeeId, req.businessId]
+        );
+        const daysTaken = parseInt(takenResult.rows[0].total);
+
+        const pendingResult = await db.query(
+            "SELECT COALESCE(SUM(days), 0) as total FROM vacations WHERE employee_id = $1 AND business_id = $2 AND status = 'Pending'",
+            [employeeId, req.businessId]
+        );
+        const daysPending = parseInt(pendingResult.rows[0].total);
+
+        res.json({
+            days_entitled: daysEntitled,
+            days_taken: daysTaken,
+            days_pending: daysPending,
+            days_available: daysEntitled - daysTaken,
+            days_per_year: daysPerYear,
+            start_date: empResult.rows[0].start_date,
+            years_worked: parseFloat(yearsWorked.toFixed(2)),
+            full_years: fullYears
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/vacations', checkAuth, async (req, res) => {
+    const { employee_id, start_date, end_date, days, notes, requested_by } = req.body;
+    try {
+        const result = await db.query(
+            'INSERT INTO vacations (business_id, employee_id, start_date, end_date, days, notes, requested_by) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+            [req.businessId, employee_id, start_date, end_date, days, notes || null, requested_by || 'admin']
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/vacations/:id', checkAuth, async (req, res) => {
+    const { id } = req.params;
+    const { status, admin_notes, start_date, end_date, days, notes } = req.body;
+    try {
+        let query, params;
+        if (status) {
+            query = 'UPDATE vacations SET status = $1, admin_notes = $2, updated_at = NOW() WHERE id = $3 AND business_id = $4 RETURNING *';
+            params = [status, admin_notes || null, id, req.businessId];
+        } else {
+            query = 'UPDATE vacations SET start_date = $1, end_date = $2, days = $3, notes = $4, updated_at = NOW() WHERE id = $5 AND business_id = $6 RETURNING *';
+            params = [start_date, end_date, days, notes, id, req.businessId];
+        }
+        const result = await db.query(query, params);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Vacación no encontrada' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/vacations/:id', checkAuth, async (req, res) => {
+    try {
+        await db.query('DELETE FROM vacations WHERE id = $1 AND business_id = $2', [req.params.id, req.businessId]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Vacaciones (Portal de Empleados) ---
+app.get('/api/employee-vacations/:employeeId', async (req, res) => {
+    try {
+        const { employeeId } = req.params;
+        const empResult = await db.query('SELECT business_id, start_date FROM employees WHERE id = $1', [employeeId]);
+        if (empResult.rows.length === 0) return res.status(404).json({ error: 'Empleado no encontrado' });
+
+        const businessId = empResult.rows[0].business_id;
+        const bizResult = await db.query('SELECT vacation_days_per_year FROM businesses WHERE id = $1', [businessId]);
+        const daysPerYear = bizResult.rows[0]?.vacation_days_per_year || 14;
+
+        const startDate = new Date(empResult.rows[0].start_date);
+        const now = new Date();
+        const yearsWorked = (now - startDate) / (365.25 * 24 * 60 * 60 * 1000);
+        const fullYears = Math.floor(yearsWorked);
+        const daysEntitled = fullYears * daysPerYear;
+
+        const takenResult = await db.query(
+            "SELECT COALESCE(SUM(days), 0) as total FROM vacations WHERE employee_id = $1 AND status = 'Approved'",
+            [employeeId]
+        );
+        const daysTaken = parseInt(takenResult.rows[0].total);
+
+        const pendingResult = await db.query(
+            "SELECT COALESCE(SUM(days), 0) as total FROM vacations WHERE employee_id = $1 AND status = 'Pending'",
+            [employeeId]
+        );
+        const daysPending = parseInt(pendingResult.rows[0].total);
+
+        const vacationsResult = await db.query(
+            'SELECT * FROM vacations WHERE employee_id = $1 ORDER BY created_at DESC LIMIT 10',
+            [employeeId]
+        );
+
+        res.json({
+            summary: {
+                days_entitled: daysEntitled,
+                days_taken: daysTaken,
+                days_pending: daysPending,
+                days_available: daysEntitled - daysTaken,
+                years_worked: parseFloat(yearsWorked.toFixed(2)),
+                full_years: fullYears
+            },
+            history: vacationsResult.rows
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/employee-vacations', async (req, res) => {
+    const { employee_id, start_date, end_date, days, notes } = req.body;
+    try {
+        const empResult = await db.query('SELECT business_id FROM employees WHERE id = $1', [employee_id]);
+        if (empResult.rows.length === 0) return res.status(404).json({ error: 'Empleado no encontrado' });
+
+        const businessId = empResult.rows[0].business_id;
+        const result = await db.query(
+            'INSERT INTO vacations (business_id, employee_id, start_date, end_date, days, notes, requested_by) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+            [businessId, employee_id, start_date, end_date, days, notes || null, 'employee']
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // --- Mantenimiento ---
 app.delete('/api/maintenance/clear-all', checkAuth, async (req, res) => {
     const { target } = req.query;
@@ -1016,21 +1192,21 @@ app.put('/api/settings/business', checkAuth, async (req, res) => {
     const {
         name, cedula_juridica, logo_url, default_overtime_multiplier, cycle_type, theme_preference,
         attendance_marker_enabled, gps_latitude, gps_longitude, gps_radius_meters, attendance_photo_required,
-        ccss_percentage
+        ccss_percentage, rent_brackets
     } = req.body;
     try {
         const result = await db.query(
-            `UPDATE businesses SET 
-                name=$1, cedula_juridica=$2, logo_url=$3, default_overtime_multiplier=$4, 
-                cycle_type=$5, theme_preference=$6, attendance_marker_enabled=$7, 
-                gps_latitude=$8, gps_longitude=$9, gps_radius_meters=$10, 
-                attendance_photo_required=$11, ccss_percentage=$12 
-            WHERE id=$13 RETURNING *`,
+            `UPDATE businesses SET
+                name=$1, cedula_juridica=$2, logo_url=$3, default_overtime_multiplier=$4,
+                cycle_type=$5, theme_preference=$6, attendance_marker_enabled=$7,
+                gps_latitude=$8, gps_longitude=$9, gps_radius_meters=$10,
+                attendance_photo_required=$11, ccss_percentage=$12, rent_brackets=$13
+            WHERE id=$14 RETURNING *`,
             [
                 name, cedula_juridica, logo_url, default_overtime_multiplier,
                 cycle_type, theme_preference || 'dark', attendance_marker_enabled || false,
                 gps_latitude, gps_longitude, gps_radius_meters || 100, attendance_photo_required || false,
-                ccss_percentage || 10.67, req.businessId
+                ccss_percentage || 10.83, rent_brackets ? JSON.stringify(rent_brackets) : null, req.businessId
             ]
         );
         res.json(result.rows[0]);

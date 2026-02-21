@@ -2,6 +2,36 @@
  * Planillas Avantix One - Core Logic
  */
 
+// --- Renta (Income Tax) Calculation Utilities ---
+const DEFAULT_RENT_BRACKETS = [
+    { min: 0, max: 929000, rate: 0 },
+    { min: 929001, max: 1363000, rate: 0.10 },
+    { min: 1363001, max: 2392000, rate: 0.15 },
+    { min: 2392001, max: 4783000, rate: 0.20 },
+    { min: 4783001, max: null, rate: 0.25 }
+];
+
+function calculateRenta(grossMensual, brackets) {
+    const b = (brackets && brackets.length > 0) ? brackets : DEFAULT_RENT_BRACKETS;
+    let tax = 0;
+    for (const bracket of b) {
+        if (grossMensual <= bracket.min) break;
+        const upper = bracket.max != null ? bracket.max : Infinity;
+        const taxable = Math.min(grossMensual, upper) - bracket.min;
+        if (taxable > 0) tax += taxable * bracket.rate;
+    }
+    return tax;
+}
+
+function calculatePeriodRenta(periodGross, cycleType, brackets) {
+    let multiplier = 1;
+    if (cycleType === 'Weekly') multiplier = 4.33;
+    else if (cycleType === 'Biweekly') multiplier = 2.17;
+    const monthlyGross = periodGross * multiplier;
+    const monthlyRenta = calculateRenta(monthlyGross, brackets);
+    return monthlyRenta / multiplier;
+}
+
 // --- Payroll Global Helpers (Top Level) ---
 window._pendingPayrollData = {};
 const PayrollHelpers = {
@@ -156,8 +186,13 @@ const PayrollHelpers = {
         // Initial summary
         document.getElementById('payroll-detail-info').innerHTML = `
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div><strong>Pendiente (Horas):</strong> ₡${Math.round(data.net).toLocaleString()}</div>
+                <div><strong>Bruto:</strong> ₡${Math.round(data.gross).toLocaleString()}</div>
                 <div><strong>Horas:</strong> ${data.hours.toFixed(1)}h</div>
+                ${data.grossExtra > 0 ? `<div><strong>H. Extra:</strong> ₡${Math.round(data.grossExtra).toLocaleString()} (${data.extraHours.toFixed(1)}h)</div>` : ''}
+                ${data.grossDouble > 0 ? `<div><strong>H. Doble:</strong> ₡${Math.round(data.grossDouble).toLocaleString()} (${data.doubleHours.toFixed(1)}h)</div>` : ''}
+                <div><strong>CCSS:</strong> -₡${Math.round(data.deduction).toLocaleString()}</div>
+                ${data.renta > 0 ? `<div><strong>Renta:</strong> -₡${Math.round(data.renta).toLocaleString()}</div>` : ''}
+                <div style="color: var(--success); font-weight: 700;"><strong>Neto:</strong> ₡${Math.round(data.net).toLocaleString()}</div>
             </div>`;
 
         // Render Logs
@@ -366,9 +401,9 @@ const PayrollHelpers = {
             totalCCSS = d.deduction;
         }
 
-        const finalNet = d.gross - totalCCSS - voucherTotal;
+        const finalNet = d.gross - totalCCSS - d.renta - voucherTotal;
 
-        if (!confirm(`¿Pagar ₡${Math.round(finalNet).toLocaleString()} a ${d.name}?\n(Incluye CCSS: ₡${Math.round(totalCCSS).toLocaleString()} y vales: ₡${Math.round(voucherTotal).toLocaleString()})`)) return;
+        if (!confirm(`¿Pagar ₡${Math.round(finalNet).toLocaleString()} a ${d.name}?\n(CCSS: ₡${Math.round(totalCCSS).toLocaleString()} | Renta: ₡${Math.round(d.renta).toLocaleString()} | Vales: ₡${Math.round(voucherTotal).toLocaleString()})`)) return;
 
         Storage.showLoader(true, 'Pagando...');
         try {
@@ -378,6 +413,7 @@ const PayrollHelpers = {
                 amount: finalNet,
                 hours: d.hours,
                 deductionCCSS: totalCCSS,
+                deductionRenta: d.renta,
                 netAmount: finalNet,
                 startDate: d.startDate,
                 endDate: d.endDate,
@@ -386,7 +422,11 @@ const PayrollHelpers = {
                 voucherAmount: voucherTotal,
                 voucherDetails: vouchers,
                 grossAmount: d.gross,
-                lunchHours: d.logs.reduce((sum, l) => sum + parseFloat(l.deduction_hours || 0), 0)
+                lunchHours: d.logs.reduce((sum, l) => sum + parseFloat(l.deduction_hours || 0), 0),
+                extraHours: d.extraHours,
+                doubleHours: d.doubleHours,
+                extraAmount: d.grossExtra,
+                doubleAmount: d.grossDouble
             });
 
             if (res.success) {
@@ -402,7 +442,10 @@ const PayrollHelpers = {
                 Storage.showLoader(false);
                 await App.renderView('payroll');
                 if (d.phone) {
-                    const text = `*REGISTRO TTW*\n\n*Empleado:* ${d.name}\n*Monto Neto:* ₡${Math.round(finalNet).toLocaleString()}\n*Vouchers:* -₡${voucherTotal.toLocaleString()}\n*Horas:* ${d.hours.toFixed(1)}h`;
+                    const text = `*REGISTRO TTW*\n\n*Empleado:* ${d.name}\n*Bruto:* ₡${Math.round(d.gross).toLocaleString()}\n*CCSS:* -₡${Math.round(totalCCSS).toLocaleString()}\n` +
+                        (d.renta > 0 ? `*Renta:* -₡${Math.round(d.renta).toLocaleString()}\n` : '') +
+                        (voucherTotal > 0 ? `*Vales:* -₡${Math.round(voucherTotal).toLocaleString()}\n` : '') +
+                        `*Monto Neto:* ₡${Math.round(finalNet).toLocaleString()}\n*Horas:* ${d.hours.toFixed(1)}h`;
                     PayrollHelpers.sendServerWhatsApp(d.phone, text);
                 }
             } else {
@@ -464,7 +507,13 @@ const PayrollHelpers = {
                 details += `• ${day} ${dateStr}: ${l.time_in || '--'} - ${l.time_out || '--'} (${parseFloat(l.hours).toFixed(1)}h) → ₡${Math.round(logNet).toLocaleString()}\n`;
             });
         }
-        const text = `*RESUMEN PAGO - AVANTIX ONE*\n\n*Empleado:* ${d.name}\n*Total Neto:* ₡${Math.round(d.net).toLocaleString()}\n*Total Horas:* ${d.hours.toFixed(1)}h${details}`;
+        const text = `*RESUMEN PAGO - AVANTIX ONE*\n\n*Empleado:* ${d.name}\n*Bruto:* ₡${Math.round(d.gross).toLocaleString()}\n` +
+            (d.grossExtra > 0 ? `*H. Extra:* ₡${Math.round(d.grossExtra).toLocaleString()} (${d.extraHours.toFixed(1)}h)\n` : '') +
+            (d.grossDouble > 0 ? `*H. Doble:* ₡${Math.round(d.grossDouble).toLocaleString()} (${d.doubleHours.toFixed(1)}h)\n` : '') +
+            `*CCSS:* -₡${Math.round(d.deduction).toLocaleString()}\n` +
+            (d.renta > 0 ? `*Renta:* -₡${Math.round(d.renta).toLocaleString()}\n` : '') +
+            (d.voucherTotal > 0 ? `*Vales:* -₡${Math.round(d.voucherTotal).toLocaleString()}\n` : '') +
+            `*Total Neto:* ₡${Math.round(d.net).toLocaleString()}\n*Total Horas:* ${d.hours.toFixed(1)}h${details}`;
         PayrollHelpers.sendServerWhatsApp(d.phone, text);
     },
 
@@ -480,13 +529,21 @@ const PayrollHelpers = {
         document.getElementById('payroll-detail-title').textContent = `Detalle Pago Histórico: ${emp ? emp.name : '??'}`;
 
         const gross = p.gross_amount || p.amount;
-        const lunch = p.lunch_hours || 0;
+        const extraAmt = p.extra_amount || 0;
+        const doubleAmt = p.double_amount || 0;
+        const renta = p.deduction_renta || 0;
+        const ccss = p.deduction_ccss || 0;
+        const vouchers = p.voucher_amount || 0;
         document.getElementById('payroll-detail-info').innerHTML = `
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div><strong>Monto Neto:</strong> ₡${Math.round(p.amount).toLocaleString()}</div>
+                <div><strong>Bruto:</strong> ₡${Math.round(gross).toLocaleString()}</div>
                 <div><strong>Fecha Pago:</strong> ${p.date.split('T')[0]}</div>
-                <div><strong>Bruto Est.:</strong> ₡${Math.round(gross).toLocaleString()}</div>
-                <div><strong>Almuerzo:</strong> ${lunch}h</div>
+                ${extraAmt > 0 ? `<div><strong>H. Extra:</strong> ₡${Math.round(extraAmt).toLocaleString()} (${parseFloat(p.extra_hours || 0).toFixed(1)}h)</div>` : ''}
+                ${doubleAmt > 0 ? `<div><strong>H. Doble:</strong> ₡${Math.round(doubleAmt).toLocaleString()} (${parseFloat(p.double_hours || 0).toFixed(1)}h)</div>` : ''}
+                <div><strong>CCSS:</strong> -₡${Math.round(ccss).toLocaleString()}</div>
+                ${renta > 0 ? `<div><strong>Renta:</strong> -₡${Math.round(renta).toLocaleString()}</div>` : ''}
+                ${vouchers > 0 ? `<div><strong>Vales:</strong> -₡${Math.round(vouchers).toLocaleString()}</div>` : ''}
+                <div style="color: var(--success); font-weight: 700;"><strong>Neto:</strong> ₡${Math.round(p.amount).toLocaleString()}</div>
             </div>`;
 
         body.innerHTML = (p.logs_detail || []).map((l, index) => {
@@ -620,7 +677,8 @@ const Storage = {
         logs: 'logs',
         payments: 'payments',
         settings: 'settings',
-        users: 'users'
+        users: 'users',
+        vacations: 'vacations'
     },
 
     getLocalDate(d = new Date()) {
@@ -737,6 +795,7 @@ const Auth = {
                     cycle_type: user.cycle_type || 'Weekly',
                     default_overtime_multiplier: user.default_overtime_multiplier || 1.5,
                     ccss_percentage: user.ccss_percentage || 10.83,
+                    rent_brackets: user.rent_brackets || null,
                     loginTime: Date.now()
                 }));
                 return true;
@@ -814,6 +873,7 @@ const App = {
             import: 'Importar Datos Excel',
             profile: 'Configuración de Empresa',
             adminBusinesses: 'Gestión de Empresas SaaS',
+            vacations: 'Gestión de Vacaciones',
             adminSuperUsers: 'Gestión de Super Usuarios',
             adminEmailSettings: 'Configuración de Correos',
             registration: 'Registro de Nueva Empresa'
@@ -875,7 +935,8 @@ const App = {
                         logo_url: freshBiz.logo_url,
                         theme_preference: freshBiz.theme_preference,
                         cycle_type: freshBiz.cycle_type,
-                        default_overtime_multiplier: freshBiz.default_overtime_multiplier
+                        default_overtime_multiplier: freshBiz.default_overtime_multiplier,
+                        rent_brackets: freshBiz.rent_brackets || null
                     };
                 } else {
                     // Update marker settings for employee
@@ -2255,12 +2316,14 @@ const Views = {
     },
 
     dashboard: async () => {
-        const [employees, rawLogs, payments] = await Promise.all([
+        const [employees, rawLogs, payments, vacations] = await Promise.all([
             Storage.get('employees'),
             Storage.get('logs'),
-            Storage.get('payments')
+            Storage.get('payments'),
+            Storage.get('vacations')
         ]);
         const activeEmployees = employees.filter(e => e.status === 'Active');
+        const pendingVacations = vacations.filter(v => v.status === 'Pending').length;
 
         // Deduplicate logs
         const uniqueLogKeys = new Set();
@@ -2370,6 +2433,13 @@ const Views = {
                     <div style="font-size: 1.2rem; margin-top: 0.5rem; color: var(--success)">₡${Math.round(monthStats.amount).toLocaleString()}</div>
                     <div class="trend">${now.toLocaleString('es-ES', { month: 'long' }).toUpperCase()}</div>
                 </div>
+                ${pendingVacations > 0 ? `
+                <div class="stat-card" style="cursor:pointer; border-left: 3px solid var(--warning);" onclick="App.switchView('vacations')">
+                    <h3>Vacaciones Pendientes</h3>
+                    <div class="value" style="color: var(--warning);">${pendingVacations}</div>
+                    <div class="trend"><i data-lucide="palm-tree" style="width:14px; height:14px; vertical-align:middle; margin-right:4px"></i> Solicitudes por aprobar</div>
+                </div>
+                ` : ''}
             </div>
 
             <div style="margin-top: 2rem">
@@ -3128,16 +3198,32 @@ const Views = {
     },
 
     employeeDetail: async (id) => {
-        const [employees, rawLogs, payments] = await Promise.all([
+        const [employees, rawLogs, payments, allVacations] = await Promise.all([
             Storage.get('employees'),
             Storage.get('logs'),
-            Storage.get('payments')
+            Storage.get('payments'),
+            Storage.get('vacations')
         ]);
         const emp = employees.find(e => e.id == id);
         if (!emp) return 'Empleado no encontrado';
 
         const logs = rawLogs.filter(l => l.employee_id == id);
         const empPayments = payments.filter(p => p.employee_id == id);
+        const empVacations = allVacations.filter(v => v.employee_id == id);
+
+        // Vacation calculation
+        let vacSummary = { days_entitled: 0, days_taken: 0, days_available: 0, years_worked: 0 };
+        try {
+            const vacRes = await apiFetch(`/api/vacations/summary/${id}`);
+            if (vacRes.ok) vacSummary = await vacRes.json();
+        } catch (e) {}
+        const vacPercent = vacSummary.days_entitled > 0 ? Math.min((vacSummary.days_taken / vacSummary.days_entitled) * 100, 100) : 0;
+
+        const vacStatusBadge = (status) => {
+            const map = { Pending: 'pending', Approved: 'approved', Rejected: 'rejected', Cancelled: 'cancelled' };
+            const labels = { Pending: 'Pendiente', Approved: 'Aprobada', Rejected: 'Rechazada', Cancelled: 'Cancelada' };
+            return `<span class="vacation-badge ${map[status] || ''}">${labels[status] || status}</span>`;
+        };
 
         const history = emp.salary_history || [{ date: emp.start_date ? emp.start_date.split('T')[0] : '', rate: emp.hourly_rate, reason: 'Salario Inicial' }];
 
@@ -3236,6 +3322,59 @@ const Views = {
                         </table>
                     </div>
                 </div>
+
+                <div class="card-container" style="margin-top: 2rem; border-left: 3px solid var(--primary);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3 style="margin:0;"><i data-lucide="palm-tree" style="width:18px; vertical-align:middle; margin-right:8px;"></i>Vacaciones</h3>
+                        <button class="btn btn-primary" style="padding:6px 14px; font-size:0.85rem;" onclick="window._vacationPreselect='${emp.id}'; App.switchView('vacations'); setTimeout(() => { const m = document.getElementById('vacation-modal'); const e = document.getElementById('vac-employee'); if(m && e) { e.value='${emp.id}'; e.dispatchEvent(new Event('change')); m.showModal(); }}, 500);">
+                            <i data-lucide="plus" style="width:14px; margin-right:4px;"></i> Registrar Vacaciones
+                        </button>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-bottom:1.5rem;">
+                        <div style="text-align:center; padding:1rem; background:rgba(99,102,241,0.05); border-radius:8px;">
+                            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;">Corresponden</div>
+                            <div style="font-size:1.5rem; font-weight:700; color:var(--primary);">${vacSummary.days_entitled}</div>
+                            <div style="font-size:0.7rem; color:var(--text-muted);">${vacSummary.full_years || 0} año(s) trabajado(s)</div>
+                        </div>
+                        <div style="text-align:center; padding:1rem; background:rgba(245,158,11,0.05); border-radius:8px;">
+                            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;">Tomados</div>
+                            <div style="font-size:1.5rem; font-weight:700; color:var(--warning);">${vacSummary.days_taken}</div>
+                        </div>
+                        <div style="text-align:center; padding:1rem; background:rgba(16,185,129,0.05); border-radius:8px;">
+                            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;">Disponibles</div>
+                            <div style="font-size:1.5rem; font-weight:700; color:var(--success);">${vacSummary.days_available}</div>
+                        </div>
+                    </div>
+                    <div class="vacation-progress" style="margin-bottom:1.5rem;">
+                        <div class="vacation-progress-fill" style="width:${vacPercent}%; background: ${vacPercent > 80 ? 'var(--danger)' : vacPercent > 50 ? 'var(--warning)' : 'var(--primary)'}"></div>
+                    </div>
+                    ${empVacations.length > 0 ? `
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fecha Inicio</th>
+                                    <th>Fecha Fin</th>
+                                    <th>Dias</th>
+                                    <th>Estado</th>
+                                    <th>Notas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${empVacations.sort((a, b) => new Date(b.start_date) - new Date(a.start_date)).map(v => `
+                                    <tr>
+                                        <td>${v.start_date ? v.start_date.split('T')[0] : ''}</td>
+                                        <td>${v.end_date ? v.end_date.split('T')[0] : ''}</td>
+                                        <td style="font-weight:700;">${v.days}</td>
+                                        <td>${vacStatusBadge(v.status)}</td>
+                                        <td style="font-size:0.85rem; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${v.notes || '—'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    ` : '<p style="text-align:center; color:var(--text-muted); padding:1rem;">No hay registros de vacaciones para este empleado.</p>'}
+                </div>
             </div>
 
             <!-- Eliminado modal local para usar el global window.editEmployee -->
@@ -3244,6 +3383,273 @@ const Views = {
 
     init_employeeDetail: async (id) => {
         // No necesitamos inicializar nada aquí ya que usamos window.editEmployee que es global
+    },
+
+    // --- MÓDULO DE VACACIONES ---
+    vacations: async () => {
+        const [employees, vacations] = await Promise.all([
+            Storage.get('employees'),
+            Storage.get('vacations')
+        ]);
+        const activeEmployees = employees.filter(e => e.status === 'Active');
+        const pendingCount = vacations.filter(v => v.status === 'Pending').length;
+        const approvedThisMonth = (() => {
+            const now = new Date();
+            const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            return vacations.filter(v => v.status === 'Approved' && v.start_date && v.start_date.substring(0, 7) === ym)
+                .reduce((s, v) => s + (v.days || 0), 0);
+        })();
+        const totalApproved = vacations.filter(v => v.status === 'Approved').reduce((s, v) => s + (v.days || 0), 0);
+
+        const statusBadge = (status) => {
+            const map = { Pending: 'pending', Approved: 'approved', Rejected: 'rejected', Cancelled: 'cancelled' };
+            const labels = { Pending: 'Pendiente', Approved: 'Aprobada', Rejected: 'Rechazada', Cancelled: 'Cancelada' };
+            return `<span class="vacation-badge ${map[status] || ''}">${labels[status] || status}</span>`;
+        };
+
+        return `
+            <div class="stats-grid" style="margin-bottom: 2rem;">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(245,158,11,0.1); color: var(--warning);"><i data-lucide="clock" style="width:20px"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-value">${pendingCount}</div>
+                        <div class="stat-label">Solicitudes Pendientes</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(16,185,129,0.1); color: var(--success);"><i data-lucide="calendar-check" style="width:20px"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-value">${approvedThisMonth}</div>
+                        <div class="stat-label">Dias Aprobados (Este Mes)</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(99,102,241,0.1); color: var(--primary);"><i data-lucide="palm-tree" style="width:20px"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-value">${totalApproved}</div>
+                        <div class="stat-label">Total Dias Otorgados</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin:0;">Historial de Vacaciones</h3>
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <select id="vac-filter-status" style="padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:var(--input-bg); color:var(--input-color); font-size:0.85rem;">
+                            <option value="">Todos los estados</option>
+                            <option value="Pending">Pendientes</option>
+                            <option value="Approved">Aprobadas</option>
+                            <option value="Rejected">Rechazadas</option>
+                            <option value="Cancelled">Canceladas</option>
+                        </select>
+                        <select id="vac-filter-employee" style="padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:var(--input-bg); color:var(--input-color); font-size:0.85rem;">
+                            <option value="">Todos los empleados</option>
+                            ${activeEmployees.map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
+                        </select>
+                        <button class="btn btn-primary" id="btn-add-vacation" style="padding:8px 16px;">
+                            <i data-lucide="plus" style="width:16px; margin-right:6px;"></i> Registrar Vacaciones
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="vacations-table">
+                        <thead>
+                            <tr>
+                                <th>Empleado</th>
+                                <th>Fecha Inicio</th>
+                                <th>Fecha Fin</th>
+                                <th>Dias</th>
+                                <th>Estado</th>
+                                <th>Solicitado por</th>
+                                <th>Notas</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${vacations.length > 0 ? vacations.map(v => `
+                                <tr data-status="${v.status}" data-employee="${v.employee_id}">
+                                    <td style="font-weight:600;">${v.employee_name || 'N/A'}</td>
+                                    <td>${v.start_date ? v.start_date.split('T')[0] : ''}</td>
+                                    <td>${v.end_date ? v.end_date.split('T')[0] : ''}</td>
+                                    <td style="font-weight:700; color:var(--primary);">${v.days}</td>
+                                    <td>${statusBadge(v.status)}</td>
+                                    <td>${v.requested_by === 'employee' ? 'Empleado' : 'Admin'}</td>
+                                    <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${v.notes || ''}">${v.notes || '—'}</td>
+                                    <td>
+                                        <div style="display:flex; gap:5px;">
+                                            ${v.status === 'Pending' ? `
+                                                <button class="btn" style="padding:4px 8px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); color:var(--success); font-size:0.75rem;" onclick="window.vacationAction(${v.id}, 'Approved')" title="Aprobar">Aprobar</button>
+                                                <button class="btn" style="padding:4px 8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:var(--danger); font-size:0.75rem;" onclick="window.vacationAction(${v.id}, 'Rejected')" title="Rechazar">Rechazar</button>
+                                            ` : ''}
+                                            <button class="btn" style="padding:4px 8px; background:rgba(239,68,68,0.05); border:1px solid rgba(239,68,68,0.2); font-size:0.75rem;" onclick="window.deleteVacation(${v.id})" title="Eliminar"><i data-lucide="trash-2" style="width:14px; color:var(--danger);"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('') : '<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-muted);">No hay registros de vacaciones.</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    },
+
+    init_vacations: async () => {
+        const modal = document.getElementById('vacation-modal');
+        const form = document.getElementById('vacation-form');
+        const empSelect = document.getElementById('vac-employee');
+        const startInput = document.getElementById('vac-start');
+        const endInput = document.getElementById('vac-end');
+        const daysCount = document.getElementById('vac-days-count');
+        const summaryDiv = document.getElementById('vac-employee-summary');
+        const filterStatus = document.getElementById('vac-filter-status');
+        const filterEmployee = document.getElementById('vac-filter-employee');
+
+        // Populate employee select in modal
+        const employees = await Storage.get('employees');
+        const activeEmps = employees.filter(e => e.status === 'Active');
+        empSelect.innerHTML = '<option value="">Seleccione un empleado...</option>' +
+            activeEmps.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+
+        // Calculate days between dates
+        const calcDays = () => {
+            if (startInput.value && endInput.value) {
+                const start = new Date(startInput.value + 'T00:00:00');
+                const end = new Date(endInput.value + 'T00:00:00');
+                const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                daysCount.textContent = diff > 0 ? diff : 0;
+            } else {
+                daysCount.textContent = '0';
+            }
+        };
+        startInput.addEventListener('change', calcDays);
+        endInput.addEventListener('change', calcDays);
+
+        // Load employee vacation summary when selected
+        empSelect.addEventListener('change', async () => {
+            if (!empSelect.value) {
+                summaryDiv.style.display = 'none';
+                return;
+            }
+            try {
+                const res = await apiFetch(`/api/vacations/summary/${empSelect.value}`);
+                const data = await res.json();
+                document.getElementById('vac-days-entitled').textContent = data.days_entitled;
+                document.getElementById('vac-days-taken').textContent = data.days_taken;
+                document.getElementById('vac-days-available').textContent = data.days_available;
+                summaryDiv.style.display = 'block';
+            } catch (e) {
+                summaryDiv.style.display = 'none';
+            }
+        });
+
+        // Open modal button
+        document.getElementById('btn-add-vacation').onclick = () => {
+            form.reset();
+            summaryDiv.style.display = 'none';
+            daysCount.textContent = '0';
+            document.getElementById('vacation-modal-title').textContent = 'Registrar Vacaciones';
+            modal.showModal();
+        };
+
+        // Submit form
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const days = parseInt(daysCount.textContent);
+            if (days <= 0) return alert('Las fechas no son válidas.');
+            if (!empSelect.value) return alert('Seleccione un empleado.');
+
+            Storage.showLoader(true, 'Guardando vacaciones...');
+            try {
+                const res = await apiFetch('/api/vacations', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        employee_id: parseInt(empSelect.value),
+                        start_date: startInput.value,
+                        end_date: endInput.value,
+                        days: days,
+                        notes: document.getElementById('vac-notes').value || null,
+                        requested_by: 'admin'
+                    })
+                });
+                if (res.ok) {
+                    modal.close();
+                    PayrollHelpers.showToast('Vacaciones Registradas', 'La solicitud se ha guardado correctamente.', 'success');
+                    App.renderView('vacations');
+                } else {
+                    const errData = await res.json();
+                    alert('Error: ' + (errData.error || 'Desconocido'));
+                }
+            } catch (err) {
+                alert('Error de conexión.');
+            } finally {
+                Storage.showLoader(false);
+            }
+        };
+
+        // Global action handlers
+        window.vacationAction = async (id, status) => {
+            const label = status === 'Approved' ? 'aprobar' : 'rechazar';
+            if (!confirm(`¿Desea ${label} esta solicitud de vacaciones?`)) return;
+
+            let adminNotes = null;
+            if (status === 'Rejected') {
+                adminNotes = prompt('Motivo del rechazo (opcional):');
+            }
+
+            Storage.showLoader(true, 'Actualizando...');
+            try {
+                await apiFetch(`/api/vacations/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ status, admin_notes: adminNotes })
+                });
+                PayrollHelpers.showToast(
+                    status === 'Approved' ? 'Vacaciones Aprobadas' : 'Vacaciones Rechazadas',
+                    `La solicitud ha sido ${status === 'Approved' ? 'aprobada' : 'rechazada'}.`,
+                    status === 'Approved' ? 'success' : 'warning'
+                );
+                App.renderView('vacations');
+            } catch (err) {
+                alert('Error al actualizar.');
+            } finally {
+                Storage.showLoader(false);
+            }
+        };
+
+        window.deleteVacation = async (id) => {
+            if (!confirm('¿Está seguro de eliminar este registro de vacaciones?')) return;
+            Storage.showLoader(true, 'Eliminando...');
+            try {
+                await apiFetch(`/api/vacations/${id}`, { method: 'DELETE' });
+                PayrollHelpers.showToast('Eliminado', 'El registro de vacaciones ha sido eliminado.', 'success');
+                App.renderView('vacations');
+            } catch (err) {
+                alert('Error al eliminar.');
+            } finally {
+                Storage.showLoader(false);
+            }
+        };
+
+        // Table filters
+        const applyFilters = () => {
+            const statusVal = filterStatus.value;
+            const empVal = filterEmployee.value;
+            document.querySelectorAll('#vacations-table tbody tr').forEach(row => {
+                const matchStatus = !statusVal || row.dataset.status === statusVal;
+                const matchEmp = !empVal || row.dataset.employee === empVal;
+                row.style.display = (matchStatus && matchEmp) ? '' : 'none';
+            });
+        };
+        filterStatus.addEventListener('change', applyFilters);
+        filterEmployee.addEventListener('change', applyFilters);
+
+        // Pre-select employee if navigating from employee detail
+        if (window._vacationPreselect) {
+            empSelect.value = window._vacationPreselect;
+            empSelect.dispatchEvent(new Event('change'));
+            window._vacationPreselect = null;
+        }
     },
 
     calculator: async () => {
@@ -3341,19 +3747,28 @@ const Views = {
                 </div>
 
                 <div id="calc-summary" style="margin-top: 3rem; padding: 2.5rem; background: rgba(99, 102, 241, 0.05); border-radius: 20px; border: 1px solid var(--primary); display: none;">
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 1rem; text-align: center;">
                         <div>
                             <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem">Total Horas</div>
-                            <div class="value calc-total-value" id="calc-total-hours" style="color: var(--primary); font-size: clamp(1rem, 4vw, 1.8rem);">0.00h</div>
+                            <div class="value calc-total-value" id="calc-total-hours" style="color: var(--primary); font-size: clamp(1rem, 3vw, 1.5rem);">0.00h</div>
                             <div id="calc-overtime-info" style="font-size: 0.65rem; color: var(--text-muted); margin-top: 5px;"></div>
                         </div>
                         <div>
-                            <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem">Total CCSS</div>
-                            <div class="value calc-total-value" id="calc-total-ccss" style="color: var(--danger); font-size: clamp(1rem, 4vw, 1.8rem);">₡0</div>
+                            <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem">Bruto</div>
+                            <div class="value calc-total-value" id="calc-total-gross" style="color: var(--text); font-size: clamp(1rem, 3vw, 1.5rem);">₡0</div>
+                            <div id="calc-breakdown-info" style="font-size: 0.65rem; color: var(--text-muted); margin-top: 5px;"></div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem">CCSS</div>
+                            <div class="value calc-total-value" id="calc-total-ccss" style="color: var(--danger); font-size: clamp(1rem, 3vw, 1.5rem);">₡0</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem">Renta</div>
+                            <div class="value calc-total-value" id="calc-total-renta" style="color: var(--warning); font-size: clamp(1rem, 3vw, 1.5rem);">₡0</div>
                         </div>
                         <div>
                             <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem">Pago Neto</div>
-                            <div class="value calc-total-value" id="calc-total-pay" style="color: var(--success); font-size: clamp(1rem, 4vw, 1.8rem);">₡0</div>
+                            <div class="value calc-total-value" id="calc-total-pay" style="color: var(--success); font-size: clamp(1rem, 3vw, 1.5rem);">₡0</div>
                         </div>
                     </div>
                 </div>
@@ -3486,15 +3901,34 @@ const Views = {
                 }
             }
 
-            const percentage = (Auth.getUser()?.ccss_percentage || 10.83) / 100;
+            const _calcUser = Auth.getUser();
+            const percentage = (_calcUser?.ccss_percentage || 10.83) / 100;
             const totalCCSS = (emp && emp.apply_ccss) ? (finalPay * percentage) : 0;
-            const netPay = finalPay - totalCCSS;
+            const calcCycle = _calcUser?.cycle_type || 'Weekly';
+            const calcBrackets = _calcUser?.rent_brackets || null;
+            const totalRenta = calculatePeriodRenta(finalPay, calcCycle, calcBrackets);
+            const netPay = finalPay - totalCCSS - totalRenta;
 
             document.getElementById('calc-total-hours').textContent = totalH.toFixed(2) + 'h';
+            const grossEl = document.getElementById('calc-total-gross');
+            if (grossEl) grossEl.textContent = '₡' + Math.round(finalPay).toLocaleString();
             if (document.getElementById('calc-total-ccss')) {
                 document.getElementById('calc-total-ccss').textContent = '₡' + Math.round(totalCCSS).toLocaleString();
             }
+            const rentaEl = document.getElementById('calc-total-renta');
+            if (rentaEl) rentaEl.textContent = '₡' + Math.round(totalRenta).toLocaleString();
             document.getElementById('calc-total-pay').textContent = '₡' + Math.round(netPay).toLocaleString();
+
+            const breakdownInfo = document.getElementById('calc-breakdown-info');
+            if (breakdownInfo) {
+                if (totalH > otThreshold && otEnabled) {
+                    const baseAmt = otThreshold * rate;
+                    const extraAmt = (totalH - otThreshold) * rate * otMultiplier;
+                    breakdownInfo.textContent = `Base: ₡${Math.round(baseAmt).toLocaleString()} | Extra: ₡${Math.round(extraAmt).toLocaleString()}`;
+                } else {
+                    breakdownInfo.textContent = '';
+                }
+            }
 
             summary.style.display = totalH > 0 ? 'block' : 'none';
             saveBtn.disabled = !empId || totalH <= 0;
@@ -3695,6 +4129,8 @@ const Views = {
 
         // --- RESUMEN DE PENDIENTES (Agrupado por Empleado) ---
         const pendingByEmployee = {};
+
+        // Pasada 1: Acumular horas por tipo y logs
         logs.filter(l => !l.is_paid).forEach(log => {
             const emp = employees.find(e => e.id == log.employee_id);
             if (!emp) return;
@@ -3713,7 +4149,11 @@ const Views = {
                     extraHours: 0,
                     doubleHours: 0,
                     gross: 0,
+                    grossRegular: 0,
+                    grossExtra: 0,
+                    grossDouble: 0,
                     deduction: 0,
+                    renta: 0,
                     voucherTotal,
                     lunchHours: 0,
                     net: 0,
@@ -3732,33 +4172,54 @@ const Views = {
                 empData.regularHours += hours;
             }
 
-            const user = Auth.getUser();
-            const cycle = user?.cycle_type || 'Weekly';
-            const baseThreshold = parseFloat(emp.overtime_threshold || 48);
-            let otThreshold = baseThreshold;
-            if (cycle === 'Biweekly') otThreshold = baseThreshold * 2;
-            if (cycle === 'Monthly') otThreshold = baseThreshold * 4;
-
-            const otEnabled = emp.enable_overtime !== false;
-
-            if (otEnabled && empData.regularHours > otThreshold) {
-                empData.extraHours = empData.regularHours - otThreshold;
-            }
-
-            const gross = hours * parseFloat(emp.hourly_rate);
-            const percentage = (Auth.getUser()?.ccss_percentage || 10.83) / 100;
-            const deduction = emp.apply_ccss ? (gross * percentage) : 0;
-
             empData.hours += hours;
-            empData.gross += gross;
-            empData.deduction += deduction;
             empData.lunchHours += parseFloat(log.deduction_hours || 0);
-            empData.logs.push({ ...log, isDouble, hours, gross, deduction });
+            empData.logs.push({ ...log, isDouble, hours });
+
+            if (log.date < empData.startDate) empData.startDate = log.date;
+            if (log.date > empData.endDate) empData.endDate = log.date;
         });
 
-        // Finalizar cálculo de Neto restando vales
+        // Pasada 2: Calcular bruto con overtime, CCSS, renta y neto
+        const _user = Auth.getUser();
+        const _cycle = _user?.cycle_type || 'Weekly';
+        const _ccssPerc = (_user?.ccss_percentage || 10.83) / 100;
+        const _brackets = _user?.rent_brackets || null;
+
         Object.values(pendingByEmployee).forEach(empData => {
-            empData.net = empData.gross - empData.deduction - empData.voucherTotal;
+            const emp = employees.find(e => e.id == empData.empId);
+            if (!emp) return;
+            const rate = parseFloat(emp.hourly_rate);
+            const baseThreshold = parseFloat(emp.overtime_threshold || 48);
+            let otThreshold = baseThreshold;
+            if (_cycle === 'Biweekly') otThreshold *= 2;
+            if (_cycle === 'Monthly') otThreshold *= 4;
+            const otMultiplier = parseFloat(emp.overtime_multiplier || _user?.default_overtime_multiplier || 1.5);
+            const otEnabled = emp.enable_overtime !== false;
+
+            let baseHours = empData.regularHours;
+            if (otEnabled && empData.regularHours > otThreshold) {
+                empData.extraHours = empData.regularHours - otThreshold;
+                baseHours = otThreshold;
+            }
+
+            empData.grossRegular = baseHours * rate;
+            empData.grossExtra = empData.extraHours * rate * otMultiplier;
+            empData.grossDouble = empData.doubleHours * rate;
+            empData.gross = empData.grossRegular + empData.grossExtra + empData.grossDouble;
+
+            empData.deduction = emp.apply_ccss ? (empData.gross * _ccssPerc) : 0;
+            empData.renta = calculatePeriodRenta(empData.gross, _cycle, _brackets);
+            empData.net = empData.gross - empData.deduction - empData.renta - empData.voucherTotal;
+
+            // Actualizar gross/deduction/net por log para detalle
+            empData.logs.forEach(l => {
+                const logGross = parseFloat(l.hours) * rate;
+                const logCCSS = emp.apply_ccss ? (logGross * _ccssPerc) : 0;
+                l.gross = logGross;
+                l.deduction = logCCSS;
+                l.net = logGross - logCCSS;
+            });
         });
 
         const pendingSummary = Object.values(pendingByEmployee).sort((a, b) => a.name.localeCompare(b.name));
@@ -3782,11 +4243,12 @@ const Views = {
                                 <th>Periodo</th>
                                 <th>Bruto</th>
                                 <th>CCSS</th>
+                                <th title="Monto de horas extra">H. Extra</th>
+                                <th title="Monto de horas dobles">H. Doble</th>
+                                <th title="Impuesto sobre la renta">Renta</th>
                                 <th>Vales</th>
                                 <th>Monto Neto</th>
                                 <th>Horas</th>
-                                <th>Fuente</th>
-                                <th>Almuerzo</th>
                                 <th>Acción</th>
                             </tr>
                         </thead>
@@ -3794,15 +4256,15 @@ const Views = {
                             ${pendingSummary.map(ps => {
             return `
                                 <tr>
-                                    <td><input type="checkbox" class="pending-check" 
-                                        data-empid="${ps.empId}" 
-                                        data-hours="${ps.hours}" 
-                                        data-net="${ps.net}" 
-                                        data-deduction="${ps.deduction}" 
+                                    <td><input type="checkbox" class="pending-check"
+                                        data-empid="${ps.empId}"
+                                        data-hours="${ps.hours}"
+                                        data-net="${ps.net}"
+                                        data-deduction="${ps.deduction}"
                                         data-start="${ps.startDate.split('T')[0]}"
                                         data-end="${ps.endDate.split('T')[0]}"
                                         checked></td>
-                                    <td style="font-weight: 600; cursor: pointer; text-decoration: underline;" 
+                                    <td style="font-weight: 600; cursor: pointer; text-decoration: underline;"
                                         onclick="PayrollHelpers.showPayrollDetail(${ps.empId})">
                                         ${ps.name}
                                     </td>
@@ -3812,11 +4274,12 @@ const Views = {
                                     </td>
                                     <td style="font-weight: 500">₡${Math.round(ps.gross).toLocaleString()}</td>
                                     <td style="color: var(--danger); font-size: 0.85rem">₡${Math.round(ps.deduction).toLocaleString()}</td>
+                                    <td style="color: var(--info); font-size: 0.85rem">${ps.grossExtra > 0 ? '₡' + Math.round(ps.grossExtra).toLocaleString() + ' (' + ps.extraHours.toFixed(1) + 'h)' : '—'}</td>
+                                    <td style="color: var(--info); font-size: 0.85rem">${ps.grossDouble > 0 ? '₡' + Math.round(ps.grossDouble).toLocaleString() + ' (' + ps.doubleHours.toFixed(1) + 'h)' : '—'}</td>
+                                    <td style="color: var(--warning); font-size: 0.85rem">${ps.renta > 0 ? '₡' + Math.round(ps.renta).toLocaleString() : '—'}</td>
                                     <td style="color: var(--warning); font-size: 0.85rem">${ps.voucherTotal > 0 ? '₡' + Math.round(ps.voucherTotal).toLocaleString() : '—'}</td>
                                     <td style="color: var(--success); font-weight: 700;">₡${Math.round(ps.net).toLocaleString()}</td>
                                     <td style="font-weight: 600">${ps.hours.toFixed(1)}h</td>
-                                    <td style="text-align:center">${ps.logs.some(l => l.source === 'Marker') ? '<i data-lucide="map-pin" style="width:14px"></i>' : '<i data-lucide="keyboard" style="width:14px"></i>'}</td>
-                                    <td style="font-size: 0.85rem; color: var(--text-muted)">${ps.lunchHours.toFixed(1)}h</td>
                                     <td style="display: flex; gap: 5px">
                                         <button class="btn btn-primary" title="Ver Detalle" style="padding: 5px 10px" onclick="PayrollHelpers.showPayrollDetail(${ps.empId})"><i data-lucide="eye" style="width:16px"></i></button>
                                         <button class="btn btn-success" title="Pagar Todo" style="padding: 5px 10px; background: var(--success);" onclick="PayrollHelpers.payEmployeeGroup(${ps.empId})"><i data-lucide="banknote" style="width:16px"></i></button>
@@ -3827,7 +4290,7 @@ const Views = {
                                 </tr>
                             `;
         }).join('')}
-                            ${pendingSummary.length === 0 ? '<tr><td colspan="8" style="text-align:center">No hay horas pendientes de pago</td></tr>' : ''}
+                            ${pendingSummary.length === 0 ? '<tr><td colspan="14" style="text-align:center">No hay horas pendientes de pago</td></tr>' : ''}
                         </tbody>
                     </table>
                 </div>
@@ -3852,10 +4315,12 @@ const Views = {
                                 <th>Periodo</th>
                                 <th title="Monto total ganado sin rebajos">Bruto</th>
                                 <th title="Rebajo de CCSS">CCSS</th>
+                                <th title="Monto de horas extra">H. Extra</th>
+                                <th title="Monto de horas dobles">H. Doble</th>
+                                <th title="Impuesto sobre la renta">Renta</th>
                                 <th title="Rebajo de vales o adelantos">Vales</th>
                                 <th title="Monto neto recibido">Monto Neto</th>
                                 <th title="Total de horas pagadas">Horas</th>
-                                <th title="Total horas de almuerzo tomadas">Almuerzo</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -3868,13 +4333,15 @@ const Views = {
             const gross = p.gross_amount || p.amount;
             const vouchers = p.voucher_amount || 0;
             const ccss = p.deduction_ccss || 0;
-            const lunch = p.lunch_hours || 0;
+            const extraAmt = p.extra_amount || 0;
+            const doubleAmt = p.double_amount || 0;
+            const renta = p.deduction_renta || 0;
 
             return `
                                     <tr>
                                         <td><input type="checkbox" class="payment-check" data-id="${p.id}" data-full-payment='${paymentJson}'></td>
                                         <td>${p.date ? p.date.split('T')[0] : '—'}</td>
-                                        <td style="font-weight: 600; cursor: pointer; text-decoration: underline;" 
+                                        <td style="font-weight: 600; cursor: pointer; text-decoration: underline;"
                                             onclick="PayrollHelpers.showPaymentHistoryDetail('${p.id}')">
                                             ${emp ? emp.name : 'Desconocido'}
                                         </td>
@@ -3884,10 +4351,12 @@ const Views = {
                                         </td>
                                         <td style="font-weight: 500">₡${Math.round(gross).toLocaleString()}</td>
                                         <td style="color: var(--danger); font-size: 0.85rem">₡${Math.round(ccss).toLocaleString()}</td>
+                                        <td style="color: var(--info); font-size: 0.85rem">${extraAmt > 0 ? '₡' + Math.round(extraAmt).toLocaleString() + ' (' + parseFloat(p.extra_hours || 0).toFixed(1) + 'h)' : '—'}</td>
+                                        <td style="color: var(--info); font-size: 0.85rem">${doubleAmt > 0 ? '₡' + Math.round(doubleAmt).toLocaleString() + ' (' + parseFloat(p.double_hours || 0).toFixed(1) + 'h)' : '—'}</td>
+                                        <td style="color: var(--warning); font-size: 0.85rem">${renta > 0 ? '₡' + Math.round(renta).toLocaleString() : '—'}</td>
                                         <td style="color: var(--warning); font-size: 0.85rem">${vouchers > 0 ? '₡' + Math.round(vouchers).toLocaleString() : '—'}</td>
                                         <td style="color: var(--success); font-weight: 700;">₡${Math.round(p.amount).toLocaleString()}</td>
                                         <td>${parseFloat(p.hours || 0).toFixed(1)}h</td>
-                                        <td style="font-size: 0.85rem; color: var(--text-muted)">${parseFloat(lunch).toFixed(1)}h</td>
                                         <td style="display: flex; gap: 5px">
                                             <button class="btn btn-primary" title="Ver Detalle" style="padding: 5px 10px" onclick="PayrollHelpers.showPaymentHistoryDetail('${p.id}')"><i data-lucide="eye" style="width:16px"></i></button>
                                             <button class="btn btn-secondary" title="Editar" style="padding: 5px 10px" onclick="window.editPaymentRecord('${p.id}')"><i data-lucide="edit-3" style="width:16px"></i></button>
@@ -3922,7 +4391,7 @@ const Views = {
                     try {
                         const vouchers = await apiFetch(`/api/vouchers?employeeId=${empId}&isApplied=false`).then(r => r.json());
                         const voucherTotal = vouchers.reduce((sum, v) => sum + parseFloat(v.amount), 0);
-                        const finalNet = d.net - voucherTotal;
+                        const finalNet = d.gross - d.deduction - d.renta - voucherTotal;
 
                         const res = await Storage.add('payments', {
                             employeeId: parseInt(empId),
@@ -3930,6 +4399,7 @@ const Views = {
                             amount: finalNet,
                             hours: d.hours,
                             deductionCCSS: d.deduction,
+                            deductionRenta: d.renta,
                             netAmount: finalNet,
                             startDate: d.startDate,
                             endDate: d.endDate,
@@ -3938,7 +4408,11 @@ const Views = {
                             voucherAmount: voucherTotal,
                             voucherDetails: vouchers,
                             grossAmount: d.gross,
-                            lunchHours: d.logs.reduce((sum, l) => sum + parseFloat(l.deduction_hours || 0), 0)
+                            lunchHours: d.logs.reduce((sum, l) => sum + parseFloat(l.deduction_hours || 0), 0),
+                            extraHours: d.extraHours,
+                            doubleHours: d.doubleHours,
+                            extraAmount: d.grossExtra,
+                            doubleAmount: d.grossDouble
                         });
 
                         if (res.success) {
@@ -4152,7 +4626,20 @@ const Views = {
             });
         }
 
-        const text = `*COMPROBANTE TTW*\n\n*Empleado:* ${e.name}\n*Total Pagado:* ₡${Math.round(p.amount).toLocaleString()}\n*Total Horas:* ${p.hours}h${details}`;
+        const gross = p.gross_amount || p.amount;
+        const ccss = p.deduction_ccss || 0;
+        const extraAmt = p.extra_amount || 0;
+        const doubleAmt = p.double_amount || 0;
+        const renta = p.deduction_renta || 0;
+        const vouchers = p.voucher_amount || 0;
+
+        const text = `*COMPROBANTE PAGO - AVANTIX ONE*\n\n*Empleado:* ${e.name}\n*Bruto:* ₡${Math.round(gross).toLocaleString()}\n` +
+            (extraAmt > 0 ? `*H. Extra:* ₡${Math.round(extraAmt).toLocaleString()} (${parseFloat(p.extra_hours || 0).toFixed(1)}h)\n` : '') +
+            (doubleAmt > 0 ? `*H. Doble:* ₡${Math.round(doubleAmt).toLocaleString()} (${parseFloat(p.double_hours || 0).toFixed(1)}h)\n` : '') +
+            `*CCSS:* -₡${Math.round(ccss).toLocaleString()}\n` +
+            (renta > 0 ? `*Renta:* -₡${Math.round(renta).toLocaleString()}\n` : '') +
+            (vouchers > 0 ? `*Vales:* -₡${Math.round(vouchers).toLocaleString()}\n` : '') +
+            `*Total Neto:* ₡${Math.round(p.amount).toLocaleString()}\n*Total Horas:* ${parseFloat(p.hours || 0).toFixed(1)}h${details}`;
         PayrollHelpers.sendServerWhatsApp(e.phone, text);
     },
 
@@ -4160,7 +4647,20 @@ const Views = {
         const [pms, ems] = await Promise.all([Storage.get('payments'), Storage.get('employees')]);
         const data = pms.map(p => {
             const e = ems.find(x => x.id == p.employee_id);
-            return { Fecha: p.date.split('T')[0], Empleado: e ? e.name : '--', Horas: p.hours, Monto: p.amount };
+            return {
+                'Fecha Pago': p.date.split('T')[0],
+                'Empleado': e ? e.name : '--',
+                'Horas': parseFloat(p.hours || 0),
+                'Bruto': Math.round(p.gross_amount || p.amount),
+                'CCSS': Math.round(p.deduction_ccss || 0),
+                'H. Extra': parseFloat(p.extra_hours || 0),
+                'Monto Extra': Math.round(p.extra_amount || 0),
+                'H. Doble': parseFloat(p.double_hours || 0),
+                'Monto Doble': Math.round(p.double_amount || 0),
+                'Renta': Math.round(p.deduction_renta || 0),
+                'Vales': Math.round(p.voucher_amount || 0),
+                'Neto': Math.round(p.amount)
+            };
         });
         const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Pagos"); XLSX.writeFile(wb, "Pagos.xlsx");
@@ -4901,6 +5401,37 @@ const Views = {
                         <label>Porcentaje CCSS (Ej: 10.83)</label>
                         <input type="number" name="ccss_percentage" step="0.01" value="${biz.ccss_percentage || 10.83}">
                     </div>
+
+                    <div style="grid-column: span 2; margin-top: 2rem; margin-bottom: 1rem;">
+                        <h4 style="color: var(--primary); border-bottom: 1px solid rgba(99,102,241,0.2); padding-bottom: 5px;">Tramos de Renta (Impuesto sobre la Renta)</h4>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">Define los tramos progresivos mensuales. El sistema proyecta el bruto del periodo a mensual, calcula la renta y la prorratea.</p>
+                    </div>
+                    <div style="grid-column: span 2;" id="rent-brackets-container">
+                        ${(() => {
+                            const brackets = biz.rent_brackets || DEFAULT_RENT_BRACKETS;
+                            return brackets.map((b, i) => `
+                                <div class="rent-bracket-row" data-index="${i}" style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                                    <div style="flex:1;">
+                                        <label style="font-size: 0.75rem; color: var(--text-muted);">Desde (₡)</label>
+                                        <input type="number" class="bracket-min" value="${b.min}" style="width:100%; padding:6px; border-radius:6px; border:1px solid var(--border); background:var(--input-bg); color:var(--input-color);">
+                                    </div>
+                                    <div style="flex:1;">
+                                        <label style="font-size: 0.75rem; color: var(--text-muted);">Hasta (₡, vacío = sin límite)</label>
+                                        <input type="number" class="bracket-max" value="${b.max != null ? b.max : ''}" placeholder="∞" style="width:100%; padding:6px; border-radius:6px; border:1px solid var(--border); background:var(--input-bg); color:var(--input-color);">
+                                    </div>
+                                    <div style="width: 80px;">
+                                        <label style="font-size: 0.75rem; color: var(--text-muted);">Tasa %</label>
+                                        <input type="number" class="bracket-rate" step="0.01" value="${(b.rate * 100)}" style="width:100%; padding:6px; border-radius:6px; border:1px solid var(--border); background:var(--input-bg); color:var(--input-color);">
+                                    </div>
+                                    <button type="button" class="btn btn-danger" onclick="this.closest('.rent-bracket-row').remove()" style="padding: 6px 10px; margin-top: 16px;" title="Eliminar tramo"><i data-lucide="trash-2" style="width:14px"></i></button>
+                                </div>
+                            `).join('');
+                        })()}
+                    </div>
+                    <div style="grid-column: span 2; margin-bottom: 1rem;">
+                        <button type="button" class="btn btn-secondary" id="add-rent-bracket" style="padding: 6px 16px; font-size: 0.85rem;"><i data-lucide="plus" style="width:14px; margin-right:4px"></i> Agregar Tramo</button>
+                    </div>
+
                     <div class="form-group" style="grid-column: span 2;">
                         <label>Logo de la Empresa</label>
                         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -5138,6 +5669,34 @@ const Views = {
         }
 
         if (bizForm) {
+            // Add Rent Bracket button
+            const addBracketBtn = document.getElementById('add-rent-bracket');
+            if (addBracketBtn) {
+                addBracketBtn.onclick = () => {
+                    const container = document.getElementById('rent-brackets-container');
+                    const row = document.createElement('div');
+                    row.className = 'rent-bracket-row';
+                    row.style.cssText = 'display: flex; gap: 10px; align-items: center; margin-bottom: 8px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 8px;';
+                    row.innerHTML = `
+                        <div style="flex:1;">
+                            <label style="font-size: 0.75rem; color: var(--text-muted);">Desde (₡)</label>
+                            <input type="number" class="bracket-min" value="0" style="width:100%; padding:6px; border-radius:6px; border:1px solid var(--border); background:var(--input-bg); color:var(--input-color);">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size: 0.75rem; color: var(--text-muted);">Hasta (₡, vacío = sin límite)</label>
+                            <input type="number" class="bracket-max" value="" placeholder="∞" style="width:100%; padding:6px; border-radius:6px; border:1px solid var(--border); background:var(--input-bg); color:var(--input-color);">
+                        </div>
+                        <div style="width: 80px;">
+                            <label style="font-size: 0.75rem; color: var(--text-muted);">Tasa %</label>
+                            <input type="number" class="bracket-rate" step="0.01" value="0" style="width:100%; padding:6px; border-radius:6px; border:1px solid var(--border); background:var(--input-bg); color:var(--input-color);">
+                        </div>
+                        <button type="button" class="btn btn-danger" onclick="this.closest('.rent-bracket-row').remove()" style="padding: 6px 10px; margin-top: 16px;" title="Eliminar tramo"><i data-lucide="trash-2" style="width:14px"></i></button>
+                    `;
+                    container.appendChild(row);
+                    if (window.lucide) lucide.createIcons();
+                };
+            }
+
             const uploadInput = document.getElementById('logo-upload-input');
             const removeLogoBtn = document.getElementById('btn-remove-logo');
             if (removeLogoBtn) {
@@ -5208,6 +5767,17 @@ const Views = {
                 data.attendance_marker_enabled = !!bizForm.querySelector('[name="attendance_marker_enabled"]').checked;
                 data.attendance_photo_required = !!bizForm.querySelector('[name="attendance_photo_required"]').checked;
 
+                // Recolectar tramos de renta del DOM
+                const bracketRows = document.querySelectorAll('.rent-bracket-row');
+                const rentBrackets = [];
+                bracketRows.forEach(row => {
+                    const min = parseFloat(row.querySelector('.bracket-min').value) || 0;
+                    const maxVal = row.querySelector('.bracket-max').value;
+                    const rate = (parseFloat(row.querySelector('.bracket-rate').value) || 0) / 100;
+                    rentBrackets.push({ min, max: maxVal !== '' ? parseFloat(maxVal) : null, rate });
+                });
+                data.rent_brackets = rentBrackets;
+
                 Storage.showLoader(true, 'Actualizando configuración...');
                 try {
                     const res = await apiFetch('/api/settings/business', {
@@ -5225,7 +5795,8 @@ const Views = {
                             theme_preference: result.theme_preference,
                             cycle_type: result.cycle_type,
                             default_overtime_multiplier: result.default_overtime_multiplier,
-                            ccss_percentage: result.ccss_percentage
+                            ccss_percentage: result.ccss_percentage,
+                            rent_brackets: result.rent_brackets || null
                         }));
 
                         // Aplicar tema inmediatamente si cambió

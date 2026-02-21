@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS businesses (
     gps_radius_meters INTEGER DEFAULT 100,
     attendance_photo_required BOOLEAN DEFAULT FALSE,
     ccss_percentage DECIMAL(5, 2) DEFAULT 10.67,
+    rent_brackets JSONB DEFAULT '[{"min":0,"max":929000,"rate":0},{"min":929001,"max":1363000,"rate":0.10},{"min":1363001,"max":2392000,"rate":0.15},{"min":2392001,"max":4783000,"rate":0.20},{"min":4783001,"max":null,"rate":0.25}]'::jsonb,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -98,6 +99,11 @@ CREATE TABLE IF NOT EXISTS payments (
     start_date DATE,
     end_date DATE,
     logs_detail JSONB DEFAULT '[]'::jsonb,
+    deduction_renta DECIMAL(12, 2) DEFAULT 0,
+    extra_hours DECIMAL(10, 2) DEFAULT 0,
+    double_hours DECIMAL(10, 2) DEFAULT 0,
+    extra_amount DECIMAL(12, 2) DEFAULT 0,
+    double_amount DECIMAL(12, 2) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -112,6 +118,23 @@ CREATE TABLE IF NOT EXISTS vouchers (
     amount DECIMAL(12, 2) NOT NULL,
     is_applied BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla de Vacaciones
+CREATE TABLE IF NOT EXISTS vacations (
+    id SERIAL PRIMARY KEY,
+    business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE,
+    employee_id INTEGER REFERENCES employees(id) ON DELETE CASCADE,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    days INTEGER NOT NULL,
+    status VARCHAR(20) DEFAULT 'Pending', -- Pending, Approved, Rejected, Cancelled
+    notes TEXT,
+    admin_notes TEXT,
+    requested_by VARCHAR(20) DEFAULT 'admin', -- admin, employee
+    approved_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Tabla de Configuración (Key-Value por empresa)
@@ -343,6 +366,23 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='businesses' AND column_name='ccss_percentage') THEN
         ALTER TABLE businesses ADD COLUMN ccss_percentage DECIMAL(5, 2) DEFAULT 10.67;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='businesses' AND column_name='rent_brackets') THEN
+        ALTER TABLE businesses ADD COLUMN rent_brackets JSONB DEFAULT '[{"min":0,"max":929000,"rate":0},{"min":929001,"max":1363000,"rate":0.10},{"min":1363001,"max":2392000,"rate":0.15},{"min":2392001,"max":4783000,"rate":0.20},{"min":4783001,"max":null,"rate":0.25}]'::jsonb;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payments' AND column_name='deduction_renta') THEN
+        ALTER TABLE payments ADD COLUMN deduction_renta DECIMAL(12, 2) DEFAULT 0;
+        ALTER TABLE payments ADD COLUMN extra_hours DECIMAL(10, 2) DEFAULT 0;
+        ALTER TABLE payments ADD COLUMN double_hours DECIMAL(10, 2) DEFAULT 0;
+        ALTER TABLE payments ADD COLUMN extra_amount DECIMAL(12, 2) DEFAULT 0;
+        ALTER TABLE payments ADD COLUMN double_amount DECIMAL(12, 2) DEFAULT 0;
+    END IF;
+
+    -- Vacaciones: días configurables por empresa (default 14 = Ley CR)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='businesses' AND column_name='vacation_days_per_year') THEN
+        ALTER TABLE businesses ADD COLUMN vacation_days_per_year INTEGER DEFAULT 14;
     END IF;
 END $$;
 
