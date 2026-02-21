@@ -2437,7 +2437,7 @@ const Views = {
                 <div class="stat-card" style="cursor:pointer; border-left: 3px solid var(--warning);" onclick="App.switchView('vacations')">
                     <h3>Vacaciones Pendientes</h3>
                     <div class="value" style="color: var(--warning);">${pendingVacations}</div>
-                    <div class="trend"><i data-lucide="palm-tree" style="width:14px; height:14px; vertical-align:middle; margin-right:4px"></i> Solicitudes por aprobar</div>
+                    <div class="trend"><i data-lucide="umbrella" style="width:14px; height:14px; vertical-align:middle; margin-right:4px"></i> Solicitudes por aprobar</div>
                 </div>
                 ` : ''}
             </div>
@@ -3325,7 +3325,7 @@ const Views = {
 
                 <div class="card-container" style="margin-top: 2rem; border-left: 3px solid var(--primary);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                        <h3 style="margin:0;"><i data-lucide="palm-tree" style="width:18px; vertical-align:middle; margin-right:8px;"></i>Vacaciones</h3>
+                        <h3 style="margin:0;"><i data-lucide="umbrella" style="width:18px; vertical-align:middle; margin-right:8px;"></i>Vacaciones</h3>
                         <button class="btn btn-primary" style="padding:6px 14px; font-size:0.85rem;" onclick="window._vacationPreselect='${emp.id}'; App.switchView('vacations'); setTimeout(() => { const m = document.getElementById('vacation-modal'); const e = document.getElementById('vac-employee'); if(m && e) { e.value='${emp.id}'; e.dispatchEvent(new Event('change')); m.showModal(); }}, 500);">
                             <i data-lucide="plus" style="width:14px; margin-right:4px;"></i> Registrar Vacaciones
                         </button>
@@ -3424,7 +3424,7 @@ const Views = {
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon" style="background: rgba(99,102,241,0.1); color: var(--primary);"><i data-lucide="palm-tree" style="width:20px"></i></div>
+                    <div class="stat-icon" style="background: rgba(99,102,241,0.1); color: var(--primary);"><i data-lucide="umbrella" style="width:20px"></i></div>
                     <div class="stat-info">
                         <div class="stat-value">${totalApproved}</div>
                         <div class="stat-label">Total Dias Otorgados</div>
