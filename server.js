@@ -269,7 +269,7 @@ app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
         const result = await db.query(
-            'SELECT u.*, b.name as business_name, b.logo_url, b.cycle_type, b.default_overtime_multiplier, b.theme_preference FROM users u LEFT JOIN businesses b ON u.business_id = b.id WHERE u.username = $1 AND u.password = $2',
+            'SELECT u.*, b.name as business_name, b.logo_url, b.cycle_type, b.default_overtime_multiplier, b.theme_preference, b.ccss_percentage FROM users u LEFT JOIN businesses b ON u.business_id = b.id WHERE u.username = $1 AND u.password = $2',
             [username, password]
         );
         if (result.rows.length > 0) {
@@ -285,6 +285,7 @@ app.post('/api/login', async (req, res) => {
                 logo_url: user.logo_url,
                 cycle_type: user.cycle_type,
                 default_overtime_multiplier: user.default_overtime_multiplier,
+                ccss_percentage: user.ccss_percentage || 10.67,
                 theme_preference: user.theme_preference || 'dark'
             });
         } else {
@@ -686,9 +687,10 @@ app.post('/api/logs/batch', checkAuth, async (req, res) => {
 
     try {
         // 1. Obtener datos del empleado y verificar pertenencia a empresa
-        const empRes = await db.query('SELECT * FROM employees WHERE id = $1 AND business_id = $2', [employeeId, req.businessId]);
+        const empRes = await db.query('SELECT e.*, b.ccss_percentage FROM employees e JOIN businesses b ON e.business_id = b.id WHERE e.id = $1 AND e.business_id = $2', [employeeId, req.businessId]);
         if (empRes.rows.length === 0) return res.status(404).json({ error: 'Empleado no encontrado o no pertenece a su empresa' });
         const emp = empRes.rows[0];
+        const bizCCSS = (emp.ccss_percentage || 10.67) / 100;
 
         let totalH = 0;
         let totalAmt = 0;
@@ -707,7 +709,7 @@ app.post('/api/logs/batch', checkAuth, async (req, res) => {
             totalH += h;
             const hourlyRate = parseFloat(emp.hourly_rate);
             const gross = h * hourlyRate;
-            const deduction = emp.apply_ccss ? (gross * 0.1067) : 0;
+            const deduction = emp.apply_ccss ? (gross * bizCCSS) : 0;
             const net = gross - deduction;
             totalAmt += net;
 
@@ -1006,7 +1008,8 @@ app.put('/api/settings/business', checkAuth, async (req, res) => {
     if (req.userRole !== 'owner' && req.userRole !== 'super_admin') return res.status(403).json({ error: 'Prohibido' });
     const {
         name, cedula_juridica, logo_url, default_overtime_multiplier, cycle_type, theme_preference,
-        attendance_marker_enabled, gps_latitude, gps_longitude, gps_radius_meters, attendance_photo_required
+        attendance_marker_enabled, gps_latitude, gps_longitude, gps_radius_meters, attendance_photo_required,
+        ccss_percentage
     } = req.body;
     try {
         const result = await db.query(
@@ -1014,13 +1017,13 @@ app.put('/api/settings/business', checkAuth, async (req, res) => {
                 name=$1, cedula_juridica=$2, logo_url=$3, default_overtime_multiplier=$4, 
                 cycle_type=$5, theme_preference=$6, attendance_marker_enabled=$7, 
                 gps_latitude=$8, gps_longitude=$9, gps_radius_meters=$10, 
-                attendance_photo_required=$11 
-            WHERE id=$12 RETURNING *`,
+                attendance_photo_required=$11, ccss_percentage=$12 
+            WHERE id=$13 RETURNING *`,
             [
                 name, cedula_juridica, logo_url, default_overtime_multiplier,
                 cycle_type, theme_preference || 'dark', attendance_marker_enabled || false,
                 gps_latitude, gps_longitude, gps_radius_meters || 100, attendance_photo_required || false,
-                req.businessId
+                ccss_percentage || 10.67, req.businessId
             ]
         );
         res.json(result.rows[0]);
@@ -1063,7 +1066,8 @@ app.put('/api/admin/businesses/:id', checkAuth, async (req, res) => {
     const {
         name, cedula_juridica, status, expires_at, cycle_type, logo_url, theme_preference,
         legal_name, legal_type, country, state, city, district, address, phone, email,
-        ownerName, ownerLastName, ownerEmail, ownerPhone, ownerUsername, ownerPassword
+        ownerName, ownerLastName, ownerEmail, ownerPhone, ownerUsername, ownerPassword,
+        ccss_percentage
     } = req.body;
     try {
         await db.query('BEGIN');
@@ -1073,12 +1077,14 @@ app.put('/api/admin/businesses/:id', checkAuth, async (req, res) => {
             `UPDATE businesses SET
                 name=$1, cedula_juridica=$2, status=$3, expires_at=$4, cycle_type=$5,
                 legal_name=$6, legal_type=$7, country=$8, state=$9, city=$10,
-                district=$11, address=$12, phone=$13, email=$14, logo_url=$15, theme_preference=$16
-            WHERE id=$17 RETURNING *`,
+                district=$11, address=$12, phone=$13, email=$14, logo_url=$15, theme_preference=$16,
+                ccss_percentage=$17
+            WHERE id=$18 RETURNING *`,
             [
                 name, cedula_juridica, status, expires_at || null, cycle_type,
                 legal_name, legal_type, country, state, city,
-                district, address, phone, email, logo_url, theme_preference || 'dark', req.params.id
+                district, address, phone, email, logo_url, theme_preference || 'dark',
+                ccss_percentage || 10.67, req.params.id
             ]
         );
 

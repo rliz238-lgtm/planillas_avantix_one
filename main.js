@@ -733,6 +733,7 @@ const Auth = {
                     theme_preference: user.theme_preference || 'dark',
                     cycle_type: user.cycle_type || 'Weekly',
                     default_overtime_multiplier: user.default_overtime_multiplier || 1.5,
+                    ccss_percentage: user.ccss_percentage || 10.67,
                     loginTime: Date.now()
                 }));
                 return true;
@@ -994,9 +995,10 @@ const App = {
             await this.switchView(initialView, initialArg);
         } else {
             // Owner/Editor
-            this.setupNavigation();
             await this.switchView(initialView, initialArg);
         }
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     },
 
     setupThemeToggle() {
@@ -1415,6 +1417,8 @@ const App = {
         if (Views[`init_${view}`]) {
             await Views[`init_${view}`](arg);
         }
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 };
 
@@ -1473,7 +1477,7 @@ const Views = {
                 </div>
 
                 <button class="landing-mobile-toggle" id="landing-mobile-toggle">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    <i data-lucide="menu" style="width:24px; height:24px"></i>
                 </button>
             </div>
 
@@ -1509,7 +1513,7 @@ const Views = {
                             </div>
                         </div>
                         <div class="feature-card-content">
-                            <span class="feature-icon">📊</span>
+                            <span class="feature-icon"><i data-lucide="bar-chart-3"></i></span>
                             <div class="feature-tag">Control Global</div>
                             <h3>Visión 360 del Negocio</h3>
                             <p>Monitoree métricas clave, acumulados de planilla y gráficos de tendencia salarial en tiempo real desde un dashboard intuitivo.</p>
@@ -1526,7 +1530,7 @@ const Views = {
                             </div>
                         </div>
                         <div class="feature-card-content">
-                            <span class="feature-icon">💰</span>
+                            <span class="feature-icon"><i data-lucide="banknote"></i></span>
                             <div class="feature-tag">Automatización</div>
                             <h3>Planillas en Segundos</h3>
                             <p>Procese pagos agrupados, gestione vales y calcule rebajos de CCSS automáticamente con una precisión del 100%.</p>
@@ -1544,7 +1548,7 @@ const Views = {
                             </div>
                         </div>
                         <div class="feature-card-content">
-                            <span class="feature-icon">🖩</span>
+                            <span class="feature-icon"><i data-lucide="calculator"></i></span>
                             <div class="feature-tag">Precisión Jurídica</div>
                             <h3>Calculadora Inteligente</h3>
                             <p>Diga adiós a los cálculos manuales. Gestione horas ordinarias, extras, feriados y almuerzos de forma instantánea.</p>
@@ -1561,7 +1565,7 @@ const Views = {
                             </div>
                         </div>
                         <div class="feature-card-content">
-                            <span class="feature-icon">👥</span>
+                            <span class="feature-icon"><i data-lucide="users"></i></span>
                             <div class="feature-tag">Capital Humano</div>
                             <h3>Gestión de Colaboradores</h3>
                             <p>Expediente digital completo con historial de pagos, cargos, salarios diferenciados y control de estados activos/inactivos.</p>
@@ -1577,7 +1581,7 @@ const Views = {
                             </div>
                         </div>
                         <div class="feature-card-content">
-                            <span class="feature-icon">🛡️</span>
+                            <span class="feature-icon"><i data-lucide="shield-check"></i></span>
                             <div class="feature-tag">Seguridad SaaS</div>
                             <h3>Jerarquía de Usuarios</h3>
                             <p>Proteja su información sensible con roles personalizados para Dueños, Editores y Administradores Globales.</p>
@@ -1626,7 +1630,7 @@ const Views = {
                         <div class="workflow-content">
                             <div class="workflow-number">02</div>
                             <h3>Cálculo Automatizado de Planilla</h3>
-                            <p>El sistema toma todas las horas registradas y aplica automáticamente los rebajos de la CCSS (10.67%), calcula horas extras al 1.5x o 2.0x y descuenta vales de salario.</p>
+                            <p>El sistema toma todas las horas registradas y aplica automáticamente los rebajos de la CCSS (${Auth.getUser()?.ccss_percentage || 10.67}%), calcula horas extras al 1.5x o 2.0x y descuenta vales de salario.</p>
                             <ul class="workflow-features-list">
                                 <li>Integración inmediata con la legislación de CR</li>
                                 <li>Gestión de pagos semanales o quincenales</li>
@@ -1787,15 +1791,17 @@ const Views = {
                 navMenu.classList.toggle('active');
                 const isOpen = navMenu.classList.contains('active');
                 mobileToggle.innerHTML = isOpen
-                    ? `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`
-                    : `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>`;
+                    ? `<i data-lucide="x" style="width:24px; height:24px"></i>`
+                    : `<i data-lucide="menu" style="width:24px; height:24px"></i>`;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             };
 
             // Close menu when clicking a link
             navMenu.querySelectorAll('a').forEach(link => {
                 link.onclick = (e) => {
                     navMenu.classList.remove('active');
-                    mobileToggle.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>`;
+                    mobileToggle.innerHTML = `<i data-lucide="menu" style="width:24px; height:24px"></i>`;
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
                     if (link.id === 'landing-login-btn') {
                         e.preventDefault();
                         App.renderLogin();
@@ -1960,18 +1966,14 @@ const Views = {
                         <div class="form-group">
                             <label>Logo de la Empresa (Opcional)</label>
                             <div class="logo-upload-zone" id="logo-drop-zone">
-                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 10px; opacity: 0.5;">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                                    <polyline points="21 15 16 10 5 21"/>
-                                </svg>
+                                <i data-lucide="image" style="width:40px; height:40px; margin-bottom: 10px; opacity: 0.5;"></i>
                                 <p style="font-size: 0.9rem;">Click para subir o arrastra una imagen</p>
                                 <input type="file" id="onboarding-logo-input" accept="image/*" style="display: none;">
                             </div>
                             <div class="logo-preview-container" id="logo-preview-container">
                                 <img src="" class="logo-preview" id="logo-preview-img">
                                 <button type="button" class="btn btn-danger btn-icon" id="remove-logo-btn" style="margin-top: 10px;">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                                    <i data-lucide="trash-2" style="width:18px; height:18px; margin-right:6px"></i>
                                     Quitar Logo
                                 </button>
                             </div>
@@ -1997,7 +1999,7 @@ const Views = {
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                     <h3>Empresas Registradas</h3>
-                    <button class="btn btn-primary" onclick="window.showAddBusinessModal()">+ Nueva Empresa</button>
+                    <button class="btn btn-primary" onclick="window.showAddBusinessModal()"><i data-lucide="plus" style="width:16px; margin-right:6px"></i> Nueva Empresa</button>
                 </div>
                 <div class="table-container">
                     <table>
@@ -2025,13 +2027,13 @@ const Views = {
                                     <td>${b.cycle_type}</td>
                                     <td>
                                         <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-                                            <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.85rem;" onclick="window.editBusiness(${b.id})" title="Editar / Prorrogar">✏️</button>
+                                            <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.85rem;" onclick="window.editBusiness(${b.id})" title="Editar / Prorrogar"><i data-lucide="edit-3" style="width:14px"></i></button>
                                             <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.85rem; background: rgba(99, 102, 241, 0.1); color: var(--primary);" 
-                                                onclick="window.resendAccess(${b.id})" title="Reenviar credenciales por email">📧 Enviar Acceso</button>
+                                                onclick="window.resendAccess(${b.id})" title="Reenviar credenciales por email"><i data-lucide="mail" style="width:14px; margin-right:4px"></i> Enviar</button>
                                             <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.85rem; background: rgba(239, 68, 68, 0.1); color: var(--danger);" 
-                                                onclick="window.resetAccess(${b.id})" title="Reiniciar contraseña y enviar">🔐 Reiniciar Pass</button>
+                                                onclick="window.resetAccess(${b.id})" title="Reiniciar contraseña y enviar"><i data-lucide="key" style="width:14px; margin-right:4px"></i> Reset Pass</button>
                                             <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.85rem; background: rgba(239, 68, 68, 0.1); color: var(--danger);" 
-                                                onclick="window.deleteBusiness(${b.id})" title="Eliminar Empresa">🗑️</button>
+                                                onclick="window.deleteBusiness(${b.id})" title="Eliminar Empresa"><i data-lucide="trash-2" style="width:14px"></i></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -2059,7 +2061,7 @@ const Views = {
 
             <div class="admin-stats-grid">
                 <div class="stat-card">
-                    <div class="stat-icon" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">🏢</div>
+                    <div class="stat-icon" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);"><i data-lucide="building-2" style="width:20px"></i></div>
                     <div class="stat-info">
                         <div class="stat-value">${summary.totalBusinesses}</div>
                         <div class="stat-label">Empresas Totales</div>
@@ -2069,21 +2071,21 @@ const Views = {
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">👥</div>
+                    <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);"><i data-lucide="users" style="width:20px"></i></div>
                     <div class="stat-info">
                         <div class="stat-value">${summary.activeEmployees}</div>
                         <div class="stat-label">Empleados en el Sistema</div>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">💰</div>
+                    <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);"><i data-lucide="banknote" style="width:20px"></i></div>
                     <div class="stat-info">
                         <div class="stat-value">₡${Math.round(summary.totalVolume).toLocaleString()}</div>
                         <div class="stat-label">Volumen Total Procesado</div>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">📊</div>
+                    <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);"><i data-lucide="bar-chart-3" style="width:20px"></i></div>
                     <div class="stat-info">
                         <div class="stat-value">${summary.newLast7}</div>
                         <div class="stat-label">Nuevas (7 días)</div>
@@ -2110,7 +2112,7 @@ const Views = {
 
             <div class="grid-2" style="margin-top: 2rem; gap: 2rem;">
                 <div class="dist-card">
-                    <div class="dist-header">🌍 Distribución Geográfica</div>
+                    <div class="dist-header"><i data-lucide="globe" style="width:18px; margin-right:8px"></i> Distribución Geográfica</div>
                     ${distribution.country.length > 0 ? distribution.country.sort((a, b) => b.count - a.count).map(c => {
             const percent = (c.count / summary.totalBusinesses) * 100;
             return `
@@ -2127,7 +2129,7 @@ const Views = {
         }).join('') : '<p style="color: var(--text-muted); text-align: center;">No hay datos disponibles.</p>'}
                 </div>
                 <div class="dist-card">
-                    <div class="dist-header">📊 Estados de Cuenta</div>
+                    <div class="dist-header"><i data-lucide="activity" style="width:18px; margin-right:8px"></i> Estados de Cuenta</div>
                     ${distribution.status.length > 0 ? distribution.status.map(s => {
             const percent = (s.count / summary.totalBusinesses) * 100;
             const color = s.status === 'Active' ? 'var(--success)' : (s.status === 'Suspended' ? 'var(--danger)' : 'var(--warning)');
@@ -2258,7 +2260,8 @@ const Views = {
             let amount = periodLogs.reduce((s, l) => {
                 const emp = employees.find(e => e.id == l.employee_id);
                 const gross = parseFloat(l.hours || 0) * (emp ? parseFloat(emp.hourly_rate) : 0);
-                const deduction = (emp && emp.apply_ccss) ? (gross * 0.1067) : 0;
+                const percentage = (Auth.getUser()?.ccss_percentage || 10.67) / 100;
+                const deduction = (emp && emp.apply_ccss) ? (gross * percentage) : 0;
                 return s + (gross - deduction);
             }, 0);
 
@@ -2277,7 +2280,8 @@ const Views = {
                         } else {
                             const emp = employees.find(e => e.id == p.employee_id);
                             const gross = h * (emp ? parseFloat(emp.hourly_rate) : 0);
-                            const deduction = (emp && emp.apply_ccss) ? (gross * 0.1067) : 0;
+                            const percentage = (Auth.getUser()?.ccss_percentage || 10.67) / 100;
+                            const deduction = (emp && emp.apply_ccss) ? (gross * percentage) : 0;
                             amount += (gross - deduction);
                         }
                     }
@@ -2323,7 +2327,7 @@ const Views = {
                 <div class="stat-card">
                     <h3>Empleados Activos</h3>
                     <div class="value">${activeEmployees.length}</div>
-                    <div class="trend up">👥 Personal Actual</div>
+                    <div class="trend up"><i data-lucide="users" style="width:14px; height:14px; vertical-align:middle; margin-right:4px"></i> Personal Actual</div>
                 </div>
                 <div class="stat-card">
                     <h3>Semana Pasada</h3>
@@ -2438,6 +2442,8 @@ const Views = {
     init_registration: async () => {
         const form = document.getElementById('registration-form');
         if (!form) return;
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
 
         // --- Multi-step Logic ---
         const sections = document.querySelectorAll('.onboarding-section');
@@ -2993,8 +2999,8 @@ const Views = {
                             <option value="Inactive" ${statusFilter === 'Inactive' ? 'selected' : ''}>Inactivos</option>
                             <option value="All" ${statusFilter === 'All' ? 'selected' : ''}>Todos</option>
                         </select>
-                        <button class="btn" style="background: rgba(239,68,68,0.1); color: var(--danger)" id="deactivate-all-btn">🛑 Desactivar Todos</button>
-                        <button class="btn btn-primary" id="add-employee-btn">+ Nuevo Empleado</button>
+                        <button class="btn" style="background: rgba(239,68,68,0.1); color: var(--danger)" id="deactivate-all-btn"><i data-lucide="shield-off" style="width:16px; margin-right:6px"></i> Desactivar Todos</button>
+                        <button class="btn btn-primary" id="add-employee-btn"><i data-lucide="user-plus" style="width:16px; margin-right:6px"></i> Nuevo Empleado</button>
                     </div>
                 </div>
                 <div class="table-container">
@@ -3021,14 +3027,14 @@ const Views = {
                                         </span>
                                     </td>
                                     <td>
-                                        <div style="font-size: 0.85rem">📅 ${emp.start_date ? emp.start_date.split('T')[0] : '—'}</div>
-                                        ${emp.end_date ? `<div style="font-size: 0.85rem; color: var(--danger)">🚪 ${emp.end_date.split('T')[0]}</div>` : ''}
+                                        <div style="font-size: 0.85rem"><i data-lucide="calendar" style="width:14px; height:14px; margin-right:4px"></i> ${emp.start_date ? emp.start_date.split('T')[0] : '—'}</div>
+                                        ${emp.end_date ? `<div style="font-size: 0.85rem; color: var(--danger)"><i data-lucide="log-out" style="width:14px; height:14px; margin-right:4px"></i> ${emp.end_date.split('T')[0]}</div>` : ''}
                                     </td>
                                     <td style="padding: 1.25rem 1rem;">
                                         <div style="display: flex; gap: 8px; align-items: center;">
-                                            <button class="btn" style="padding: 4px 8px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2)" onclick="window.editEmployee('${emp.id}')" title="Editar">✏️</button>
-                                            <button class="btn" style="padding: 4px 8px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2)" onclick="App.switchView('employeeDetail', '${emp.id}')" title="Ver Detalle">${PayrollHelpers.EYE_ICON}</button>
-                                            <button class="btn" style="padding: 4px 8px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2)" onclick="window.deleteEmployee('${emp.id}')" title="Eliminar">🗑️</button>
+                                            <button class="btn" style="padding: 4px 8px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2)" onclick="window.editEmployee('${emp.id}')" title="Editar"><i data-lucide="edit-3" style="width:16px"></i></button>
+                                            <button class="btn" style="padding: 4px 8px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2)" onclick="App.switchView('employeeDetail', '${emp.id}')" title="Ver Detalle"><i data-lucide="eye" style="width:16px"></i></button>
+                                            <button class="btn" style="padding: 4px 8px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2)" onclick="window.deleteEmployee('${emp.id}')" title="Eliminar"><i data-lucide="trash-2" style="width:16px"></i></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -3107,8 +3113,8 @@ const Views = {
                         <p style="color: var(--text-muted)">${emp.position} | ₡${parseFloat(emp.hourly_rate).toLocaleString()} por hora</p>
                     </div>
                     <div style="display: flex; gap: 10px">
-                        <button class="btn" style="background: rgba(99,102,241,0.1)" onclick="App.switchView('employees')">⬅️ Volver</button>
-                        <button class="btn btn-primary" onclick="window.editEmployee('${emp.id}')">✏️ Editar Perfil Completo</button>
+                        <button class="btn" style="background: rgba(99,102,241,0.1)" onclick="App.switchView('employees')"><i data-lucide="arrow-left" style="width:16px; margin-right:6px"></i> Volver</button>
+                        <button class="btn btn-primary" onclick="window.editEmployee('${emp.id}')"><i data-lucide="edit-3" style="width:16px; margin-right:6px"></i> Editar Perfil Completo</button>
                     </div>
                 </div>
 
@@ -3153,7 +3159,7 @@ const Views = {
                         <div style="padding: 1rem; background: var(--bg-body); border-radius: 8px;">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem">
                                 <span>Aplicar CCSS:</span>
-                                <b>${emp.apply_ccss ? 'SÍ (10.67%)' : 'NO'}</b>
+                                <b>${emp.apply_ccss ? 'SÍ (' + (Auth.getUser()?.ccss_percentage || 10.67) + '%)' : 'NO'}</b>
                             </div>
                             <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem">
                                 <span>Salario Bruto (Ej. 48h):</span>
@@ -3161,7 +3167,7 @@ const Views = {
                             </div>
                             <div style="display: flex; justify-content: space-between; font-weight: 600; color: var(--danger)">
                                 <span>Deducción estimada:</span>
-                                <span>₡${emp.apply_ccss ? (48 * emp.hourly_rate * 0.1067).toLocaleString() : '0'}</span>
+                                <span>₡${emp.apply_ccss ? (48 * emp.hourly_rate * (Auth.getUser()?.ccss_percentage || 10.67) / 100).toLocaleString() : '0'}</span>
                             </div>
                         </div>
                     </div>
@@ -3217,7 +3223,7 @@ const Views = {
             markerHtml = `
                 <div class="card-container" style="margin-bottom: 2rem; border: 1px solid var(--primary); background: rgba(99, 102, 241, 0.03);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h3 style="margin: 0; color: var(--primary)">📍 Marcador de Asistencia</h3>
+                        <h3 style="margin: 0; color: var(--primary)"><i data-lucide="map-pin" style="width:18px; margin-right:8px; vertical-align:middle"></i> Marcador de Asistencia</h3>
                         <div id="marker-status" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Listo para marcar</div>
                     </div>
                     
@@ -3228,12 +3234,12 @@ const Views = {
                                 <canvas id="marker-canvas" style="display: none;"></canvas>
                                 <img id="marker-photo-preview" style="display: none; width: 100%; height: 100%; object-fit: cover;">
                             </div>
-                            <button class="btn btn-secondary" id="btn-snap" style="width: 100%; max-width: 320px;">📷 Tomar Selfie</button>
+                            <button class="btn btn-secondary" id="btn-snap" style="width: 100%; max-width: 320px;"><i data-lucide="camera" style="width:18px; margin-right:8px"></i> Tomar Selfie</button>
                         ` : ''}
                         
                         <div style="display: flex; gap: 10px; width: 100%; max-width: 400px;">
-                            <button class="btn btn-primary" id="btn-clock-in" style="flex: 1; padding: 1rem; font-weight: 700; background: var(--success);">🕒 ENTRADA</button>
-                            <button class="btn btn-danger" id="btn-clock-out" style="flex: 1; padding: 1rem; font-weight: 700;">🕒 SALIDA</button>
+                            <button class="btn btn-primary" id="btn-clock-in" style="flex: 1; padding: 1rem; font-weight: 700; background: var(--success);"><i data-lucide="clock" style="width:18px; margin-right:8px"></i> ENTRADA</button>
+                            <button class="btn btn-danger" id="btn-clock-out" style="flex: 1; padding: 1rem; font-weight: 700;"><i data-lucide="clock" style="width:18px; margin-right:8px"></i> SALIDA</button>
                         </div>
                         <p style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">
                             Se validará su ubicación por GPS.
@@ -3255,7 +3261,7 @@ const Views = {
 
                 <div class="form-group" style="max-width: 400px; margin-bottom: 2.5rem;">
                     <label style="font-weight: 600; color: var(--text-main); margin-bottom: 0.8rem; display: block;">
-                        👤 Seleccionar Empleado
+                        <i data-lucide="user" style="width:14px; margin-right:6px"></i> Seleccionar Empleado
                     </label>
                     <select id="calc-employee-id" required ${isAdmin ? '' : 'disabled'}>
                         ${isAdmin ? '<option value="">-- Elija un empleado de la lista --</option>' : ''}
@@ -3294,8 +3300,8 @@ const Views = {
                 </div>
 
                 <div style="margin-top: 1.5rem; display: flex; gap: 10px;">
-                    <button class="btn" style="background: rgba(255,255,255,0.05)" id="calc-add-row">+ Agregar Día</button>
-                    <button class="btn btn-primary" id="calc-save-logs" disabled>💾 Guardar Registros</button>
+                    <button class="btn" style="background: rgba(255,255,255,0.05)" id="calc-add-row"><i data-lucide="plus" style="width:16px; margin-right:6px"></i> Agregar Día</button>
+                    <button class="btn btn-primary" id="calc-save-logs" disabled><i data-lucide="save" style="width:18px; margin-right:8px"></i> Guardar Registros</button>
                 </div>
 
                 <div id="calc-summary" style="margin-top: 3rem; padding: 2.5rem; background: rgba(99, 102, 241, 0.05); border-radius: 20px; border: 1px solid var(--primary); display: none;">
@@ -3401,7 +3407,8 @@ const Views = {
                     tr.querySelector('.calc-subtotal').textContent = displayHours.toFixed(2) + 'h';
 
                     const grossLine = displayHours * rate;
-                    const ccssLine = (emp && emp.apply_ccss) ? (grossLine * 0.1067) : 0;
+                    const percentage = (Auth.getUser()?.ccss_percentage || 10.67) / 100;
+                    const ccssLine = (emp && emp.apply_ccss) ? (grossLine * percentage) : 0;
                     const netLine = grossLine - ccssLine;
 
                     const ccssCell = tr.querySelector('.calc-ccss');
@@ -3443,7 +3450,8 @@ const Views = {
                 }
             }
 
-            const totalCCSS = (emp && emp.apply_ccss) ? (finalPay * 0.1067) : 0;
+            const percentage = (Auth.getUser()?.ccss_percentage || 10.67) / 100;
+            const totalCCSS = (emp && emp.apply_ccss) ? (finalPay * percentage) : 0;
             const netPay = finalPay - totalCCSS;
 
             document.getElementById('calc-total-hours').textContent = totalH.toFixed(2) + 'h';
@@ -3700,7 +3708,8 @@ const Views = {
             }
 
             const gross = hours * parseFloat(emp.hourly_rate);
-            const deduction = emp.apply_ccss ? (gross * 0.1067) : 0;
+            const percentage = (Auth.getUser()?.ccss_percentage || 10.67) / 100;
+            const deduction = emp.apply_ccss ? (gross * percentage) : 0;
 
             empData.hours += hours;
             empData.gross += gross;
@@ -3722,8 +3731,8 @@ const Views = {
                 <div class="table-header">
                     <h3>Resumen de Pagos Pendientes (Agrupado)</h3>
                     <div style="display: flex; gap: 10px">
-                         <button class="btn btn-danger" onclick="window.clearAllLogs()">🗑️ Limpiar Todo</button>
-                         <button class="btn btn-primary" id="process-payroll-btn">💳 Pagar Seleccionados</button>
+                         <button class="btn btn-danger" onclick="window.clearAllLogs()"><i data-lucide="trash-2" style="width:16px; margin-right:6px"></i> Limpiar Todo</button>
+                         <button class="btn btn-primary" id="process-payroll-btn"><i data-lucide="credit-card" style="width:18px; margin-right:8px"></i> Pagar Seleccionados</button>
                     </div>
                 </div>
                 <div class="table-container">
@@ -3768,14 +3777,14 @@ const Views = {
                                     <td style="color: var(--warning); font-size: 0.85rem">${ps.voucherTotal > 0 ? '₡' + Math.round(ps.voucherTotal).toLocaleString() : '—'}</td>
                                     <td style="color: var(--success); font-weight: 700;">₡${Math.round(ps.net).toLocaleString()}</td>
                                     <td style="font-weight: 600">${ps.hours.toFixed(1)}h</td>
-                                    <td style="text-align:center">${ps.logs.some(l => l.source === 'Marker') ? '📍' : '⌨️'}</td>
+                                    <td style="text-align:center">${ps.logs.some(l => l.source === 'Marker') ? '<i data-lucide="map-pin" style="width:14px"></i>' : '<i data-lucide="keyboard" style="width:14px"></i>'}</td>
                                     <td style="font-size: 0.85rem; color: var(--text-muted)">${ps.lunchHours.toFixed(1)}h</td>
                                     <td style="display: flex; gap: 5px">
-                                        <button class="btn btn-primary" title="Ver Detalle" style="padding: 5px 10px" onclick="PayrollHelpers.showPayrollDetail(${ps.empId})">${PayrollHelpers.EYE_ICON}</button>
-                                        <button class="btn btn-success" title="Pagar Todo" style="padding: 5px 10px; background: var(--success);" onclick="PayrollHelpers.payEmployeeGroup(${ps.empId})">💰</button>
-                                        <button class="btn btn-secondary" title="Editar" style="padding: 5px 10px" onclick="PayrollHelpers.showPayrollDetail(${ps.empId})">✏️</button>
-                                        <button class="btn btn-whatsapp" title="Enviar Resumen WhatsApp" style="padding: 5px 10px" onclick="PayrollHelpers.shareWhatsAppPending(${ps.empId})">✉️</button>
-                                        <button class="btn btn-danger" onclick="window.clearEmpLogs(${ps.empId})" style="padding: 4px 8px; font-size: 0.8rem" title="Limpiar">🗑️</button>
+                                        <button class="btn btn-primary" title="Ver Detalle" style="padding: 5px 10px" onclick="PayrollHelpers.showPayrollDetail(${ps.empId})"><i data-lucide="eye" style="width:16px"></i></button>
+                                        <button class="btn btn-success" title="Pagar Todo" style="padding: 5px 10px; background: var(--success);" onclick="PayrollHelpers.payEmployeeGroup(${ps.empId})"><i data-lucide="banknote" style="width:16px"></i></button>
+                                        <button class="btn btn-secondary" title="Editar" style="padding: 5px 10px" onclick="PayrollHelpers.showPayrollDetail(${ps.empId})"><i data-lucide="edit-3" style="width:16px"></i></button>
+                                        <button class="btn btn-whatsapp" title="Enviar Resumen WhatsApp" style="padding: 5px 10px" onclick="PayrollHelpers.shareWhatsAppPending(${ps.empId})"><i data-lucide="mail" style="width:16px"></i></button>
+                                        <button class="btn btn-danger" onclick="window.clearEmpLogs(${ps.empId})" style="padding: 4px 8px; font-size: 0.8rem" title="Limpiar"><i data-lucide="trash-2" style="width:16px"></i></button>
                                     </td>
                                 </tr>
                             `;
@@ -3790,9 +3799,9 @@ const Views = {
                 <div class="table-header">
                     <h3>Historial de Pagos</h3>
                     <div style="display: flex; gap: 10px">
-                        <button class="btn btn-info" onclick="window.exportCCSS()" style="background: var(--primary)">🇨🇷 Exportar CCSS</button>
-                        <button class="btn btn-warning" onclick="window.exportPayments()">📥 Excel</button>
-                        <button class="btn btn-danger" id="delete-selected-payments">🗑️ Eliminar</button>
+                        <button class="btn btn-info" onclick="window.exportCCSS()" style="background: var(--primary)"><i data-lucide="file-text" style="width:16px; margin-right:6px"></i> Exportar CCSS</button>
+                        <button class="btn btn-warning" onclick="window.exportPayments()"><i data-lucide="download" style="width:16px; margin-right:6px"></i> Excel</button>
+                        <button class="btn btn-danger" id="delete-selected-payments"><i data-lucide="trash-2" style="width:16px; margin-right:6px"></i> Eliminar</button>
                     </div>
                 </div>
                 <div class="table-container">
@@ -3842,10 +3851,10 @@ const Views = {
                                         <td>${parseFloat(p.hours || 0).toFixed(1)}h</td>
                                         <td style="font-size: 0.85rem; color: var(--text-muted)">${parseFloat(lunch).toFixed(1)}h</td>
                                         <td style="display: flex; gap: 5px">
-                                            <button class="btn btn-primary" title="Ver Detalle" style="padding: 5px 10px" onclick="PayrollHelpers.showPaymentHistoryDetail('${p.id}')">${PayrollHelpers.EYE_ICON}</button>
-                                            <button class="btn btn-secondary" title="Editar" style="padding: 5px 10px" onclick="window.editPaymentRecord('${p.id}')">✏️</button>
-                                            <button class="btn btn-whatsapp" title="WhatsApp" style="padding: 5px 10px" onclick="window.shareWhatsApp('${p.id}')">✉️</button>
-                                            <button class="btn btn-danger" style="padding: 5px 10px" onclick="window.deletePayment('${p.id}')">🗑️</button>
+                                            <button class="btn btn-primary" title="Ver Detalle" style="padding: 5px 10px" onclick="PayrollHelpers.showPaymentHistoryDetail('${p.id}')"><i data-lucide="eye" style="width:16px"></i></button>
+                                            <button class="btn btn-secondary" title="Editar" style="padding: 5px 10px" onclick="window.editPaymentRecord('${p.id}')"><i data-lucide="edit-3" style="width:16px"></i></button>
+                                            <button class="btn btn-whatsapp" title="WhatsApp" style="padding: 5px 10px" onclick="window.shareWhatsApp('${p.id}')"><i data-lucide="mail" style="width:16px"></i></button>
+                                            <button class="btn btn-danger" style="padding: 5px 10px" onclick="window.deletePayment('${p.id}')"><i data-lucide="trash-2" style="width:16px"></i></button>
                                         </td>
                                     </tr>
                                 `;
@@ -4180,19 +4189,19 @@ const Views = {
                         <p style="color: var(--text-muted); font-size: 0.9rem">Seleccione o arrastre el archivo de liquidación (Ini, Fin, Empleado, Horas...)</p>
                     </div>
                     <button class="btn btn-secondary" onclick="Views.downloadImportTemplate()" style="background: rgba(99,102,241,0.1); border: 1px solid var(--primary); color: var(--primary)">
-                        📥 Descargar Plantilla
+                        <i data-lucide="download" style="width:16px; margin-right:6px"></i> Descargar Plantilla
                     </button>
                 </div>
                 
                 <div id="drop-zone" class="import-zone" style="border: 2px dashed var(--primary); background: rgba(99,102,241,0.02); height: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-radius: 20px; margin-bottom: 2rem;">
-                    <div style="font-size: 3.5rem; margin-bottom: 1rem">📊</div>
+                    <div style="font-size: 3.5rem; margin-bottom: 1rem; color: var(--primary)"><i data-lucide="file-spreadsheet" style="width:64px; height:64px"></i></div>
                     <h4 id="drop-zone-text">Arrastra tu archivo aquí</h4>
                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem">o haz clic para buscar (.xlsx, .xls, .csv)</p>
                     <input type="file" id="excel-input" accept=".xlsx, .xls, .csv" style="position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
                 </div>
 
                 <div class="card-container" style="background: rgba(99,102,241,0.05); border: 1px solid rgba(99,102,241,0.2); padding: 1.5rem; border-radius: 12px;">
-                    <h4 style="margin-bottom: 1rem; color: var(--primary);">📋 Guía de Formato Requerido</h4>
+                    <h4 style="margin-bottom: 1rem; color: var(--primary);"><i data-lucide="clipboard-list" style="width:18px; margin-right:8px; vertical-align:middle"></i> Guía de Formato Requerido</h4>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                         <div style="font-size: 0.85rem;">
                             <strong>Columna A:</strong> Fecha Inicio (YYYY-MM-DD)
@@ -4218,7 +4227,7 @@ const Views = {
                         <h3>Vista Previa de Importación</h3>
                         <div style="display: flex; gap: 10px">
                             <button class="btn btn-secondary" onclick="App.renderView('import')">Cancelar</button>
-                            <button class="btn btn-primary" id="execute-import-btn">✅ Confirmar e Importar</button>
+                            <button class="btn btn-primary" id="execute-import-btn"><i data-lucide="check-circle" style="width:18px; margin-right:8px"></i> Confirmar e Importar</button>
                         </div>
                     </div>
                     <div class="table-container">
@@ -4508,7 +4517,7 @@ const Views = {
                 <div class="card-container">
                     <div class="table-header">
                         <h3>Gestión de Usuarios Admins</h3>
-                        <button class="btn btn-primary" onclick="window.openUserModal()">+ Nuevo Admin</button>
+                        <button class="btn btn-primary" onclick="window.openUserModal()"><i data-lucide="user-plus" style="width:16px; margin-right:6px"></i> Nuevo Admin</button>
                     </div>
                     <div class="table-container">
                         <table>
@@ -4529,8 +4538,8 @@ const Views = {
                                         <td>${u.username}</td>
                                         <td><span class="badge ${u.role === 'super_admin' ? 'badge-primary' : u.role === 'owner' ? 'badge-secondary' : 'badge-info'}" style="font-size: 0.8rem; padding: 2px 6px;">${ROLES[u.role] || u.role}</span></td>
                                         <td>
-                                            <button class="btn btn-secondary" style="padding: 4px 8px;" onclick="window.openUserModal('${u.id}')">✏️</button>
-                                            <button class="btn btn-danger" style="padding: 4px 8px;" onclick="window.deleteUser('${u.id}')">🗑️</button>
+                                            <button class="btn btn-secondary" style="padding: 4px 8px;" onclick="window.openUserModal('${u.id}')"><i data-lucide="edit-3" style="width:14px"></i></button>
+                                            <button class="btn btn-danger" style="padding: 4px 8px;" onclick="window.deleteUser('${u.id}')"><i data-lucide="trash-2" style="width:14px"></i></button>
                                         </td>
                                     </tr>
                                 `).join('')}
@@ -4557,7 +4566,7 @@ const Views = {
                 <div class="card-container">
                     <div class="table-header">
                         <h3>Gestión de Super Usuarios Desarrollador</h3>
-                        <button class="btn btn-primary" onclick="window.openUserModal()">+ Nuevo Super Usuario</button>
+                        <button class="btn btn-primary" onclick="window.openUserModal()"><i data-lucide="shield-plus" style="width:16px; margin-right:6px"></i> Nuevo Super Usuario</button>
                     </div>
                     <div class="table-container">
                         <table>
@@ -4576,8 +4585,8 @@ const Views = {
                                         <td>${u.username}</td>
                                         <td><span class="badge badge-primary" style="font-size: 0.8rem; padding: 2px 6px;">${ROLES.super_admin}</span></td>
                                         <td>
-                                            <button class="btn btn-secondary" style="padding: 4px 8px;" onclick="window.openUserModal('${u.id}')">✏️</button>
-                                            <button class="btn btn-danger" style="padding: 4px 8px;" onclick="window.deleteUser('${u.id}')">🗑️</button>
+                                            <button class="btn btn-secondary" style="padding: 4px 8px;" onclick="window.openUserModal('${u.id}')"><i data-lucide="edit-3" style="width:14px"></i></button>
+                                            <button class="btn btn-danger" style="padding: 4px 8px;" onclick="window.deleteUser('${u.id}')"><i data-lucide="trash-2" style="width:14px"></i></button>
                                         </td>
                                     </tr>
                                 `).join('')}
@@ -4610,7 +4619,7 @@ const Views = {
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem">
                                     <div style="display: flex; gap: 15px; align-items: center;">
                                         <div style="font-size: 2rem; background: rgba(255,255,255,0.05); width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
-                                            ${c.type === 'HOTMART_SALE' ? '💰' : c.type === 'NEW_REGISTRATION' ? '🏢' : '🧪'}
+                                            ${c.type === 'HOTMART_SALE' ? '<i data-lucide="shopping-cart"></i>' : c.type === 'NEW_REGISTRATION' ? '<i data-lucide="building-2"></i>' : '<i data-lucide="test-tube"></i>'}
                                         </div>
                                         <div>
                                             <h4 style="margin: 0; font-size: 1.1rem">${c.name}</h4>
@@ -4619,7 +4628,7 @@ const Views = {
                                             </span>
                                         </div>
                                     </div>
-                                    <button class="btn btn-secondary" style="padding: 8px 12px;" onclick="window.editEmailConfig(${c.id})">✏️ Configurar</button>
+                                    <button class="btn btn-secondary" style="padding: 8px 12px;" onclick="window.editEmailConfig(${c.id})"><i data-lucide="settings" style="width:16px; margin-right:6px"></i> Configurar</button>
                                 </div>
                                 <div style="font-size: 0.85rem; color: var(--text-muted);">
                                     <p><strong>Asunto:</strong> ${c.subject}</p>
@@ -4754,7 +4763,7 @@ const Views = {
 
         return `
             <div class="card-container">
-                <h3>👤 Mi Cuenta</h3>
+                <h3><i data-lucide="user" style="width:20px; margin-right:8px; vertical-align:middle"></i> Mi Cuenta</h3>
                 <form id="personal-settings-form" class="form-grid" style="margin-top: 1.5rem; margin-bottom: 2rem;">
                     <div class="form-group">
                         <label>Nombre</label>
@@ -4783,7 +4792,7 @@ const Views = {
                 </form>
 
                 <div style="margin-top: 2rem;">
-                    <h3 style="margin-bottom: 1rem;">🏢 Configuración de Empresa</h3>
+                    <h3 style="margin-bottom: 1rem;"><i data-lucide="building-2" style="width:20px; margin-right:8px; vertical-align:middle"></i> Configuración de Empresa</h3>
                 </div>
                 <form id="business-settings-form" class="form-grid">
                     <div style="grid-column: span 2; margin-bottom: 1rem;">
@@ -4850,12 +4859,16 @@ const Views = {
                             <option value="Monthly" ${biz.cycle_type === 'Monthly' ? 'selected' : ''}>Mensual</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label>Porcentaje CCSS (Ej: 10.67)</label>
+                        <input type="number" name="ccss_percentage" step="0.01" value="${biz.ccss_percentage || 10.67}">
+                    </div>
                     <div class="form-group" style="grid-column: span 2;">
                         <label>Logo de la Empresa</label>
                         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                             <img src="${biz.logo_url || ''}" id="profile-logo-preview" style="max-height: 50px; border-radius: 8px; background: rgba(255,255,255,0.05); ${biz.logo_url ? '' : 'display:none;'}">
-                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('logo-upload-input').click()">📁 Subir Logo</button>
-                            ${biz.logo_url ? `<button type="button" class="btn btn-danger" id="btn-remove-logo" style="padding: 8px 12px;">🗑️ Quitar Logo</button>` : ''}
+                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('logo-upload-input').click()"><i data-lucide="upload" style="width:16px; margin-right:6px"></i> Subir Logo</button>
+                            ${biz.logo_url ? `<button type="button" class="btn btn-danger" id="btn-remove-logo" style="padding: 8px 12px;"><i data-lucide="trash-2" style="width:16px"></i> Quitar Logo</button>` : ''}
                             <input type="file" id="logo-upload-input" accept="image/*" style="display: none;">
                             <p style="font-size: 0.75rem; color: var(--text-muted); width: 100%;">Máx 2MB. PNG, JPG, SVG. Si no hay logo, se mostrará el nombre.</p>
                         </div>
@@ -4894,7 +4907,7 @@ const Views = {
                         <input type="number" name="gps_radius_meters" value="${biz.gps_radius_meters || 100}">
                     </div>
                     <div class="form-group" style="display: flex; align-items: flex-end;">
-                        <button type="button" class="btn btn-secondary" onclick="window.getCurrentPositionForMarker()" style="width: 100%;">📍 Obtener Mi Ubicación</button>
+                        <button type="button" class="btn btn-secondary" onclick="window.getCurrentPositionForMarker()" style="width: 100%;"><i data-lucide="map-pin" style="width:16px; margin-right:6px"></i> Obtener Mi Ubicación</button>
                     </div>
 
                     <div style="grid-column: span 2; margin-top: 30px; display: flex; justify-content: center;">
@@ -4905,14 +4918,14 @@ const Views = {
 
             <div class="card-container" style="margin-top: 2rem; border: 1px solid var(--danger); background: rgba(239, 68, 68, 0.02);">
                 <div style="margin-bottom: 1.5rem">
-                    <h3 style="color: var(--danger)">🛠️ Zona de Mantenimiento</h3>
+                    <h3 style="color: var(--danger)"><i data-lucide="hammer" style="width:20px; margin-right:8px; vertical-align:middle"></i> Zona de Mantenimiento</h3>
                     <p style="color: var(--text-muted); font-size: 0.9rem">Use estas opciones para corregir errores de importación o reiniciar el sistema. <strong>Cuidado: Esta acción es irreversible.</strong></p>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                    <button class="btn btn-danger" onclick="window.clearTable('logs')">🗑️ Borrar Horas Pendientes</button>
-                    <button class="btn btn-danger" onclick="window.clearTable('payments')">🗑️ Borrar Historial Pagos</button>
-                    <button class="btn btn-danger" onclick="window.clearTable('employees')">🗑️ Borrar Todos los Empleados</button>
-                    <button class="btn" style="background: var(--danger); color: white; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);" onclick="window.clearTable('all')">🔥 REINICIO TOTAL</button>
+                    <button class="btn btn-danger" onclick="window.clearTable('logs')"><i data-lucide="trash-2" style="width:16px; margin-right:6px"></i> Borrar Horas Pendientes</button>
+                    <button class="btn btn-danger" onclick="window.clearTable('payments')"><i data-lucide="trash-2" style="width:16px; margin-right:6px"></i> Borrar Historial Pagos</button>
+                    <button class="btn btn-danger" onclick="window.clearTable('employees')"><i data-lucide="trash-2" style="width:16px; margin-right:6px"></i> Borrar Todos los Empleados</button>
+                    <button class="btn" style="background: var(--danger); color: white; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);" onclick="window.clearTable('all')"><i data-lucide="flame" style="width:16px; margin-right:6px"></i> REINICIO TOTAL</button>
                 </div>
             </div>
         `;
@@ -5162,7 +5175,8 @@ const Views = {
                             logo_url: result.logo_url,
                             theme_preference: result.theme_preference,
                             cycle_type: result.cycle_type,
-                            default_overtime_multiplier: result.default_overtime_multiplier
+                            default_overtime_multiplier: result.default_overtime_multiplier,
+                            ccss_percentage: result.ccss_percentage
                         }));
 
                         // Aplicar tema inmediatamente si cambió

@@ -24,6 +24,7 @@
     <!-- Content Security Policy -->
     <meta http-equiv="Content-Security-Policy"
         content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
 <body>
@@ -62,13 +63,8 @@
                         <label>Contraseña</label>
                         <div class="password-wrapper">
                             <input type="password" id="password" placeholder="••••••••">
-                            <button type="button" class="password-toggle"
-                                onclick="window.togglePassword('password')"><svg width="20" height="20"
-                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                                    stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none">
-                                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                                    <circle cx="12" cy="12" r="3" />
-                                </svg></button>
+                            <button type="button" class="password-toggle" onclick="window.togglePassword('password')"><i
+                                    data-lucide="eye" style="width:20px; height:20px"></i></button>
                         </div>
                     </div>
                 </div>
@@ -94,7 +90,9 @@
             <!-- Botón de Instalación PWA -->
             <div id="pwa-install-section" class="pwa-install-container">
                 <button id="btn-pwa-install" class="pwa-install-btn">
-                    <span style="font-size: 1.2rem;">📲</span> Instalar Aplicación Avantix One
+                    <i data-lucide="smartphone"
+                        style="width:20px; height:20px; margin-right:8px; vertical-align:middle"></i> Instalar
+                    Aplicación Avantix One
                 </button>
             </div>
 
@@ -129,25 +127,25 @@
             </div>
             <nav>
                 <button class="nav-item active" data-view="dashboard">
-                    <span class="nav-icon">📊</span> Dashboard
+                    <span class="nav-icon"><i data-lucide="layout-dashboard"></i></span> Dashboard
                 </button>
                 <button class="nav-item" data-view="employees">
-                    <span class="nav-icon">👥</span> Empleados
+                    <span class="nav-icon"><i data-lucide="users"></i></span> Empleados
                 </button>
                 <button class="nav-item" data-view="users">
-                    <span class="nav-icon">🔑</span> Usuarios
+                    <span class="nav-icon"><i data-lucide="key"></i></span> Usuarios
                 </button>
                 <button class="nav-item" data-view="calculator">
-                    <span class="nav-icon">🧮</span> Calculadora
+                    <span class="nav-icon"><i data-lucide="calculator"></i></span> Calculadora
                 </button>
                 <button class="nav-item" data-view="payroll">
-                    <span class="nav-icon">💰</span> Planillas
+                    <span class="nav-icon"><i data-lucide="banknote"></i></span> Planillas
                 </button>
                 <button class="nav-item" data-view="import">
-                    <span class="nav-icon">📥</span> Importar Excel
+                    <span class="nav-icon"><i data-lucide="download"></i></span> Importar Excel
                 </button>
                 <button class="nav-item" data-view="profile">
-                    <span class="nav-icon">⚙️</span> Mi Perfil
+                    <span class="nav-icon"><i data-lucide="settings"></i></span> Mi Perfil
                 </button>
 
                 <!-- SECCIÓN PARA SUPER ADMIN -->
@@ -156,25 +154,28 @@
                 </div>
                 <div id="super-admin-label"
                     style="display: none; padding: 0 1rem; font-size: 0.65rem; font-weight: 700; color: var(--primary); opacity: 0.7; letter-spacing: 1px; margin-bottom: 0.5rem;">
-                    ⚙️ MODULO DESARROLLADOR</div>
+                    <i data-lucide="terminal"
+                        style="width:14px; height:14px; margin-right:4px; vertical-align:middle"></i> MODULO
+                    DESARROLLADOR
+                </div>
 
                 <button class="nav-item" data-view="adminBusinesses" id="nav-admin-businesses" style="display: none;">
-                    <span class="nav-icon">🏢</span> Empresas
+                    <span class="nav-icon"><i data-lucide="building-2"></i></span> Empresas
                 </button>
                 <button class="nav-item" data-view="adminSuperUsers" id="nav-admin-super-users" style="display: none;">
-                    <span class="nav-icon">🦸</span> Super Usuarios
+                    <span class="nav-icon"><i data-lucide="user-cog"></i></span> Super Usuarios
                 </button>
                 <button class="nav-item" data-view="adminStats" id="nav-admin-stats" style="display: none;">
-                    <span class="nav-icon">📈</span> Global Stats
+                    <span class="nav-icon"><i data-lucide="trending-up"></i></span> Global Stats
                 </button>
                 <button class="nav-item" data-view="adminEmailSettings" id="nav-admin-email" style="display: none;">
-                    <span class="nav-icon">📧</span> Config. Email
+                    <span class="nav-icon"><i data-lucide="mail"></i></span> Config. Email
                 </button>
             </nav>
             <div style="margin-top: auto; padding: 1rem;">
                 <button class="btn" id="logout-btn"
                     style="width: 100%; justify-content: center; background: rgba(239, 68, 68, 0.1); color: var(--danger);">
-                    🚪 Cerrar Sesión
+                    <i data-lucide="log-out" style="width: 18px; margin-right: 8px;"></i> Cerrar Sesión
                 </button>
             </div>
             <div class="sidebar-footer">
@@ -185,14 +186,14 @@
         <main class="content">
             <header>
                 <div style="display: flex; align-items: center; gap: 1rem;">
-                    <button id="menu-toggle" class="menu-toggle">☰</button>
+                    <button id="menu-toggle" class="menu-toggle"><i data-lucide="menu"></i></button>
                     <h2 id="view-title">Dashboard</h2>
                 </div>
                 <div class="user-profile">
                     <button id="header-theme-toggle" class="btn-icon" title="Cambiar Tema"
                         style="margin-right: 1rem; background: var(--hover-bg); border-radius: 12px; padding: 8px;">
-                        <span id="theme-icon-sun">☀️</span>
-                        <span id="theme-icon-moon" style="display: none;">🌙</span>
+                        <span id="theme-icon-sun"><i data-lucide="sun"></i></span>
+                        <span id="theme-icon-moon" style="display: none;"><i data-lucide="moon"></i></span>
                     </button>
                     <span class="status-dot"></span>
                     <span class="username">Administrador</span>
@@ -285,7 +286,7 @@
                     <input type="checkbox" name="applyCCSS" id="apply-ccss-check"
                         style="width: 20px; height: 20px; cursor: pointer;">
                     <label for="apply-ccss-check" style="margin: 0; cursor: pointer; font-weight: 600;">Aplicar
-                        Rebajo CCSS (10.67%)</label>
+                        Rebajo CCSS</label>
                 </div>
 
                 <div class="form-group"
@@ -322,7 +323,9 @@
             <!-- SECCIÓN DE VALES (Dentro del perfil) -->
             <div id="employee-vouchers-section"
                 style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; display: none;">
-                <h4 style="color: var(--warning); margin-bottom: 1rem;">🎫 Vales y Adelantos Pendientes</h4>
+                <h4 style="color: var(--warning); margin-bottom: 1rem;"><i data-lucide="ticket"
+                        style="width:18px; margin-right:8px; vertical-align:middle"></i> Vales y Adelantos Pendientes
+                </h4>
                 <div class="table-container"
                     style="background: rgba(245, 158, 11, 0.03); border: 1px solid rgba(245, 158, 11, 0.1); border-radius: 12px; padding: 10px;">
                     <table style="font-size: 0.85rem;">
@@ -343,7 +346,8 @@
 
                 <div
                     style="margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
-                    <h5 style="margin-top: 0; margin-bottom: 10px; font-size: 0.85rem; color: var(--text-muted);">➕
+                    <h5 style="margin-top: 0; margin-bottom: 10px; font-size: 0.85rem; color: var(--text-muted);"><i
+                            data-lucide="plus" style="width:14px; margin-right:6px; vertical-align:middle"></i>
                         Agregar Nuevo Vale</h5>
                     <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
                         <input type="date" id="profile-voucher-date" style="padding: 6px; font-size: 0.85rem; flex: 1;">
@@ -391,7 +395,9 @@
 
             <!-- SECCIÓN DE VALES / ADELANTOS -->
             <div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
-                <h4 style="color: var(--warning); margin-bottom: 1rem;">🎫 Vales y Adelantos Pendientes</h4>
+                <h4 style="color: var(--warning); margin-bottom: 1rem;"><i data-lucide="ticket"
+                        style="width:18px; margin-right:8px; vertical-align:middle"></i> Vales y Adelantos Pendientes
+                </h4>
                 <div class="table-container"
                     style="background: rgba(245, 158, 11, 0.03); border: 1px solid rgba(245, 158, 11, 0.1); border-radius: 12px; padding: 10px;">
                     <table style="font-size: 0.85rem;">
@@ -413,7 +419,8 @@
                 <!-- Formulario rápido para agregar vale -->
                 <div
                     style="margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
-                    <h5 style="margin-top: 0; margin-bottom: 10px; font-size: 0.85rem; color: var(--text-muted);">➕
+                    <h5 style="margin-top: 0; margin-bottom: 10px; font-size: 0.85rem; color: var(--text-muted);"><i
+                            data-lucide="plus" style="width:14px; margin-right:6px; vertical-align:middle"></i>
                         Agregar Nuevo Vale/Adelanto</h5>
                     <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
                         <div style="flex: 1; min-width: 120px;">
@@ -449,7 +456,8 @@
     <dialog id="whatsapp-confirm-modal" class="modal-small">
         <div class="modal-content">
             <div style="text-align: center; margin-bottom: 1.5rem;">
-                <div id="whatsapp-confirm-icon" style="font-size: 3rem; margin-bottom: 0.5rem;">✅</div>
+                <div id="whatsapp-confirm-icon" style="margin-bottom: 0.5rem;"><i data-lucide="check-circle"
+                        style="width:40px; height:40px; color: var(--success)"></i></div>
                 <h3 id="whatsapp-confirm-title" style="color: var(--success);">WhatsApp Enviado</h3>
                 <p id="whatsapp-confirm-subtitle" style="color: var(--text-muted); font-size: 0.9rem;">El resumen se ha
                     enviado correctamente.</p>
@@ -467,7 +475,8 @@
 
     <dialog id="payroll-success-modal" class="modal-small">
         <div class="modal-content" style="text-align: center;">
-            <div style="font-size: 4rem; margin-bottom: 1rem;">🎊</div>
+            <div style="margin-bottom: 1rem;"><i data-lucide="party-popper"
+                    style="width:48px; height:48px; color: var(--success)"></i></div>
             <h3 style="color: var(--success); margin-bottom: 0.5rem;">¡Planilla Registrada!</h3>
             <p style="color: var(--text-muted); margin-bottom: 1.5rem;">El procesamiento se ha completado con éxito.</p>
 
@@ -492,7 +501,9 @@
                 <div style="grid-column: span 2;">
                     <h3
                         style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1.5rem; border-bottom: 2px solid rgba(99,102,241,0.2); padding-bottom: 8px;">
-                        👤 Información del Usuario (Dueño)</h3>
+                        <i data-lucide="user" style="width:20px; margin-right:8px; vertical-align:middle"></i>
+                        Información del Usuario (Dueño)
+                    </h3>
                 </div>
                 <div class="form-group">
                     <label>Nombre(s)</label>
@@ -542,7 +553,9 @@
                 <div style="grid-column: span 2; margin-top: 20px;">
                     <h3
                         style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1.5rem; border-bottom: 2px solid rgba(99,102,241,0.2); padding-bottom: 8px;">
-                        🏢 Información de la Empresa</h3>
+                        <i data-lucide="building-2" style="width:20px; margin-right:8px; vertical-align:middle"></i>
+                        Información de la Empresa
+                    </h3>
                 </div>
 
                 <div class="form-group">
@@ -595,7 +608,9 @@
                 <div style="grid-column: span 2; margin-top: 20px;">
                     <h3
                         style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1.5rem; border-bottom: 2px solid rgba(99,102,241,0.2); padding-bottom: 8px;">
-                        ⚙️ Configuración del Sistema</h3>
+                        <i data-lucide="settings" style="width:20px; margin-right:8px; vertical-align:middle"></i>
+                        Configuración del Sistema
+                    </h3>
                 </div>
                 <div class="form-group">
                     <label>Estado de Cuenta</label>
@@ -618,10 +633,12 @@
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <img src="" id="admin-business-logo-preview"
                             style="max-height: 50px; border-radius: 8px; background: rgba(255,255,255,0.05); display: none;">
-                        <button type="button" class="btn btn-secondary" id="admin-logo-upload-btn">📁 Subir
+                        <button type="button" class="btn btn-secondary" id="admin-logo-upload-btn"><i
+                                data-lucide="upload" style="width:16px; margin-right:6px"></i> Subir
                             Logo</button>
                         <button type="button" class="btn btn-danger" id="admin-logo-remove-btn"
-                            style="display: none; padding: 8px 12px;">🗑️ Quitar Logo</button>
+                            style="display: none; padding: 8px 12px;"><i data-lucide="trash-2"
+                                style="width:16px; margin-right:6px"></i> Quitar Logo</button>
                         <input type="file" id="admin-logo-upload-input" accept="image/*" style="display: none;">
                         <input type="hidden" name="logo_url" id="business-logo">
                         <p style="font-size: 0.75rem; color: var(--text-muted); width: 100%;">Máx 2MB. PNG, JPG, SVG. Si

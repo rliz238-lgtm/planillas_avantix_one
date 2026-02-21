@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS businesses (
     gps_longitude DOUBLE PRECISION,
     gps_radius_meters INTEGER DEFAULT 100,
     attendance_photo_required BOOLEAN DEFAULT FALSE,
+    ccss_percentage DECIMAL(5, 2) DEFAULT 10.67,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -338,6 +339,10 @@ BEGIN
         ALTER TABLE logs ADD COLUMN source VARCHAR(20) DEFAULT 'Manual';
         ALTER TABLE logs ADD COLUMN photo_url TEXT;
         ALTER TABLE logs ADD COLUMN location_metadata JSONB DEFAULT '{}'::jsonb;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='businesses' AND column_name='ccss_percentage') THEN
+        ALTER TABLE businesses ADD COLUMN ccss_percentage DECIMAL(5, 2) DEFAULT 10.67;
     END IF;
 END $$;
 
