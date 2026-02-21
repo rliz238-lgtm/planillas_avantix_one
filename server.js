@@ -269,7 +269,7 @@ app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
         const result = await db.query(
-            'SELECT u.*, b.name as business_name, b.logo_url, b.cycle_type, b.default_overtime_multiplier, b.theme_preference, b.ccss_percentage, b.rent_brackets FROM users u LEFT JOIN businesses b ON u.business_id = b.id WHERE u.username = $1 AND u.password = $2',
+            'SELECT u.*, b.name as business_name, b.logo_url, b.cycle_type, b.default_overtime_multiplier, b.theme_preference, b.ccss_percentage, b.rent_brackets, b.attendance_marker_enabled, b.attendance_photo_required, b.gps_latitude, b.gps_longitude, b.gps_radius_meters FROM users u LEFT JOIN businesses b ON u.business_id = b.id WHERE u.username = $1 AND u.password = $2',
             [username, password]
         );
         if (result.rows.length > 0) {
@@ -287,7 +287,12 @@ app.post('/api/login', async (req, res) => {
                 default_overtime_multiplier: user.default_overtime_multiplier,
                 ccss_percentage: user.ccss_percentage || 10.83,
                 rent_brackets: user.rent_brackets || null,
-                theme_preference: user.theme_preference || 'dark'
+                theme_preference: user.theme_preference || 'dark',
+                attendance_marker_enabled: !!user.attendance_marker_enabled,
+                attendance_photo_required: !!user.attendance_photo_required,
+                gps_latitude: user.gps_latitude,
+                gps_longitude: user.gps_longitude,
+                gps_radius_meters: user.gps_radius_meters
             });
         } else {
             res.status(401).json({ error: 'Usuario o contraseña incorrectos' });

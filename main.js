@@ -796,6 +796,11 @@ const Auth = {
                     default_overtime_multiplier: user.default_overtime_multiplier || 1.5,
                     ccss_percentage: user.ccss_percentage || 10.83,
                     rent_brackets: user.rent_brackets || null,
+                    attendance_marker_enabled: !!user.attendance_marker_enabled,
+                    attendance_photo_required: !!user.attendance_photo_required,
+                    gps_latitude: user.gps_latitude,
+                    gps_longitude: user.gps_longitude,
+                    gps_radius_meters: user.gps_radius_meters,
                     loginTime: Date.now()
                 }));
                 return true;
@@ -936,7 +941,12 @@ const App = {
                         theme_preference: freshBiz.theme_preference,
                         cycle_type: freshBiz.cycle_type,
                         default_overtime_multiplier: freshBiz.default_overtime_multiplier,
-                        rent_brackets: freshBiz.rent_brackets || null
+                        rent_brackets: freshBiz.rent_brackets || null,
+                        attendance_marker_enabled: !!freshBiz.attendance_marker_enabled,
+                        attendance_photo_required: !!freshBiz.attendance_photo_required,
+                        gps_latitude: freshBiz.gps_latitude,
+                        gps_longitude: freshBiz.gps_longitude,
+                        gps_radius_meters: freshBiz.gps_radius_meters
                     };
                 } else {
                     // Update marker settings for employee
@@ -3659,17 +3669,29 @@ const Views = {
         const isAdmin = user && ['super_admin', 'owner', 'editor'].includes(user.role);
         const activeEmployees = employees.filter(e => e.status === 'Active');
 
-        // Marcador UI para empleados si está habilitado
+        // Marcador UI si está habilitado (empleados y admins)
         let markerHtml = '';
-        if (user.role === 'employee' && user.attendance_marker_enabled) {
+        if (user.attendance_marker_enabled) {
             markerHtml = `
                 <div class="card-container" style="margin-bottom: 2rem; border: 1px solid var(--primary); background: rgba(99, 102, 241, 0.03);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h3 style="margin: 0; color: var(--primary)"><i data-lucide="map-pin" style="width:18px; margin-right:8px; vertical-align:middle"></i> Marcador de Asistencia</h3>
                         <div id="marker-status" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Listo para marcar</div>
                     </div>
-                    
+
                     <div id="marker-controls" style="display: flex; flex-direction: column; gap: 15px; align-items: center;">
+                        ${isAdmin ? `
+                            <div style="width: 100%; max-width: 400px;">
+                                <label style="font-weight: 600; color: var(--text-main); margin-bottom: 0.5rem; display: block; font-size: 0.85rem;">
+                                    <i data-lucide="user" style="width:14px; margin-right:6px"></i> Marcar asistencia para:
+                                </label>
+                                <select id="marker-employee-select" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--input-color);">
+                                    <option value="">-- Seleccione empleado --</option>
+                                    ${activeEmployees.map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
+                                </select>
+                            </div>
+                        ` : ''}
+
                         ${user.attendance_photo_required ? `
                             <div id="camera-container" style="width: 100%; max-width: 320px; aspect-ratio: 4/3; background: #000; border-radius: 12px; overflow: hidden; position: relative;">
                                 <video id="marker-video" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
@@ -3678,7 +3700,7 @@ const Views = {
                             </div>
                             <button class="btn btn-secondary" id="btn-snap" style="width: 100%; max-width: 320px;"><i data-lucide="camera" style="width:18px; margin-right:8px"></i> Tomar Selfie</button>
                         ` : ''}
-                        
+
                         <div style="display: flex; gap: 10px; width: 100%; max-width: 400px;">
                             <button class="btn btn-primary" id="btn-clock-in" style="flex: 1; padding: 1rem; font-weight: 700; background: var(--success);"><i data-lucide="clock" style="width:18px; margin-right:8px"></i> ENTRADA</button>
                             <button class="btn btn-danger" id="btn-clock-out" style="flex: 1; padding: 1rem; font-weight: 700;"><i data-lucide="clock" style="width:18px; margin-right:8px"></i> SALIDA</button>
@@ -3728,6 +3750,7 @@ const Views = {
                                 <th>Entrada</th>
                                 <th>Salida</th>
                                 <th>Horas</th>
+                                <th>Bruto</th>
                                 <th>CCSS</th>
                                 <th>Neto</th>
                                 <th>Horas Dobles</th>
@@ -3816,6 +3839,7 @@ const Views = {
                 <td><input type="time" class="calc-in" value="${nextIn}"></td>
                 <td><input type="time" class="calc-out" value="${nextOut}"></td>
                 <td class="calc-subtotal" style="font-weight: 600">0.00h</td>
+                <td class="calc-row-gross" style="font-weight: 600">₡0</td>
                 <td class="calc-ccss" style="font-weight: 600; color: var(--danger)">₡0</td>
                 <td class="calc-row-net" style="font-weight: 600; color: var(--success)">₡0</td>
                 <td style="text-align:center"><input type="checkbox" class="calc-double" title="Marcar como Día Doble" style="width: 20px; height: 20px;"></td>
@@ -3833,7 +3857,8 @@ const Views = {
 
         window.updateCalcTotal = async () => {
             const rows = tbody.querySelectorAll('tr');
-            let totalH = 0;
+            let totalRegularH = 0;
+            let totalDoubleH = 0;
             const empId = empSelect.value;
             const employees = await Storage.get('employees');
             const emp = employees.find(e => e.id == empId);
@@ -3855,12 +3880,20 @@ const Views = {
                     diff = Math.max(0, diff - deduction);
 
                     const displayHours = isDouble ? diff * 2 : diff;
-                    tr.querySelector('.calc-subtotal').textContent = displayHours.toFixed(2) + 'h';
+                    const subtotalCell = tr.querySelector('.calc-subtotal');
+                    if (isDouble) {
+                        subtotalCell.innerHTML = `${displayHours.toFixed(2)}h <span style="font-size:0.7rem; color:var(--info);">(${diff.toFixed(1)}h x2)</span>`;
+                    } else {
+                        subtotalCell.textContent = displayHours.toFixed(2) + 'h';
+                    }
 
                     const grossLine = displayHours * rate;
                     const percentage = (Auth.getUser()?.ccss_percentage || 10.83) / 100;
                     const ccssLine = (emp && emp.apply_ccss) ? (grossLine * percentage) : 0;
                     const netLine = grossLine - ccssLine;
+
+                    const grossCell = tr.querySelector('.calc-row-gross');
+                    if (grossCell) grossCell.textContent = '₡' + Math.round(grossLine).toLocaleString();
 
                     const ccssCell = tr.querySelector('.calc-ccss');
                     if (ccssCell) ccssCell.textContent = '₡' + Math.round(ccssLine).toLocaleString();
@@ -3868,10 +3901,15 @@ const Views = {
                     const netCell = tr.querySelector('.calc-row-net');
                     if (netCell) netCell.textContent = '₡' + Math.round(netLine).toLocaleString();
 
-                    totalH += displayHours;
+                    if (isDouble) {
+                        totalDoubleH += displayHours;
+                    } else {
+                        totalRegularH += displayHours;
+                    }
                 }
             });
 
+            const totalH = totalRegularH + totalDoubleH;
             let finalPay = 0;
             const user = Auth.getUser();
             const cycle = user?.cycle_type || 'Weekly';
@@ -3885,19 +3923,28 @@ const Views = {
             const otEnabled = emp ? emp.enable_overtime !== false : true;
             const otInfo = document.getElementById('calc-overtime-info');
 
-            if (totalH > otThreshold && Auth.getUser().role === 'admin' && otEnabled) {
-                const baseH = otThreshold;
-                const extraH = totalH - otThreshold;
-                finalPay = (baseH * rate) + (extraH * rate * otMultiplier);
-                if (otInfo) otInfo.textContent = `Base: ${baseH.toFixed(1)}h | Extra: ${extraH.toFixed(1)}h (x${otMultiplier})`;
-            } else {
-                finalPay = totalH * rate;
-                if (otInfo) {
-                    if (!otEnabled && totalH > otThreshold) {
-                        otInfo.textContent = `⚠️ Horas extra deshabilitadas para este empleado.`;
-                    } else {
-                        otInfo.textContent = "";
-                    }
+            // Calcular horas extra solo de las regulares (no dobles)
+            let extraH = 0;
+            let baseRegH = totalRegularH;
+            if (totalRegularH > otThreshold && otEnabled) {
+                extraH = totalRegularH - otThreshold;
+                baseRegH = otThreshold;
+            }
+
+            const grossRegular = baseRegH * rate;
+            const grossExtra = extraH * rate * otMultiplier;
+            const grossDouble = totalDoubleH * rate;
+            finalPay = grossRegular + grossExtra + grossDouble;
+
+            if (otInfo) {
+                let parts = [];
+                parts.push(`Base: ${baseRegH.toFixed(1)}h`);
+                if (extraH > 0) parts.push(`Extra: ${extraH.toFixed(1)}h (x${otMultiplier})`);
+                if (totalDoubleH > 0) parts.push(`Doble: ${totalDoubleH.toFixed(1)}h`);
+                if (!otEnabled && totalRegularH > otThreshold) {
+                    otInfo.textContent = `⚠️ H. extra deshabilitadas | Doble: ${totalDoubleH.toFixed(1)}h`;
+                } else {
+                    otInfo.textContent = parts.length > 1 ? parts.join(' | ') : '';
                 }
             }
 
@@ -3921,13 +3968,11 @@ const Views = {
 
             const breakdownInfo = document.getElementById('calc-breakdown-info');
             if (breakdownInfo) {
-                if (totalH > otThreshold && otEnabled) {
-                    const baseAmt = otThreshold * rate;
-                    const extraAmt = (totalH - otThreshold) * rate * otMultiplier;
-                    breakdownInfo.textContent = `Base: ₡${Math.round(baseAmt).toLocaleString()} | Extra: ₡${Math.round(extraAmt).toLocaleString()}`;
-                } else {
-                    breakdownInfo.textContent = '';
-                }
+                let bParts = [];
+                if (grossRegular > 0) bParts.push(`Base: ₡${Math.round(grossRegular).toLocaleString()}`);
+                if (grossExtra > 0) bParts.push(`Extra: ₡${Math.round(grossExtra).toLocaleString()}`);
+                if (grossDouble > 0) bParts.push(`Doble: ₡${Math.round(grossDouble).toLocaleString()}`);
+                breakdownInfo.textContent = bParts.length > 1 ? bParts.join(' | ') : '';
             }
 
             summary.style.display = totalH > 0 ? 'block' : 'none';
@@ -4003,7 +4048,7 @@ const Views = {
                         PayrollHelpers.showToast("Planilla Procesada", "La planilla se guardó correctamente. (No se envió WhatsApp por falta de número de teléfono o configuración)", 'warning', 8000);
                     }
 
-                    if (Auth.getUser().role === 'admin') {
+                    if (['super_admin', 'owner', 'editor'].includes(Auth.getUser().role)) {
                         App.switchView('payroll');
                     } else {
                         window.clearCalculator();
@@ -4017,14 +4062,16 @@ const Views = {
             }
         };
 
-        // --- Attendance Marker Logic for Employees ---
+        // --- Attendance Marker Logic (Employees + Admins) ---
         const user = Auth.getUser();
-        if (user.role === 'employee' && user.attendance_marker_enabled) {
+        const isAdminRole = user && ['super_admin', 'owner', 'editor'].includes(user.role);
+        if (user.attendance_marker_enabled) {
             const video = document.getElementById('marker-video');
             const btnSnap = document.getElementById('btn-snap');
             const btnIn = document.getElementById('btn-clock-in');
             const btnOut = document.getElementById('btn-clock-out');
             const statusEl = document.getElementById('marker-status');
+            const markerEmpSelect = document.getElementById('marker-employee-select');
             let capturedPhoto = null;
 
             if (user.attendance_photo_required && video) {
@@ -4042,6 +4089,17 @@ const Views = {
             }
 
             const handleMarkerAction = async (type) => {
+                // Determinar employeeId según rol
+                let markerEmployeeId;
+                if (isAdminRole) {
+                    if (!markerEmpSelect || !markerEmpSelect.value) {
+                        return alert("Seleccione un empleado para marcar asistencia.");
+                    }
+                    markerEmployeeId = parseInt(markerEmpSelect.value);
+                } else {
+                    markerEmployeeId = user.id;
+                }
+
                 if (user.attendance_photo_required && !capturedPhoto) {
                     return alert("Debe tomarse una selfie para marcar.");
                 }
@@ -4081,7 +4139,7 @@ const Views = {
                     // 3. Registrar Log
                     const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
                     const body = {
-                        employeeId: user.id,
+                        employeeId: markerEmployeeId,
                         date: Storage.getLocalDate(),
                         timeIn: type === 'IN' ? timeStr : null,
                         timeOut: type === 'OUT' ? timeStr : null,
@@ -4098,7 +4156,8 @@ const Views = {
 
                     const result = await response.json();
                     if (response.ok) {
-                        alert(`✅ Marcaje de ${type === 'IN' ? 'ENTRADA' : 'SALIDA'} exitoso.`);
+                        const empName = markerEmpSelect ? (markerEmpSelect.options[markerEmpSelect.selectedIndex]?.text || '') : '';
+                        alert(`✅ Marcaje de ${type === 'IN' ? 'ENTRADA' : 'SALIDA'} exitoso.${isAdminRole && empName ? ' (' + empName + ')' : ''}`);
                         location.reload();
                     } else {
                         alert("Error: " + (result.error || "No se pudo registrar"));
