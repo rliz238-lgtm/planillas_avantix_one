@@ -338,8 +338,9 @@ const PayrollHelpers = {
         const d = window._pendingPayrollData[empId];
         const phone = d ? d.phone : '';
         const name = d ? d.name : 'Empleado';
-        const day = new Date(date + 'T00:00:00').toLocaleString('es-ES', { weekday: 'short' }).toUpperCase();
-        const text = `*REGISTRO TTW*\n\n*Emp:* ${name}\n*Día:* ${day} ${date}\n*Horario:* ${tIn || '--'} - ${tOut || '--'}\n*Horas:* ${parseFloat(hours).toFixed(1)}h\n*Monto:* ₡${Math.round(amount).toLocaleString()}`;
+        const dateStr = date.split('T')[0];
+        const day = new Date(dateStr + 'T00:00:00').toLocaleString('es-ES', { weekday: 'short' }).toUpperCase();
+        const text = `*REGISTRO TTW*\n\n*Emp:* ${name}\n*Día:* ${day} ${dateStr}\n*Horario:* ${tIn || '--'} - ${tOut || '--'}\n*Horas:* ${parseFloat(hours).toFixed(1)}h\n*Monto:* ₡${Math.round(amount).toLocaleString()}`;
         PayrollHelpers.sendServerWhatsApp(phone, text);
     },
 
@@ -457,8 +458,10 @@ const PayrollHelpers = {
         if (d.logs && d.logs.length > 0) {
             details = "\n\n*DETALLE DE DÍAS:*\n";
             d.logs.sort((a, b) => new Date(a.date) - new Date(b.date)).forEach(l => {
-                const day = new Date(l.date + 'T00:00:00').toLocaleString('es-ES', { weekday: 'short' }).toUpperCase();
-                details += `• ${day} ${l.date.split('T')[0]}: ${l.time_in || '--'} - ${l.time_out || '--'} (${parseFloat(l.hours).toFixed(1)}h) → ₡${Math.round(l.net).toLocaleString()}\n`;
+                const dateStr = l.date.split('T')[0];
+                const day = new Date(dateStr + 'T00:00:00').toLocaleString('es-ES', { weekday: 'short' }).toUpperCase();
+                const logNet = l.net != null ? l.net : (l.gross - l.deduction);
+                details += `• ${day} ${dateStr}: ${l.time_in || '--'} - ${l.time_out || '--'} (${parseFloat(l.hours).toFixed(1)}h) → ₡${Math.round(logNet).toLocaleString()}\n`;
             });
         }
         const text = `*RESUMEN PAGO - AVANTIX ONE*\n\n*Empleado:* ${d.name}\n*Total Neto:* ₡${Math.round(d.net).toLocaleString()}\n*Total Horas:* ${d.hours.toFixed(1)}h${details}`;
@@ -1207,7 +1210,13 @@ const App = {
             const id = editIdInput.value;
             const prefix = formData.get('phone_prefix') || '';
             const rawPhone = formData.get('phone') || '';
-            const combinedPhone = prefix + rawPhone.replace(/\D/g, '');
+            const cleanPhone = rawPhone.replace(/\D/g, '');
+
+            if (rawPhone && cleanPhone.length < 8) {
+                alert("El número de teléfono debe tener al menos 8 dígitos.");
+                return;
+            }
+            const combinedPhone = prefix + cleanPhone;
 
             const empData = {
                 name: formData.get('name'),
@@ -2554,7 +2563,13 @@ const Views = {
 
             const pref = data.ownerPhonePrefix || '';
             const rawPh = data.ownerPhone || '';
-            finalData.append('phone', pref + rawPh.replace(/\D/g, ''));
+            const cleanPh = rawPh.replace(/\D/g, '');
+            if (cleanPh.length < 8) {
+                alert("El número de teléfono debe tener al menos 8 dígitos.");
+                Storage.showLoader(false);
+                return;
+            }
+            finalData.append('phone', pref + cleanPh);
 
             Storage.showLoader(true, 'Creando su empresa...');
             try {
@@ -2812,7 +2827,13 @@ const Views = {
 
             const pref = data.ownerPhonePrefix || '';
             const rawPh = data.ownerPhone || '';
-            data.owner_phone = pref + rawPh.replace(/\D/g, '');
+            const cleanPh = rawPh.replace(/\D/g, '');
+            if (cleanPh.length < 8) {
+                alert("El número de teléfono debe tener al menos 8 dígitos.");
+                Storage.showLoader(false);
+                return;
+            }
+            data.owner_phone = pref + cleanPh;
             delete data.ownerPhonePrefix;
             delete data.ownerPhone;
 
@@ -5013,7 +5034,12 @@ const Views = {
                 const id = document.getElementById('user-id-input').value;
                 const prefix = form.phone_prefix ? form.phone_prefix.value : '';
                 const rawPhone = form.phone.value || '';
-                const combinedPhone = prefix + rawPhone.replace(/\D/g, '');
+                const cleanPh = rawPhone.replace(/\D/g, '');
+                if (rawPhone && cleanPh.length < 8) {
+                    alert("El número de teléfono debe tener al menos 8 dígitos.");
+                    return;
+                }
+                const combinedPhone = prefix + cleanPh;
 
                 const data = {
                     name: form.name.value,
@@ -5065,7 +5091,13 @@ const Views = {
 
                 const data = { ...rawData };
                 if (rawData.phone_prefix !== undefined && rawData.phone !== undefined) {
-                    data.phone = rawData.phone_prefix + rawData.phone.replace(/\D/g, '');
+                    const cleanPh = rawData.phone.replace(/\D/g, '');
+                    if (rawData.phone && cleanPh.length < 8) {
+                        alert("El número de teléfono debe tener al menos 8 dígitos.");
+                        Storage.showLoader(false);
+                        return;
+                    }
+                    data.phone = rawData.phone_prefix + cleanPh;
                     delete data.phone_prefix;
                 }
 
